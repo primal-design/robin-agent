@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Robin 🦊</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #fff; color: #111; height: 100vh; display: flex; flex-direction: column; }
+
+    /* NAV */
+    nav {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 24px; border-bottom: 1px solid #f0f0f0;
+      position: fixed; top: 0; left: 0; right: 0; background: #fff; z-index: 100;
+    }
+    .nav-left { font-weight: 600; font-size: 15px; cursor: pointer; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-right a { font-size: 14px; color: #111; text-decoration: none; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; background: #111; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+
+    /* PAGES */
+    #landing { display: flex; flex-direction: column; flex: 1; padding-top: 60px; }
+    #chat-page { display: none; flex-direction: column; flex: 1; padding-top: 60px; height: 100vh; }
+
+    /* DEV PANEL */
+    #dev-panel {
+      position: fixed; bottom: 24px; left: 24px; z-index: 999;
+      background: #111; color: #fff; border-radius: 10px;
+      padding: 16px; width: 260px; font-size: 13px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    #dev-panel h3 { margin-bottom: 12px; font-size: 13px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+    .dev-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; }
+    .dev-row label { opacity: 0.8; flex-shrink: 0; }
+    .dev-row input[type=range] { flex: 1; accent-color: #fff; }
+    .dev-row span { width: 32px; text-align: right; opacity: 0.6; font-size: 11px; }
+    #dev-toggle { position: fixed; bottom: 24px; left: 24px; z-index: 1000; background: #111; color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+
+    /* CANVAS */
+    #ascii-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+    /* LANDING HERO */
+    .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; position: relative; z-index: 1; }
+    .hero-content { position: relative; z-index: 2; background: radial-gradient(ellipse 700px 300px at center, rgba(255,255,255,0.97) 40%, rgba(255,255,255,0.85) 65%, transparent 100%); padding: 60px 40px; border-radius: 24px; }
+    .hero h1 { font-size: 32px; font-weight: 600; margin-bottom: 32px; color: #111; }
+    .input-bar { display: flex; align-items: center; width: 100%; max-width: 640px; border: 1px solid #e5e5e5; border-radius: 28px; padding: 12px 16px; gap: 10px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    .input-bar input { flex: 1; border: none; outline: none; font-size: 15px; color: #111; background: transparent; }
+    .input-bar input::placeholder { color: #999; }
+    .send-btn { width: 36px; height: 36px; border-radius: 50%; background: #111; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .send-btn svg { width: 16px; height: 16px; fill: #fff; }
+    .send-btn:disabled { background: #e5e5e5; cursor: default; }
+    .suggestions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+    .suggestion { padding: 8px 16px; border: 1px solid rgba(0,0,0,0.1); border-radius: 20px; font-size: 13px; color: #555; cursor: pointer; background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); transition: background 0.15s; }
+    .suggestion:hover { background: rgba(255,255,255,1); }
+
+    /* CHAT PAGE */
+    #messages { flex: 1; overflow-y: auto; padding: 24px 0; }
+    .msg-wrap { display: flex; padding: 8px 24px; max-width: 800px; margin: 0 auto; width: 100%; }
+    .msg-wrap.user { justify-content: flex-end; }
+    .msg-wrap.robin { justify-content: flex-start; }
+    .bubble { max-width: 70%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.6; }
+    .msg-wrap.user .bubble { background: #f0f0f0; color: #111; border-bottom-right-radius: 4px; }
+    .msg-wrap.robin .bubble { background: transparent; color: #111; padding-left: 0; }
+    .robin-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #555; }
+
+    /* TYPING */
+    .typing-dots { display: flex; gap: 4px; padding: 12px 0; }
+    .typing-dots span { width: 6px; height: 6px; border-radius: 50%; background: #bbb; animation: bounce 1.2s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+    /* BOTTOM INPUT */
+    #chat-input-area { padding: 16px 24px 24px; display: flex; justify-content: center; }
+    .chat-input-bar { display: flex; align-items: center; width: 100%; max-width: 640px; border: 1px solid #e5e5e5; border-radius: 28px; padding: 12px 16px; gap: 10px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .chat-input-bar input { flex: 1; border: none; outline: none; font-size: 15px; color: #111; background: transparent; }
+    .chat-input-bar input::placeholder { color: #999; }
+
+    /* FOOTER */
+    .footer-note { text-align: center; font-size: 12px; color: #aaa; padding-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<canvas id="ascii-canvas"></canvas>
+
+<!-- DEV PANEL -->
+<button id="dev-toggle" onclick="toggleDev()">⚙ Adjust</button>
+<div id="dev-panel" style="display:none">
+  <h3>Particle Settings</h3>
+  <div class="dev-row"><label>Speed</label><input type="range" id="s-speed" min="1" max="30" value="6" oninput="updateSettings()"><span id="v-speed">0.6</span></div>
+  <div class="dev-row"><label>Opacity</label><input type="range" id="s-opacity" min="1" max="30" value="10" oninput="updateSettings()"><span id="v-opacity">0.10</span></div>
+  <div class="dev-row"><label>Size</label><input type="range" id="s-size" min="6" max="32" value="11" oninput="updateSettings()"><span id="v-size">11px</span></div>
+  <div class="dev-row"><label>Spacing</label><input type="range" id="s-spacing" min="8" max="40" value="18" oninput="updateSettings()"><span id="v-spacing">18px</span></div>
+  <div class="dev-row"><label>Count</label><input type="range" id="s-density" min="10" max="100" value="50" oninput="updateSettings()"><span id="v-density">50%</span></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-left" onclick="showLanding()">🦊 Robin</div>
+  <div class="nav-right">
+    <a href="#" onclick="showChat()">Try Robin</a>
+    <div class="avatar">R</div>
+  </div>
+</nav>
+
+<!-- LANDING PAGE -->
+<div id="landing">
+  <div class="hero">
+    <div class="hero-content">
+    <h1>What are you working on?</h1>
+    <div class="input-bar">
+      <input id="landing-input" placeholder="Ask Robin anything..." onkeydown="if(event.key==='Enter') landingSend()" oninput="toggleBtn(this,'landing-send')" />
+      <button class="send-btn" id="landing-send" onclick="landingSend()" disabled>
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <div class="suggestions">
+      <button class="suggestion" onclick="quickSend('I want to make my first £100')">Get my first £100</button>
+      <button class="suggestion" onclick="quickSend('Help me find my first client')">Find first client</button>
+      <button class="suggestion" onclick="quickSend('Build me a side hustle plan')">Build a plan</button>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT PAGE -->
+<div id="chat-page">
+  <div id="messages"></div>
+  <div id="chat-input-area">
+    <div class="chat-input-bar">
+      <input id="chat-input" placeholder="Ask Robin anything..." onkeydown="if(event.key==='Enter') sendMessage()" oninput="toggleBtn(this,'chat-send')" />
+      <button class="send-btn" id="chat-send" onclick="sendMessage()" disabled>
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="footer-note">Robin can make mistakes. Use good judgment.</div>
+</div>
+
+<script>
+  // ── ASCII Particle Canvas ─────────────────────────────────────────────────
+  const canvas = document.getElementById('ascii-canvas')
+  const ctx = canvas.getContext('2d')
+  // Dev panel
+  function toggleDev() {
+    const p = document.getElementById('dev-panel')
+    p.style.display = p.style.display === 'none' ? 'block' : 'none'
+    document.getElementById('dev-toggle').style.display = p.style.display === 'block' ? 'none' : 'block'
+  }
+
+  let settings = { speed: 1.5, opacity: 0.08, size: 14, spacing: 11, density: 0.9 }
+
+  function updateSettings() {
+    settings.speed   = document.getElementById('s-speed').value / 10
+    settings.opacity = document.getElementById('s-opacity').value / 100
+    settings.size    = parseInt(document.getElementById('s-size').value)
+    settings.spacing = parseInt(document.getElementById('s-spacing').value)
+    settings.density = document.getElementById('s-density').value / 100
+    document.getElementById('v-speed').textContent   = settings.speed.toFixed(1)
+    document.getElementById('v-opacity').textContent = settings.opacity.toFixed(2)
+    document.getElementById('v-size').textContent    = settings.size + 'px'
+    document.getElementById('v-spacing').textContent = settings.spacing + 'px'
+    document.getElementById('v-density').textContent = Math.round(settings.density * 100) + '%'
+    initMatrix()
+  }
+
+  const CHARS = 'ROBIN0123456789$#@!%&*+-=|/\\<>?;:.,^~ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz{}[]()=_'
+  const TRAIL = 20
+  let drops = []
+
+  let grid = []
+
+  function initMatrix() {
+    grid = []
+    const cols = Math.floor(canvas.width / settings.spacing)
+    const rows = Math.floor(canvas.height / settings.spacing)
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (Math.random() > settings.density) continue
+        grid.push({
+          x: c * settings.spacing,
+          y: r * settings.spacing,
+          char: CHARS[Math.floor(Math.random() * CHARS.length)],
+          opacity: Math.random() * settings.opacity * 8 + 0.02,
+          changeRate: Math.random() * 0.008 + 0.002
+        })
+      }
+    }
+  }
+
+  function resize() {
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    initMatrix()
+  }
+  resize()
+  window.addEventListener('resize', resize)
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.font = `${settings.size}px "Courier New", monospace`
+    ctx.fillStyle = '#000'
+
+    const cx = canvas.width / 2
+    const cy = canvas.height / 2
+    const maxDist = Math.sqrt(cx * cx + cy * cy)
+
+    grid.forEach(cell => {
+      if (Math.random() < cell.changeRate) {
+        cell.char = CHARS[Math.floor(Math.random() * CHARS.length)]
+        cell.opacity = Math.random() * settings.opacity * 8 + 0.02
+      }
+      // fade based on distance from center
+      const dx = cell.x - cx
+      const dy = cell.y - cy
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      const fade = Math.pow(dist / maxDist, 1.5) // stronger near center
+      ctx.globalAlpha = cell.opacity * fade
+      ctx.fillText(cell.char, cell.x, cell.y)
+    })
+    requestAnimationFrame(animate)
+  }
+  animate()
+
+  // ── Chat ─────────────────────────────────────────────────────────────────
+  const sessionId = 'web-' + Math.random().toString(36).slice(2)
+
+  function toggleBtn(input, btnId) {
+    document.getElementById(btnId).disabled = input.value.trim() === ''
+  }
+
+  function showLanding() {
+    document.getElementById('landing').style.display = 'flex'
+    document.getElementById('chat-page').style.display = 'none'
+  }
+
+  function showChat() {
+    document.getElementById('landing').style.display = 'none'
+    document.getElementById('chat-page').style.display = 'flex'
+    if (document.getElementById('messages').children.length === 0) greet()
+    document.getElementById('chat-input').focus()
+  }
+
+  function greet() {
+    const hour = new Date().getHours()
+    let g = 'Hey'
+    if (hour < 12) g = 'Good morning'
+    else if (hour < 17) g = 'Good afternoon'
+    else g = 'Good evening'
+    addMsg('robin', `${g} — what are you working on? 🦊`)
+  }
+
+  function landingSend() {
+    const text = document.getElementById('landing-input').value.trim()
+    if (!text) return
+    quickSend(text)
+  }
+
+  function quickSend(text) {
+    showChat()
+    setTimeout(() => {
+      document.getElementById('chat-input').value = text
+      sendMessage()
+    }, 100)
+  }
+
+  function addMsg(who, text) {
+    const wrap = document.createElement('div')
+    wrap.className = `msg-wrap ${who}`
+    if (who === 'robin') {
+      wrap.innerHTML = `<div class="bubble"><div class="robin-name">🦊 Robin</div>${text}</div>`
+    } else {
+      wrap.innerHTML = `<div class="bubble">${text}</div>`
+    }
+    document.getElementById('messages').appendChild(wrap)
+    document.getElementById('messages').scrollTop = 999999
+    return wrap
+  }
+
+  function addTyping() {
+    const wrap = document.createElement('div')
+    wrap.className = 'msg-wrap robin'
+    wrap.id = 'typing'
+    wrap.innerHTML = `<div class="bubble"><div class="robin-name">🦊 Robin</div><div class="typing-dots"><span></span><span></span><span></span></div></div>`
+    document.getElementById('messages').appendChild(wrap)
+    document.getElementById('messages').scrollTop = 999999
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById('chat-input')
+    const text = input.value.trim()
+    if (!text) return
+    input.value = ''
+    document.getElementById('chat-send').disabled = true
+
+    addMsg('user', text)
+    addTyping()
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, sessionId })
+      })
+      const data = await res.json()
+      document.getElementById('typing')?.remove()
+      addMsg('robin', data.reply)
+    } catch (e) {
+      document.getElementById('typing')?.remove()
+      addMsg('robin', "Something went wrong — try again 🦊")
+    }
+  }
+</script>
+
+</body>
+</html>
