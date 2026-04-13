@@ -9,8 +9,8 @@ const PORT = process.env.PORT || 3000
 
 app.use(express.json())
 app.use((req, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
-app.use(express.static('/Users/primalfernando/robin-agent'))
-app.get('/', (req, res) => res.sendFile('/Users/primalfernando/robin-agent/index.html'))
+app.use(express.static(new URL('.', import.meta.url).pathname))
+app.get('/', (req, res) => res.sendFile(new URL('index.html', import.meta.url).pathname))
 
 // ── Per-session memory ────────────────────────────────────────────────────
 function loadSession(id) {
