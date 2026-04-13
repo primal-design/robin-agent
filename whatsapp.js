@@ -4,7 +4,31 @@ import Anthropic from '@anthropic-ai/sdk'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 
 const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY || '' })
-console.log('🔑 Key loaded:', process.env.ANTHROPIC_KEY ? 'YES' : 'NO')
+console.log('🔑 Anthropic key loaded:', process.env.ANTHROPIC_KEY ? 'YES' : 'NO')
+console.log('🔑 Moonshot key loaded:', process.env.MOONSHOT_KEY ? 'YES' : 'NO')
+
+// ── Moonshot Kimi — for lighter tasks with Claude fallback ────────────────
+async function kimiOrClaude(prompt) {
+  if (process.env.MOONSHOT_KEY) {
+    try {
+      const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.MOONSHOT_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'moonshot-v1-8k', messages: [{ role: 'user', content: prompt }], max_tokens: 1500 })
+      })
+      const data = await res.json()
+      const result = data.choices?.[0]?.message?.content
+      if (result) return result
+    } catch (e) { console.log('Moonshot failed, falling back to Claude') }
+  }
+  // Fallback to Claude Haiku
+  const response = await ai.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: prompt }]
+  })
+  return response.content[0].text
+}
 
 // ── Config (set these in your environment) ─────────────────────────────────
 const VERIFY_TOKEN   = process.env.WA_VERIFY_TOKEN   // any string you pick
@@ -64,7 +88,8 @@ What you know about this user: ${memory.facts.join(', ') || 'nothing yet'}`,
       }
       if (block.name === 'build_plan') {
         memory.facts.push(`Goal: ${block.input.goal}`, `Niche: ${block.input.niche}`)
-        results.push({ type: 'tool_result', tool_use_id: block.id, content: `21-DAY PLAN\nGoal: ${block.input.goal}\nNiche: ${block.input.niche}\nTime: ${block.input.timePerDay} mins/day\n\nWEEK 1: Define offer, find 10 targets, write outreach, send to 5 people\nWEEK 2: Follow up, handle replies, book calls\nWEEK 3: Run calls, send proposals, close first ${block.input.goal}\n\nSTART TODAY: Write your offer in one sentence.` })
+        const plan = await kimiOrClaude(`Create a practical 21-day action plan for someone who wants to: ${block.input.goal}. Their niche is: ${block.input.niche}. They have ${block.input.timePerDay} minutes per day. Break it into 3 weeks with daily tasks. Be specific and actionable. Keep it concise.`)
+        results.push({ type: 'tool_result', tool_use_id: block.id, content: plan })
       }
       if (block.name === 'research_person') {
         const { name, instagram, twitter } = block.input
