@@ -51,6 +51,59 @@ function saveProfile(sessionId, sourceType, rawData, summary) {
   saveStore(store)
 }
 
+// ── Research engine ───────────────────────────────────────────────────────
+const RESEARCH_QUERIES = {
+  person:     (q) => [`${q} background career`, `${q} work projects`, `${q} social media`],
+  market:     (q) => [`${q} market size trends 2025`, `${q} opportunities gaps`, `${q} top players`],
+  topic:      (q) => [`${q} explained`, `${q} best practices`, `${q} examples`],
+  competitor: (q) => [`${q} pricing features`, `${q} reviews complaints`, `${q} business model`],
+  trend:      (q) => [`${q} trending 2025`, `${q} growth stats`, `${q} who is doing it`]
+}
+
+async function braveSearch(query) {
+  if (!process.env.BRAVE_KEY) return null
+  try {
+    const res = await fetch(
+      `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=3`,
+      { headers: { 'X-Subscription-Token': process.env.BRAVE_KEY, 'Accept': 'application/json' } }
+    )
+    const data = await res.json()
+    return (data.web?.results || []).map(r => `• ${r.title}: ${r.description}`).join('\n')
+  } catch { return null }
+}
+
+async function doResearch(type, query, context = '') {
+  const queries = RESEARCH_QUERIES[type]?.(query) || [`${query}`]
+  let raw = `Research type: ${type}\nQuery: ${query}\n\n`
+
+  if (process.env.BRAVE_KEY) {
+    for (const q of queries) {
+      const results = await braveSearch(q)
+      if (results) raw += `Search: "${q}"\n${results}\n\n`
+    }
+  } else {
+    raw += '(No Brave key — using Claude knowledge only)\n\n'
+  }
+
+  // Synthesise with Claude
+  const synthesis = await ai.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 600,
+    messages: [{
+      role: 'user',
+      content: `You are helping someone research: "${query}" (type: ${type}).
+${context ? `Why they need it: ${context}` : ''}
+
+Raw search data:
+${raw}
+
+Give a sharp, useful summary. Focus on what's most actionable for this person. Use bullet points. Max 5 key insights.`
+    }]
+  })
+
+  return synthesis.content[0].text
+}
+
 // ── Robin brain ───────────────────────────────────────────────────────────
 async function think(sessionId, userMessage) {
   const memory  = loadSession(sessionId)
@@ -76,6 +129,25 @@ What you know about this user: ${memory.facts.join(', ') || 'nothing yet'}${prof
     tools: [
       { name: 'remember_fact', description: 'Remember a fact about the user', input_schema: { type: 'object', properties: { fact: { type: 'string' } }, required: ['fact'] } },
       { name: 'build_plan', description: 'Build a 21 day action plan', input_schema: { type: 'object', properties: { goal: { type: 'string' }, niche: { type: 'string' }, timePerDay: { type: 'number' } }, required: ['goal', 'niche', 'timePerDay'] } },
+      {
+        name: 'research',
+        description: `Do research when the user asks. First determine the type:
+- person: researching a specific individual (competitor, potential client, influencer)
+- market: researching an industry, niche, or market opportunity
+- topic: researching a concept, strategy, or how-to
+- competitor: researching a business or product
+- trend: researching what's currently popular or emerging
+Pick the most relevant type and run focused searches.`,
+        input_schema: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: ['person', 'market', 'topic', 'competitor', 'trend'] },
+            query: { type: 'string', description: 'The main search query' },
+            context: { type: 'string', description: 'Why the user needs this — shapes what to look for' }
+          },
+          required: ['type', 'query']
+        }
+      }
     ],
     messages: memory.messages.slice(-20)
   })
@@ -91,6 +163,11 @@ What you know about this user: ${memory.facts.join(', ') || 'nothing yet'}${prof
       if (block.name === 'build_plan') {
         memory.facts.push(`Goal: ${block.input.goal}`, `Niche: ${block.input.niche}`)
         results.push({ type: 'tool_result', tool_use_id: block.id, content: `21-DAY PLAN\nGoal: ${block.input.goal}\nNiche: ${block.input.niche}\nTime: ${block.input.timePerDay} mins/day\n\nWEEK 1: Define offer, find 10 targets, write outreach, send to 5 people\nWEEK 2: Follow up, handle replies, book calls\nWEEK 3: Run calls, send proposals, close first ${block.input.goal}\n\nSTART TODAY: Write your offer in one sentence.` })
+      }
+      if (block.name === 'research') {
+        const { type, query, context } = block.input
+        const findings = await doResearch(type, query, context)
+        results.push({ type: 'tool_result', tool_use_id: block.id, content: findings })
       }
     }
     memory.messages.push({ role: 'assistant', content: response.content })
