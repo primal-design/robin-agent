@@ -13,15 +13,73 @@ import {
 const __dir = dirname(fileURLToPath(import.meta.url))
 const ai    = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
 
-// ── Zero-skill hustles ────────────────────────────────────────────────────
-const ZERO_SKILL_HUSTLES = [
-  { id: 'reviews',  title: 'Get Google reviews for local businesses', timeline: '£50-200 in 7 days',  effort: '2 hours/day',         pitch: 'Message 10 restaurants. Get paid £50-100 each to get them 5 reviews.' },
-  { id: 'delivery', title: 'Same-day errand / delivery service',      timeline: '£50-150 in 3 days',  effort: 'As much as you want', pitch: 'Post on Facebook: "I do errands, pickups, deliveries in [your area]. £15/hour."' },
-  { id: 'cleaning', title: 'End of tenancy / deep clean',             timeline: '£100-300 in 5 days', effort: '4-6 hours per job',    pitch: 'Post on Gumtree and local Facebook groups. First job gets you a review.' },
-  { id: 'resell',   title: 'Buy and resell locally',                  timeline: '£50-200 in 7 days',  effort: '2-3 hours browsing',  pitch: 'Find free or cheap items on Facebook Marketplace. Clean them. Resell for 3x.' }
+// ── Salary-replacing business models ─────────────────────────────────────
+// These are real businesses, not pocket money gigs
+// Target: £2,000–£8,000/month within 90 days
+
+const SKILL_BUSINESSES = [
+  {
+    id: 'agency',
+    title: 'Productised service agency',
+    target: '£3,000-8,000/month',
+    model: 'Sell one specific outcome (e.g. "I get local businesses 10 new Google reviews/month") for £300-500/month retainer. 10 clients = £3-5k/month.',
+    first_step: 'Pick one service. Find 3 local businesses who need it. Offer the first one free in exchange for a testimonial.'
+  },
+  {
+    id: 'consulting',
+    title: 'Consulting / fractional work',
+    target: '£3,000-6,000/month',
+    model: 'Sell your expertise by the day or project. Day rate £300-600. 2 days/week = £2,400-4,800/month. Works if you have 3+ years in any field.',
+    first_step: 'Write a one-page "what I fix and for who" doc. Post it on LinkedIn. DM 10 people who run businesses in your area.'
+  },
+  {
+    id: 'saas_micro',
+    title: 'Micro-SaaS tool',
+    target: '£2,000-10,000/month',
+    model: 'Build a simple tool solving one painful problem for a niche. £19-49/month subscription. 100 users = £1,900-4,900/month recurring.',
+    first_step: 'Find a subreddit with 10k+ members complaining about a tool. Build the fix in 2 weeks. Launch on Product Hunt.'
+  },
+  {
+    id: 'content_business',
+    title: 'Content + audience business',
+    target: '£2,000-15,000/month',
+    model: 'Build an audience in a niche (newsletter, YouTube, TikTok). Monetise with sponsorships, digital products, or affiliate deals. Slow start, compounds hard.',
+    first_step: 'Pick one platform. Post 3x/week for 90 days about one specific topic. Sell something to your first 100 followers.'
+  },
+  {
+    id: 'ecom',
+    title: 'Niche e-commerce / own brand',
+    target: '£2,000-20,000/month',
+    model: 'Source or create a product solving a specific problem. Sell on Shopify + TikTok Shop. Margin needs to be >50%. One winning product = full income.',
+    first_step: 'Find a product with 1,000+ monthly searches, under 100 reviews on Amazon. Order 20 units. Test with £100 TikTok ads.'
+  },
+  {
+    id: 'local_service_biz',
+    title: 'Local service business (scale)',
+    target: '£3,000-10,000/month',
+    model: 'Start a local service (cleaning, landscaping, property maintenance). Hire staff once you hit £2k/month. You become the operator, not the worker.',
+    first_step: 'Pick a service with £50+/hour margin. Get 5 clients. Hire one person. You manage, they deliver.'
+  },
+  {
+    id: 'no_code_builds',
+    title: 'No-code builds for businesses',
+    target: '£2,500-6,000/month',
+    model: 'Build automation, apps, or AI tools for businesses using no-code tools (Zapier, Make, Bubble, Glide). Charge £500-2,000 per project or retainer.',
+    first_step: 'Learn one tool (Make.com) in a week. Find a local business with a manual process. Automate it for £500.'
+  }
 ]
-function formatZeroSkillHustles() {
-  return ZERO_SKILL_HUSTLES.map(h => `- ${h.title} (${h.timeline}, ${h.effort}): ${h.pitch}`).join('\n')
+
+const ZERO_SKILL_ENTRY = [
+  { id: 'reviews',  title: 'Google review management for local businesses', target: '£500-2,000/month', model: '10 clients at £100-200/month retainer. Manage their reviews, respond to feedback, chase happy customers for reviews.', first_step: 'Message 10 restaurants today. Offer a free first month.' },
+  { id: 'cleaning', title: 'Commercial/end-of-tenancy cleaning', target: '£2,000-6,000/month', model: 'Charge £150-400/job. Do 3 jobs/week solo = £2k+/month. Hire one person and scale to £5k+.', first_step: 'Post on Gumtree and local Facebook groups. Offer a discounted first clean for a review.' },
+  { id: 'resell',   title: 'Specialist reselling (not random junk)', target: '£1,000-4,000/month', model: 'Become the expert in ONE category (vintage clothing, tools, electronics). Buy cheap, clean, resell 3-5x. Volume is the game.', first_step: 'Pick one category. Spend £100 this weekend. List everything. See what sells.' }
+]
+
+function formatBusinessModels(ctx) {
+  // If user has a skill/niche, show skill businesses. Otherwise show entry points.
+  const hasSkill = ctx?.niche || ctx?.facts?.some(f => f.toLowerCase().includes('skill') || f.toLowerCase().includes('job') || f.toLowerCase().includes('work'))
+  const list = hasSkill ? SKILL_BUSINESSES : [...ZERO_SKILL_ENTRY, ...SKILL_BUSINESSES.slice(0, 3)]
+  return list.map(b => `- ${b.title} (${b.target}): ${b.model} | First step: ${b.first_step}`).join('\n')
 }
 
 // ── Skills loader ─────────────────────────────────────────────────────────
@@ -154,19 +212,24 @@ async function think(sessionId, userMessage, options = {}) {
     }
   }
 
-  const systemPrompt = `You are Robin — a side hustle mentor. Your one job: get people to their first £100.
+  const systemPrompt = `You are Robin — a business mentor. Your job: help people build something that replaces their salary (£2,000-8,000/month), not just make pocket money.
+
+MINDSET:
+- Think in BUSINESSES not gigs. A gig makes £50 once. A business makes £3k every month.
+- Always push toward recurring revenue, scalable models, real clients — not one-off tasks.
+- The goal is income replacement, not beer money.
+- First £100 is just proof of concept — the real target is £2k/month within 90 days.
 
 RULES:
 - Max 2 sentences. Never more. No lists. No bullet points.
 - NEVER ask two questions in a row — give something first, then ask ONE question.
 - If they send a URL you couldn't read → say "I can't open that link — what's your main skill or job title?" Do NOT pretend you read it.
-- If they send a URL you DID read → use the actual content to give a specific hustle recommendation immediately.
-- If they need money → ask ONE thing: what can they do?
-- If no skills → pick ONE hustle from zero-skill list and give one action TODAY.
-- If frustrated → skip sympathy, give one action RIGHT NOW.
-- Once you know skill/niche → name the hustle, the buyer, the price. Be specific.
+- If they send a URL you DID read → use the actual content to give a specific business recommendation immediately.
+- When you know their skill → suggest the highest-value business model for that skill, not the easiest gig.
+- Name the business model, the target client, the price, and the monthly income potential. Be specific.
+- If someone has experience in ANY field → there is a consulting, agency, or productised service version of that skill worth £2-5k/month.
 - Never say "great question", "I'm here to help", or anything corporate.
-- Only build a full 21-day plan when they say "build", "let's go", "make me a plan".
+- Only build a full plan when they say "build", "let's go", "make me a plan".
 - End every message with 🦊
 ${urlContext}
 ${rejectCtx}
@@ -176,10 +239,8 @@ PERMISSION MATRIX:
 - You DRAFT AND ASK APPROVAL FOR: ${PERMISSIONS.NEEDS_APPROVAL.join(', ')}
 - You NEVER DO: ${PERMISSIONS.NEVER.join(', ')}
 
-When you draft something that needs approval (outreach, post, payment link), save it as pending_action and ask "Want me to send this?" before executing.
-
-ZERO-SKILL HUSTLES:
-${formatZeroSkillHustles()}
+BUSINESS MODELS (use these — not pocket money gigs):
+${formatBusinessModels(ctx)}
 
 ${skillContext ? `ACTIVE SKILLS:\n${skillContext}` : ''}
 
