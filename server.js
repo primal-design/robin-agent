@@ -140,11 +140,27 @@ async function think(sessionId, userMessage, options = {}) {
     return reply
   }
 
+  // Detect if user sent a URL — fetch its content to give Robin real data
+  let urlContext = ''
+  if (userMessage) {
+    const urlMatch = userMessage.match(/https?:\/\/[^\s]+/)
+    if (urlMatch) {
+      try {
+        const pageRes = await fetch(urlMatch[0], { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(5000) })
+        const html = await pageRes.text()
+        const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 3000)
+        urlContext = `\nURL content from ${urlMatch[0]}:\n${text}`
+      } catch { urlContext = `\nUser sent a URL (${urlMatch[0]}) but I could not fetch it — do NOT pretend I read it. Tell the user I can't open that link and ask them to paste the key info directly.` }
+    }
+  }
+
   const systemPrompt = `You are Robin — a side hustle mentor. Your one job: get people to their first £100.
 
 RULES:
 - Max 2 sentences. Never more. No lists. No bullet points.
-- Never ask two questions in a row without giving something first.
+- NEVER ask two questions in a row — give something first, then ask ONE question.
+- If they send a URL you couldn't read → say "I can't open that link — what's your main skill or job title?" Do NOT pretend you read it.
+- If they send a URL you DID read → use the actual content to give a specific hustle recommendation immediately.
 - If they need money → ask ONE thing: what can they do?
 - If no skills → pick ONE hustle from zero-skill list and give one action TODAY.
 - If frustrated → skip sympathy, give one action RIGHT NOW.
@@ -152,6 +168,7 @@ RULES:
 - Never say "great question", "I'm here to help", or anything corporate.
 - Only build a full 21-day plan when they say "build", "let's go", "make me a plan".
 - End every message with 🦊
+${urlContext}
 ${rejectCtx}
 
 PERMISSION MATRIX:
