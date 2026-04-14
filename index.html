@@ -79,6 +79,20 @@
 
     /* FOOTER */
     .footer-note { text-align: center; font-size: 12px; color: #aaa; padding-bottom: 12px; }
+
+    /* PROFILE PROMPT CARD */
+    .profile-card { max-width: 480px; margin: 8px 24px 8px 0; background: #f7f7f7; border-radius: 16px; padding: 16px 20px; font-size: 14px; line-height: 1.6; color: #333; }
+    .profile-card p { margin-bottom: 12px; }
+    .profile-card ul { padding-left: 16px; margin-bottom: 12px; }
+    .profile-card-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .profile-btn { padding: 7px 16px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 13px; cursor: pointer; transition: background 0.15s; }
+    .profile-btn:hover { background: #f0f0f0; }
+    .profile-btn.primary { background: #111; color: #fff; border-color: #111; }
+    .profile-btn.primary:hover { background: #333; }
+    .consent-note { font-size: 11px; color: #999; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+    .profile-tags { font-size: 13px; color: #555; background: #f0f0f0; border-radius: 10px; padding: 10px 14px; margin-top: 8px; line-height: 1.6; }
+    #paste-area { width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-size: 13px; margin-top: 10px; resize: vertical; min-height: 80px; font-family: inherit; }
+    #file-input { display: none; }
   </style>
 </head>
 <body>
@@ -307,10 +321,99 @@
       const data = await res.json()
       document.getElementById('typing')?.remove()
       addMsg('robin', data.reply)
+      if (data.showProfilePrompt) setTimeout(showProfilePrompt, 800)
     } catch (e) {
       document.getElementById('typing')?.remove()
       addMsg('robin', "Something went wrong — try again 🦊")
     }
+  }
+
+  // ── Profile / data layer ──────────────────────────────────────────────────
+  function showProfilePrompt() {
+    if (document.getElementById('profile-card')) return
+    const wrap = document.createElement('div')
+    wrap.className = 'msg-wrap robin'
+    wrap.id = 'profile-card-wrap'
+    wrap.innerHTML = `
+      <div class="profile-card" id="profile-card">
+        <p>I can make better suggestions if I understand you a bit more.</p>
+        <ul>
+          <li>Paste your profile or content</li>
+          <li>Upload something (CV, posts, website text)</li>
+          <li>Or skip this for now</li>
+        </ul>
+        <p style="font-size:12px;color:#888">I'll only use it to improve your results.</p>
+        <div class="profile-card-btns">
+          <button class="profile-btn primary" onclick="showUpload()">Upload file</button>
+          <button class="profile-btn" onclick="showPaste()">Paste text</button>
+          <button class="profile-btn" onclick="skipProfile()">Skip for now</button>
+        </div>
+        <div id="profile-input-area"></div>
+      </div>`
+    document.getElementById('messages').appendChild(wrap)
+    document.getElementById('messages').scrollTop = 999999
+  }
+
+  function showUpload() {
+    document.getElementById('profile-input-area').innerHTML = `
+      <div class="consent-note">By uploading, you allow Robin to analyse this data to generate suggestions. You can delete it anytime.</div>
+      <input type="file" id="file-input" accept=".txt,.pdf,.md,.csv" onchange="handleFile(event)">
+      <button class="profile-btn" style="margin-top:10px" onclick="document.getElementById('file-input').click()">Choose file</button>`
+  }
+
+  function showPaste() {
+    document.getElementById('profile-input-area').innerHTML = `
+      <div class="consent-note">By submitting, you allow Robin to analyse this data to generate suggestions. You can delete it anytime.</div>
+      <textarea id="paste-area" placeholder="Paste your bio, posts, website text, CV..."></textarea>
+      <button class="profile-btn primary" style="margin-top:8px" onclick="submitPaste()">Submit</button>`
+  }
+
+  function skipProfile() {
+    document.getElementById('profile-card-wrap')?.remove()
+  }
+
+  async function handleFile(event) {
+    const file = event.target.files[0]
+    if (!file) return
+    const text = await file.text()
+    await submitProfileData('upload', text)
+  }
+
+  async function submitPaste() {
+    const text = document.getElementById('paste-area')?.value.trim()
+    if (!text) return
+    await submitProfileData('pasted', text)
+  }
+
+  async function submitProfileData(sourceType, data) {
+    document.getElementById('profile-input-area').innerHTML = `<div style="font-size:13px;color:#888;margin-top:10px">Analysing... 🦊</div>`
+    try {
+      const res = await fetch('/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, sourceType, data })
+      })
+      const result = await res.json()
+      document.getElementById('profile-card').innerHTML = `
+        <p style="font-weight:600">Got it — here's what I picked up:</p>
+        <div class="profile-tags">${result.tags.replace(/\n/g, '<br>')}</div>
+        <div class="profile-card-btns" style="margin-top:12px">
+          <button class="profile-btn" onclick="deleteProfile()">Delete my data</button>
+        </div>`
+      document.getElementById('messages').scrollTop = 999999
+    } catch (e) {
+      document.getElementById('profile-input-area').innerHTML = `<div style="font-size:13px;color:#c00;margin-top:10px">Something went wrong — try again.</div>`
+    }
+  }
+
+  async function deleteProfile() {
+    await fetch('/profile', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    })
+    document.getElementById('profile-card-wrap')?.remove()
+    addMsg('robin', "Done — your data has been deleted. 🦊")
   }
 </script>
 
