@@ -380,4 +380,32 @@ app.delete('/delete-account', (req, res) => {
   saveStore(s); res.json({ ok: true })
 })
 
+// ── TTS — Robin speaks ────────────────────────────────────────────────────
+app.post('/speak', async (req, res) => {
+  const { text } = req.body
+  if (!text) return res.status(400).json({ error: 'No text' })
+
+  // Strip emoji for cleaner speech
+  const clean = text.replace(/[\u{1F300}-\u{1FAFF}]/gu, '').replace(/🦊/g, '').trim()
+
+  try {
+    if (process.env.OPENAI_KEY) {
+      // OpenAI TTS — best quality
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.OPENAI_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'tts-1', voice: 'onyx', input: clean, speed: 1.0 })
+      })
+      if (response.ok) {
+        res.setHeader('Content-Type', 'audio/mpeg')
+        return response.body.pipe(res)
+      }
+    }
+    // Fallback: tell client to use browser TTS
+    res.json({ fallback: true, text: clean })
+  } catch (err) {
+    res.json({ fallback: true, text: clean })
+  }
+})
+
 app.listen(PORT, () => console.log(`\n🦊 Robin running at http://localhost:${PORT}\n`))

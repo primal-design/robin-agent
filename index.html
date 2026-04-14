@@ -72,6 +72,18 @@
     .send-btn svg { width: 15px; height: 15px; fill: #fff; }
     .send-btn:disabled { background: var(--border); cursor: default; }
     .send-btn:not(:disabled):hover { background: #d4641e; }
+    .mic-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+    .mic-btn svg { width: 15px; height: 15px; fill: var(--text2); }
+    .mic-btn:hover { border-color: var(--orange); background: var(--orange-dim); }
+    .mic-btn:hover svg { fill: var(--orange); }
+    .mic-btn.listening { background: var(--orange); border-color: var(--orange); animation: mic-pulse 1s infinite; }
+    .mic-btn.listening svg { fill: #fff; }
+    @keyframes mic-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(232,114,42,0.4); } 50% { box-shadow: 0 0 0 8px rgba(232,114,42,0); } }
+    .voice-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); cursor: pointer; padding: 4px 8px; border-radius: 20px; border: 1px solid transparent; transition: all 0.15s; }
+    .voice-toggle:hover { border-color: var(--border); color: var(--text2); }
+    .voice-toggle.active { color: var(--orange); border-color: rgba(232,114,42,0.3); background: var(--orange-dim); }
+    .voice-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--orange); padding: 4px 0; }
+    .voice-indicator .vi-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); animation: pulse 1s infinite; }
 
     /* SOCIAL PROOF */
     .social-proof { margin-top: 48px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center; }
@@ -320,11 +332,24 @@
   </div>
   <div id="messages"></div>
   <div id="chat-input-area">
-    <div class="chat-input-bar">
-      <input id="chat-input" placeholder="Message Robin..." onkeydown="if(event.key==='Enter') sendMessage()" oninput="toggleBtn(this,'chat-send')" />
-      <button class="send-btn" id="chat-send" onclick="sendMessage()" disabled>
-        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
-      </button>
+    <div style="width:100%;max-width:640px;display:flex;flex-direction:column;gap:6px;">
+      <div class="chat-input-bar">
+        <input id="chat-input" placeholder="Message Robin..." onkeydown="if(event.key==='Enter') sendMessage()" oninput="toggleBtn(this,'chat-send')" />
+        <button class="mic-btn" id="mic-btn" onclick="toggleVoiceInput()" title="Hold to speak">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zm-1 18.93V22h2v-2.07A8 8 0 0020 12h-2a6 6 0 01-12 0H4a8 8 0 007 7.93z"/></svg>
+        </button>
+        <button class="send-btn" id="chat-send" onclick="sendMessage()" disabled>
+          <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 4px;">
+        <div id="voice-status" style="display:none;" class="voice-indicator"><div class="vi-dot"></div>Listening...</div>
+        <div style="flex:1"></div>
+        <div class="voice-toggle" id="robin-voice-toggle" onclick="toggleRobinVoice()" title="Robin speaks back">
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+          Robin voice
+        </div>
+      </div>
     </div>
   </div>
   <div class="footer-note">Robin can make mistakes — use your judgment.</div>
@@ -701,6 +726,7 @@
     wrap.innerHTML = `<div class="robin-avatar">🦊</div><div class="bubble">${text}</div>`
     document.getElementById('messages').appendChild(wrap)
     scrollDown()
+    speakReply(text)
     return wrap
   }
 
@@ -813,7 +839,123 @@
     alert('Account deleted.')
   }
 
+  // ── Voice input (Speech → Text) ───────────────────────────────────────────
+  let recognition = null
+  let isListening  = false
+
+  function initSpeechRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) return null
+    const r = new SR()
+    r.continuous    = false
+    r.interimResults = true
+    r.lang          = 'en-GB'
+
+    r.onresult = (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
+      document.getElementById('chat-input').value = transcript
+      toggleBtn(document.getElementById('chat-input'), 'chat-send')
+      if (e.results[e.results.length - 1].isFinal) stopListening(true)
+    }
+    r.onerror = () => stopListening(false)
+    r.onend   = () => stopListening(false)
+    return r
+  }
+
+  function toggleVoiceInput() {
+    if (isListening) { stopListening(false); return }
+    if (!recognition) recognition = initSpeechRecognition()
+    if (!recognition) { alert('Voice input not supported in this browser. Try Chrome or Safari.'); return }
+    isListening = true
+    document.getElementById('mic-btn').classList.add('listening')
+    document.getElementById('voice-status').style.display = 'flex'
+    document.getElementById('chat-input').placeholder = 'Listening...'
+    recognition.start()
+  }
+
+  function stopListening(send) {
+    isListening = false
+    if (recognition) try { recognition.stop() } catch(e) {}
+    document.getElementById('mic-btn').classList.remove('listening')
+    document.getElementById('voice-status').style.display = 'none'
+    document.getElementById('chat-input').placeholder = 'Message Robin...'
+    if (send) {
+      const text = document.getElementById('chat-input').value.trim()
+      if (text) { document.getElementById('chat-input').value = ''; sendWith(text) }
+    }
+  }
+
+  // ── Voice output (Text → Robin speaks) ────────────────────────────────────
+  let robinVoiceOn = localStorage.getItem('robin_voice') === 'true'
+  let audioQueue   = []
+  let isPlaying    = false
+
+  function toggleRobinVoice() {
+    robinVoiceOn = !robinVoiceOn
+    localStorage.setItem('robin_voice', robinVoiceOn)
+    const btn = document.getElementById('robin-voice-toggle')
+    btn.classList.toggle('active', robinVoiceOn)
+    if (!robinVoiceOn && isPlaying) stopSpeaking()
+  }
+
+  function stopSpeaking() {
+    window.speechSynthesis?.cancel()
+    audioQueue = []
+    isPlaying  = false
+    const audio = document.getElementById('robin-audio')
+    if (audio) { audio.pause(); audio.src = '' }
+  }
+
+  async function speakReply(text) {
+    if (!robinVoiceOn) return
+    audioQueue.push(text)
+    if (!isPlaying) playNext()
+  }
+
+  async function playNext() {
+    if (!audioQueue.length) { isPlaying = false; return }
+    isPlaying = true
+    const text = audioQueue.shift()
+
+    try {
+      const res = await fetch('/speak', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      })
+
+      if (res.headers.get('content-type')?.includes('audio')) {
+        // OpenAI TTS audio
+        const blob = await res.blob()
+        const url  = URL.createObjectURL(blob)
+        let audio  = document.getElementById('robin-audio')
+        if (!audio) { audio = document.createElement('audio'); audio.id = 'robin-audio'; document.body.appendChild(audio) }
+        audio.src = url
+        audio.onended = () => { URL.revokeObjectURL(url); playNext() }
+        audio.play()
+      } else {
+        // Browser TTS fallback
+        const data = await res.json()
+        if (data.fallback && data.text) {
+          const utt = new SpeechSynthesisUtterance(data.text)
+          utt.lang  = 'en-GB'
+          utt.rate  = 1.05
+          utt.pitch = 0.9
+          // Pick a good voice if available
+          const voices = window.speechSynthesis.getVoices()
+          const pick   = voices.find(v => v.name.includes('Daniel') || v.name.includes('Alex') || v.lang === 'en-GB')
+          if (pick) utt.voice = pick
+          utt.onend = () => playNext()
+          window.speechSynthesis.speak(utt)
+        } else { playNext() }
+      }
+    } catch { playNext() }
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────────
+  // Restore voice toggle state
+  if (robinVoiceOn) document.getElementById('robin-voice-toggle').classList.add('active')
+
   const savedName = localStorage.getItem('robin_name')
   if (savedName) {
     userName = savedName
