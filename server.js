@@ -337,6 +337,7 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
         input_schema: { type: 'object', properties: { type: { type: 'string', enum: ['person', 'market', 'topic', 'competitor', 'trend'] }, query: { type: 'string' }, context: { type: 'string' } }, required: ['type', 'query'] }
       },
       { name: 'log_task_done',    description: 'User completed a task. Log it, update streak.',      input_schema: { type: 'object', properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
+      { name: 'find_leads',       description: 'Find local business leads using Google Maps. Use when user wants to find clients or prospects in their area.', input_schema: { type: 'object', properties: { niche: { type: 'string', description: 'Type of business e.g. restaurants, gyms, hair salons' }, location: { type: 'string', description: 'City or area e.g. Manchester, London Bridge' } }, required: ['niche', 'location'] } },
     ],
     messages: memory.messages.slice(-20)
   })
@@ -393,6 +394,19 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
             ? `MILESTONE: First £100 hit! Streak: ${memory.streak}. Total: £${memory.total_earned}. Write the win post.`
             : `Task logged. Streak: ${memory.streak} days. Total: £${memory.total_earned}.`
         })
+      }
+
+      if (name === 'find_leads') {
+        const leads = await findLocalLeads(input.niche, input.location)
+        memory.leads = leads
+        if (leads.length) {
+          const formatted = leads.map((l, i) =>
+            `${i+1}. ${l.name} — ${l.address} | ⭐ ${l.rating || 'no rating'} (${l.reviews || 0} reviews)`
+          ).join('\n')
+          results.push({ type: 'tool_result', tool_use_id: id, content: `Found ${leads.length} ${input.niche} businesses in ${input.location}:\n${formatted}\n\nBest targets: low rating (3-4 stars) or few reviews = easiest to help and most likely to pay.` })
+        } else {
+          results.push({ type: 'tool_result', tool_use_id: id, content: `No results found for ${input.niche} in ${input.location}. Try a broader term or different area.` })
+        }
       }
     }
 
@@ -476,6 +490,60 @@ app.post('/lookup', async (req, res) => {
     saveSession(sessionId, memory)
     res.json({ ok: true, summary: findings })
   } catch { res.status(500).json({ error: 'Lookup failed' }) }
+})
+
+// ── Google Maps — find local business leads ───────────────────────────────
+async function findLocalLeads(niche, location, limit = 10) {
+  if (!process.env.GOOGLE_MAPS_KEY) return []
+  try {
+    const query = encodeURIComponent(`${niche} in ${location}`)
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&key=${process.env.GOOGLE_MAPS_KEY}`
+    const res  = await fetch(url)
+    const data = await res.json()
+    return (data.results || []).slice(0, limit).map(p => ({
+      name:    p.name,
+      address: p.formatted_address,
+      rating:  p.rating,
+      reviews: p.user_ratings_total,
+      place_id: p.place_id
+    }))
+  } catch { return [] }
+}
+
+async function getPlaceDetails(placeId) {
+  if (!process.env.GOOGLE_MAPS_KEY) return null
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name,formatted_phone_number,website,rating,reviews,formatted_address&key=${process.env.GOOGLE_MAPS_KEY}`
+    const res  = await fetch(url)
+    const data = await res.json()
+    return data.result || null
+  } catch { return null }
+}
+
+app.post('/find-leads', async (req, res) => {
+  const { niche, location, sessionId = 'web-default' } = req.body
+  if (!niche || !location) return res.status(400).json({ error: 'Need niche and location' })
+  try {
+    const leads = await findLocalLeads(niche, location)
+    if (!leads.length) return res.json({ leads: [], message: 'No results found — try a broader niche or different location' })
+
+    // Save leads to session
+    const memory = loadSession(sessionId)
+    memory.leads = leads
+    memory.facts.push(`Looking for ${niche} leads in ${location}`)
+    saveSession(sessionId, memory)
+
+    // Let Robin comment on the leads
+    const summary = await ai.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: `You are Robin. Found ${leads.length} ${niche} businesses in ${location}. Best targets are those with 3-4 star ratings (room to improve reviews) or low review counts (easy to help). Pick the top 3 targets and say why in 2 sentences. End with 🦊\n\nLeads: ${JSON.stringify(leads.slice(0, 5))}` }]
+    })
+
+    res.json({ leads, robin_take: summary.content[0].text })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ── Task complete ─────────────────────────────────────────────────────────
