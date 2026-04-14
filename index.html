@@ -665,10 +665,25 @@
   }
 
   // ── Chat core ─────────────────────────────────────────────────────────────
-  function greet() {
+  async function greet() {
     const hour = new Date().getHours()
     const g = hour < 12 ? 'Morning' : hour < 17 ? 'Hey' : 'Evening'
     const name = userName || localStorage.getItem('robin_name') || ''
+
+    // Check if Robin has a proactive trigger to fire first
+    try {
+      const res = await fetch('/pulse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId })
+      })
+      const data = await res.json()
+      if (data.triggered && data.message) {
+        addRobin(data.message)
+        return
+      }
+    } catch (e) { /* fall through to default greet */ }
+
     addRobin(`${g}${name ? ' ' + name : ''} — pick a goal and let's get moving. 🦊`)
     setTimeout(() => {
       addChips([
