@@ -1,9 +1,36 @@
 import 'dotenv/config'
 import express from 'express'
 import Anthropic from '@anthropic-ai/sdk'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+import matter from 'gray-matter'
+
+const __dir = dirname(fileURLToPath(import.meta.url))
 
 const ai  = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
+
+// ── Skills loader ─────────────────────────────────────────────────────────
+function loadSkills() {
+  const skillsDir = join(__dir, 'skills')
+  if (!existsSync(skillsDir)) return []
+  return readdirSync(skillsDir)
+    .filter(f => f.endsWith('.md'))
+    .map(f => {
+      const raw = readFileSync(join(skillsDir, f), 'utf8')
+      const { data, content } = matter(raw)
+      return { ...data, content }
+    })
+}
+
+function getRelevantSkills(message) {
+  const skills = loadSkills()
+  const lower = message.toLowerCase()
+  return skills
+    .filter(s => (s.triggers || []).some(t => lower.includes(t.toLowerCase())))
+    .map(s => `## Skill: ${s.name}\n${s.content}`)
+    .join('\n\n')
+}
 const app = express()
 const PORT = process.env.PORT || 3000
 
@@ -114,6 +141,9 @@ async function think(sessionId, userMessage) {
   const profileContext = profile
     ? `\nUser profile (uploaded by user):\n${profile.summary}` : ''
 
+  const skillContext = userMessage ? getRelevantSkills(userMessage) : ''
+  const skillsSection = skillContext ? `\n\n# Active Skills\n${skillContext}` : ''
+
   const response = await ai.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1000,
@@ -125,7 +155,7 @@ Until then, just vibe, get to know them, ask one good question at a time.
 Three sentences max per reply. End every message with 🦊
 
 Current time: ${new Date().toLocaleString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true })}
-What you know about this user: ${memory.facts.join(', ') || 'nothing yet'}${profileContext}`,
+What you know about this user: ${memory.facts.join(', ') || 'nothing yet'}${profileContext}${skillsSection}`,
     tools: [
       { name: 'remember_fact', description: 'Remember a fact about the user', input_schema: { type: 'object', properties: { fact: { type: 'string' } }, required: ['fact'] } },
       { name: 'build_plan', description: 'Build a 21 day action plan', input_schema: { type: 'object', properties: { goal: { type: 'string' }, niche: { type: 'string' }, timePerDay: { type: 'number' } }, required: ['goal', 'niche', 'timePerDay'] } },
