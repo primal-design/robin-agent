@@ -182,8 +182,11 @@ async function think(sessionId, userMessage) {
   const skillContext = userMessage ? getRelevantSkills(userMessage) : ''
   const skillsSection = skillContext ? `\n\n# Active Skills\n${skillContext}` : ''
 
+  const msgCount = memory.messages.filter(m => m.role === 'assistant').length
+  const model = msgCount < 3 ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001'
+
   const response = await ai.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model,
     max_tokens: 1000,
     system: `You're Robin — a side hustle mentor. Your one job: help people make their first £100 on the side.
 
