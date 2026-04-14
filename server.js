@@ -384,6 +384,85 @@ app.get('/my-data/:sessionId', (req, res) => {
     rights:     { can_export: true, can_delete: true }
   })
 })
+// ── Business Analysis ─────────────────────────────────────────────────────
+app.post('/analyse', async (req, res) => {
+  const { idea, sessionId = 'web-default' } = req.body
+  if (!idea) return res.status(400).json({ error: 'No idea' })
+
+  // Stream layers back as they complete
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+
+  const send = (layer, content) => {
+    res.write(`data: ${JSON.stringify({ layer, content })}\n\n`)
+  }
+
+  try {
+    send('status', 'Running demand check...')
+
+    // Layer 2: Demand
+    const demand = await doResearch('trend', idea, 'Is there growing demand? Are people searching for this? What are they saying on Reddit/social?')
+    send('demand', demand)
+
+    send('status', 'Researching competitors...')
+
+    // Layer 4: Competition
+    const competition = await doResearch('competitor', idea, 'Top competitors, their pricing, what reviews say they are bad at, gaps in the market')
+    send('competition', competition)
+
+    send('status', 'Analysing market...')
+
+    // Layer 3+5: Market + PESTEL signals
+    const market = await doResearch('market', idea, 'Market size, TAM, growth rate, PESTEL risks — regulation, tech disruption, social trends')
+    send('market', market)
+
+    send('status', 'Checking keywords...')
+
+    // Layer 10: Keywords
+    const keywords = await doResearch('topic', `${idea} keywords SEO`, 'Top search keywords, content gaps, what ads competitors are running')
+    send('keywords', keywords)
+
+    // Layer 6-9: Synthesis — SWOT + ICP + Unit Economics + Verdict
+    send('status', 'Building your analysis...')
+    const synthesis = await ai.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1200,
+      messages: [{
+        role: 'user',
+        content: `You are Robin — a sharp business analyst. Analyse this idea: "${idea}"
+
+Research gathered:
+DEMAND: ${demand}
+COMPETITION: ${competition}
+MARKET: ${market}
+KEYWORDS: ${keywords}
+
+Now give a structured analysis covering:
+1. SWOT (4 bullets each — specific to this idea)
+2. ICP — describe the ideal customer in 3 sentences (age, pain, where they hang out)
+3. Unit Economics — realistic price point, estimated margin, CAC challenge
+4. Verdict — GO / GO WITH CHANGES / VALIDATE FIRST / STOP + one-line reason
+5. ONE next step — the single most important thing to do in the next 48 hours
+
+Be brutally honest. Specific. No generic advice. Max 300 words total.`
+      }]
+    })
+    send('analysis', synthesis.content[0].text)
+
+    // Save to session memory
+    const memory = loadSession(sessionId)
+    memory.facts.push(`Business idea analysed: ${idea}`)
+    saveSession(sessionId, memory)
+
+    send('done', 'Analysis complete')
+    res.end()
+  } catch (err) {
+    send('error', 'Analysis failed — ' + err.message)
+    res.end()
+  }
+})
+
 app.delete('/clear-memory', (req, res) => {
   const { sessionId = 'web-default' } = req.body
   const s = loadStore()

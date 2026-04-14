@@ -192,6 +192,17 @@
     #paste-area { width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 13px; margin-top: 10px; resize: vertical; min-height: 80px; font-family: inherit; background: var(--surface2); color: var(--text); }
     #file-input { display: none; }
 
+    /* ANALYSIS CARD */
+    .analysis-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; max-width: 90%; min-width: 300px; }
+    .analysis-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text2); }
+    .analysis-title em { color: var(--orange); font-style: normal; }
+    .analysis-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text3); margin-bottom: 8px; }
+    .analysis-layers { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+    .analysis-section { border-top: 1px solid var(--border); padding-top: 12px; }
+    .analysis-section-title { font-size: 12px; font-weight: 600; color: var(--orange); margin-bottom: 6px; letter-spacing: 0.2px; }
+    .analysis-section-body { font-size: 13px; color: var(--text2); line-height: 1.65; }
+    .analysis-section-body strong { color: var(--text); }
+
     /* MILESTONE */
     .milestone-card { background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05)); border: 1px solid rgba(34,197,94,0.3); border-radius: var(--radius); padding: 20px 22px; max-width: 85%; text-align: center; }
     .milestone-card .milestone-icon { font-size: 40px; margin-bottom: 8px; }
@@ -712,10 +723,10 @@
     addRobin(`${g}${name ? ' ' + name : ''} — pick a goal and let's get moving. 🦊`)
     setTimeout(() => {
       addChips([
-        { label: 'First £100', msg: 'I want to make my first £100' },
-        { label: 'First client', msg: 'Help me find my first client' },
-        { label: 'Build a hustle', msg: 'Help me build a side hustle' },
-        { label: 'No skills', msg: "I don't have any skills — what can I do?" },
+        { label: 'First £100',    msg: 'I want to make my first £100' },
+        { label: 'First client',  msg: 'Help me find my first client' },
+        { label: 'Build a hustle',msg: 'Help me build a side hustle' },
+        { label: 'Analyse my idea', msg: '__ANALYSE__' },
       ])
     }, 300)
   }
@@ -786,6 +797,34 @@
   let msgCount = 0
 
   async function sendWith(text) {
+    // Analysis chip
+    if (text === '__ANALYSE__') {
+      addRobin("What's the business idea? Give me one sentence — what it is and who buys it. 🦊")
+      return
+    }
+
+    // Detect if previous Robin message was asking for an idea to analyse
+    const msgs = document.getElementById('messages')
+    const lastRobin = [...msgs.querySelectorAll('.msg-wrap.robin .bubble')].slice(-1)[0]?.textContent || ''
+    const isAnalysisReply = lastRobin.includes("business idea") || lastRobin.includes("one sentence") || lastRobin.includes("what it is and who")
+    const looksLikeAnalysis = text.length > 15 && !text.startsWith('I want') && !text.startsWith('Help me')
+    if (isAnalysisReply && looksLikeAnalysis) {
+      addUser(text)
+      runBusinessAnalysis(text)
+      return
+    }
+
+    // Also trigger directly if user types analysis keywords
+    const analysisKeywords = ['analyse my', 'analyze my', 'swot', 'pestel', 'business idea', 'validate my idea', 'market analysis']
+    const triggersAnalysis = analysisKeywords.some(k => text.toLowerCase().includes(k))
+    if (triggersAnalysis && text.length > 20) {
+      addUser(text)
+      // Extract the idea from the message
+      const idea = text.replace(/analyse my|analyze my|do a swot for|validate my idea about|business idea:/gi, '').trim()
+      runBusinessAnalysis(idea || text)
+      return
+    }
+
     addUser(text)
     addTyping()
     try {
@@ -809,6 +848,78 @@
     } catch (e) {
       document.getElementById('typing')?.remove()
       addRobin("Something went wrong — try again 🦊")
+    }
+  }
+
+  // ── Business Analysis ─────────────────────────────────────────────────────
+  async function runBusinessAnalysis(idea) {
+    // Add analysis card to chat
+    const wrapId = 'analysis-' + Date.now()
+    const wrap = document.createElement('div')
+    wrap.className = 'msg-wrap robin'
+    wrap.id = wrapId
+    wrap.innerHTML = `
+      <div class="robin-avatar">🦊</div>
+      <div class="analysis-card" id="card-${wrapId}">
+        <div class="analysis-title">Analysing: <em>${idea}</em></div>
+        <div class="analysis-status" id="status-${wrapId}"><div class="op-dot"></div> Starting analysis...</div>
+        <div class="analysis-layers" id="layers-${wrapId}"></div>
+      </div>`
+    document.getElementById('messages').appendChild(wrap)
+    scrollDown()
+
+    const LAYER_LABELS = {
+      demand:      '📈 Demand & Trends',
+      competition: '⚔️ Competition',
+      market:      '🌍 Market & PESTEL',
+      keywords:    '🔍 Keywords & Content',
+      analysis:    '🧠 Full Analysis',
+    }
+
+    try {
+      const res = await fetch('/analyse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea, sessionId })
+      })
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop()
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const { layer, content } = JSON.parse(line.slice(6))
+            const statusEl = document.getElementById(`status-${wrapId}`)
+            const layersEl = document.getElementById(`layers-${wrapId}`)
+
+            if (layer === 'status') {
+              statusEl.innerHTML = `<div class="op-dot"></div> ${content}`
+            } else if (layer === 'done') {
+              statusEl.style.display = 'none'
+              speakReply('Analysis complete. Here is what I found.')
+            } else if (layer === 'error') {
+              statusEl.innerHTML = `<span style="color:#ef4444">${content}</span>`
+            } else if (LAYER_LABELS[layer]) {
+              const section = document.createElement('div')
+              section.className = 'analysis-section'
+              section.innerHTML = `<div class="analysis-section-title">${LAYER_LABELS[layer]}</div><div class="analysis-section-body">${content.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/^• /gm, '• ')}</div>`
+              layersEl.appendChild(section)
+              scrollDown()
+            }
+          } catch (e) {}
+        }
+      }
+    } catch (e) {
+      document.getElementById(`status-${wrapId}`).innerHTML = '<span style="color:#ef4444">Analysis failed — try again</span>'
     }
   }
 
