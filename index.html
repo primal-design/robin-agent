@@ -545,8 +545,27 @@
       })
       const data = await res.json()
       document.getElementById('operator')?.remove()
-      addOperator('Got it — building your recommendation...')
-      await sendWith(`I found your profile. Based on what I know about you, what's the best side hustle for me to start?`)
+
+      if (data.ok) {
+        // Feed the profile summary into the chat as context, then ask Robin to act on it
+        addOperator('Got it — tailoring your recommendation...')
+        const chatRes = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `I just looked up ${handle}. Here's what I found: ${data.summary}\n\nBased on this, what's the most specific side hustle I should start?`,
+            sessionId
+          })
+        })
+        const chatData = await chatRes.json()
+        document.getElementById('operator')?.remove()
+        addRobin(chatData.reply)
+        updateStreak(chatData)
+        addRejectOption()
+      } else {
+        document.getElementById('operator')?.remove()
+        addRobin("Couldn't find that profile — tell me what you're good at and we'll go from there. 🦊")
+      }
     } catch (e) {
       document.getElementById('operator')?.remove()
       addRobin("Couldn't look that up — let's just go from what you tell me. 🦊")
@@ -723,7 +742,7 @@
     await sendWith(text)
   }
 
-  let isFirstMessage = true
+  let msgCount = 0
 
   async function sendWith(text) {
     addUser(text)
@@ -738,15 +757,13 @@
       document.getElementById('typing')?.remove()
       addRobin(data.reply)
       updateStreak(data)
+      msgCount++
 
-      // Phase 2: ask for social handle on first reply
-      if (data.showProfilePrompt && isFirstMessage) {
-        isFirstMessage = false
-        setTimeout(showHandlePrompt, 800)
-      }
+      // Phase 2: ask for social handle once after first reply
+      if (msgCount === 1) setTimeout(showHandlePrompt, 800)
 
-      // Phase 3: show reject option after first suggestion
-      if (!data.showProfilePrompt) addRejectOption()
+      // Phase 3: show reject option from second reply onwards
+      if (msgCount > 1) addRejectOption()
 
     } catch (e) {
       document.getElementById('typing')?.remove()
