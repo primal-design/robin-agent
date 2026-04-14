@@ -43,7 +43,8 @@ let lastRowid = (() => {
   return rows[0]?.r || 0
 })()
 
-const sessions = {}  // sender → sessionId
+const sessions    = {}  // sender → sessionId
+const newSenders  = new Set()  // track first-time messagers
 
 // ── Poll for new messages ─────────────────────────────────────────────────
 function poll() {
@@ -69,11 +70,19 @@ function poll() {
 async function handleMessage(sender, text) {
   console.log(`[in]  ${sender}: ${text}`)
 
-  if (!sessions[sender]) {
+  const isNew = !sessions[sender]
+  if (isNew) {
     sessions[sender] = 'imsg-' + sender.replace(/[^a-z0-9]/gi, '').slice(0, 20)
   }
 
   try {
+    // First-time sender — introduce Robin before replying
+    if (isNew && !newSenders.has(sender)) {
+      newSenders.add(sender)
+      sendIMessage(sender, "Hey — save this number as Robin 🦊 so you know it's me")
+      await new Promise(r => setTimeout(r, 1500))
+    }
+
     const res = await fetch(`${ROBIN_URL}/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
