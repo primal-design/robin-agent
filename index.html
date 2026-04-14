@@ -21,10 +21,10 @@
     }
     html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 
-    /* ── CANVAS ─────────────────────────────────────────────────── */
+    /*  CANVAS  */
     #ascii-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.35; }
 
-    /* ── NAV ────────────────────────────────────────────────────── */
+    /*  NAV  */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       display: flex; justify-content: space-between; align-items: center;
@@ -50,11 +50,11 @@
     .nav-btn.primary { background: var(--orange); color: #fff; border-color: var(--orange); }
     .nav-btn.primary:hover { background: #d4641e; }
 
-    /* ── PAGES ──────────────────────────────────────────────────── */
+    /*  PAGES  */
     #landing  { display: flex; flex-direction: column; min-height: 100vh; padding-top: 57px; position: relative; z-index: 1; }
     #chat-page { display: none; flex-direction: column; height: 100vh; padding-top: 57px; position: relative; z-index: 1; }
 
-    /* ── LANDING ────────────────────────────────────────────────── */
+    /*  LANDING  */
     .hero {
       flex: 1; display: flex; flex-direction: column; align-items: center;
       justify-content: center; padding: 60px 24px 40px; text-align: center;
@@ -121,7 +121,7 @@
     .proof-item { font-size: 13px; color: var(--text3); display: flex; align-items: center; gap: 6px; }
     .proof-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border); }
 
-    /* ── CHAT PAGE ───────────────────────────────────────────────── */
+    /*  CHAT PAGE  */
     #messages { flex: 1; overflow-y: auto; padding: 20px 0 8px; scroll-behavior: smooth; }
     #messages::-webkit-scrollbar { width: 4px; }
     #messages::-webkit-scrollbar-track { background: transparent; }
@@ -253,7 +253,7 @@
 <canvas id="ascii-canvas"></canvas>
 
 <!-- DEV PANEL -->
-<button id="dev-toggle" onclick="toggleDev()">⚙</button>
+<button id="dev-toggle" onclick="toggleDev()"></button>
 <div id="dev-panel" style="display:none">
   <h3>Canvas</h3>
   <div class="dev-row"><label>Speed</label><input type="range" id="s-speed" min="1" max="30" value="6" oninput="updateSettings()"><span id="v-speed">0.6</span></div>
@@ -266,7 +266,7 @@
 <!-- NAV -->
 <nav>
   <div class="nav-logo" onclick="showLanding()">
-    <div class="nav-logo-icon">🦊</div>
+    <div class="nav-logo-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
     <span class="nav-logo-text">Robin</span>
   </div>
   <div class="nav-right">
@@ -284,17 +284,17 @@
 
     <div class="choices">
       <div class="choice-card" onclick="quickSend('I want to make my first £100')">
-        <div class="choice-icon">🪙</div>
+        <div class="choice-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v2m0 8v2M9 9h4a2 2 0 010 4H9"/></svg></div>
         <div class="choice-title">First £100</div>
         <div class="choice-desc">Make your first money online this week</div>
       </div>
       <div class="choice-card" onclick="quickSend('Help me find my first client')">
-        <div class="choice-icon">🫱🏽‍🫲🏾</div>
+        <div class="choice-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
         <div class="choice-title">First client</div>
         <div class="choice-desc">Land your first paying customer</div>
       </div>
       <div class="choice-card" onclick="quickSend('Help me build a side hustle around my skills')">
-        <div class="choice-icon">⚡️</div>
+        <div class="choice-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
         <div class="choice-title">Build a hustle</div>
         <div class="choice-desc">Turn your skills into income</div>
       </div>
@@ -311,11 +311,11 @@
     </div>
 
     <div class="social-proof">
-      <div class="proof-item">🦊 Free to start</div>
+      <div class="proof-item">Free to start</div>
       <div class="proof-dot"></div>
-      <div class="proof-item">✨ First result in 90 seconds</div>
+      <div class="proof-item">First result in 90 seconds</div>
       <div class="proof-dot"></div>
-      <div class="proof-item">🛡️ Your data stays yours</div>
+      <div class="proof-item">Your data stays yours</div>
     </div>
   </div>
 </div>
@@ -324,7 +324,7 @@
 <div id="chat-page">
   <div id="step-indicator" style="display:none">
     <div class="step-bar">
-      <div class="step-item done" id="step-1"><div class="step-num">✓</div> Goal set</div>
+      <div class="step-item done" id="step-1"><div class="step-num"></div> Goal set</div>
       <div class="step-arrow">›</div>
       <div class="step-item active" id="step-2"><div class="step-num">2</div> Your offer</div>
       <div class="step-arrow">›</div>
@@ -332,7 +332,7 @@
       <div class="step-arrow">›</div>
       <div class="step-item" id="step-4"><div class="step-num">4</div> Outreach</div>
       <div class="step-arrow">›</div>
-      <div class="step-item" id="step-5"><div class="step-num">5</div> First win 🏆</div>
+      <div class="step-item" id="step-5"><div class="step-num">5</div> First win </div>
     </div>
   </div>
   <div id="messages"></div>
@@ -348,7 +348,7 @@
 </div>
 
 <script>
-  // ── Canvas ─────────────────────────────────────────────────────────────────
+  //  Canvas 
   const canvas = document.getElementById('ascii-canvas')
   const ctx = canvas.getContext('2d')
 
@@ -418,7 +418,7 @@
   }
   animate()
 
-  // ── App ────────────────────────────────────────────────────────────────────
+  //  App 
   const sessionId = 'web-' + Math.random().toString(36).slice(2)
 
   function toggleBtn(input, btnId) {
@@ -440,13 +440,13 @@
   function greet() {
     const hour = new Date().getHours()
     let g = hour < 12 ? 'Morning' : hour < 17 ? 'Hey' : 'Evening'
-    addRobin(`${g} — pick a goal and let's get moving. 🦊`)
+    addRobin(`${g} — pick a goal and let's get moving. `)
     setTimeout(() => {
       addChips([
-        { label: '🪙 First £100', msg: 'I want to make my first £100' },
-        { label: '🫱🏽‍🫲🏾 First client', msg: 'Help me find my first client' },
-        { label: '⚡️ Build a hustle', msg: 'Help me build a side hustle' },
-        { label: '🔎 Research something', msg: 'I need to do some research' },
+        { label: 'First £100', msg: 'I want to make my first £100' },
+        { label: 'First client', msg: 'Help me find my first client' },
+        { label: 'Build a hustle', msg: 'Help me build a side hustle' },
+        { label: 'Research something', msg: 'I need to do some research' },
       ])
     }, 300)
   }
@@ -465,7 +465,7 @@
   function addRobin(text) {
     const wrap = document.createElement('div')
     wrap.className = 'msg-wrap robin'
-    wrap.innerHTML = `<div class="robin-avatar">🦊</div><div class="bubble">${text}</div>`
+    wrap.innerHTML = `<div class="robin-avatar">R</div><div class="bubble">${text}</div>`
     document.getElementById('messages').appendChild(wrap)
     scrollDown()
     return wrap
@@ -498,7 +498,7 @@
     const wrap = document.createElement('div')
     wrap.className = 'msg-wrap robin'
     wrap.id = 'operator'
-    wrap.innerHTML = `<div class="robin-avatar">🦊</div><div class="bubble"><div class="operator-state"><div class="op-dot"></div>${text}</div></div>`
+    wrap.innerHTML = `<div class="robin-avatar">R</div><div class="bubble"><div class="operator-state"><div class="op-dot"></div>${text}</div></div>`
     document.getElementById('messages').appendChild(wrap)
     scrollDown()
     return wrap
@@ -508,7 +508,7 @@
     const wrap = document.createElement('div')
     wrap.className = 'msg-wrap robin'
     wrap.id = 'typing'
-    wrap.innerHTML = `<div class="robin-avatar">🦊</div><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`
+    wrap.innerHTML = `<div class="robin-avatar">R</div><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`
     document.getElementById('messages').appendChild(wrap)
     scrollDown()
   }
@@ -540,18 +540,18 @@
       if (data.showProfilePrompt) setTimeout(showProfilePrompt, 600)
     } catch (e) {
       document.getElementById('typing')?.remove()
-      addRobin("Something went wrong — try again 🦊")
+      addRobin("Something went wrong — try again ")
     }
   }
 
-  // ── Profile layer ──────────────────────────────────────────────────────────
+  //  Profile layer 
   function showProfilePrompt() {
     if (document.getElementById('profile-card')) return
     const wrap = document.createElement('div')
     wrap.className = 'msg-wrap robin'
     wrap.id = 'profile-card-wrap'
     wrap.innerHTML = `
-      <div class="robin-avatar">🦊</div>
+      <div class="robin-avatar"></div>
       <div class="profile-card" id="profile-card">
         <p>I can tailor everything to you — want me to?</p>
         <div style="color:var(--text2);font-size:13px;margin-bottom:4px">Paste your bio, CV, website, or social posts. I'll use it to give better suggestions.</div>
@@ -618,7 +618,7 @@
   async function deleteProfile() {
     await fetch('/profile', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) })
     document.getElementById('profile-card-wrap')?.remove()
-    addRobin("Done — your data's been deleted. 🦊")
+    addRobin("Done — your data's been deleted. ")
   }
 </script>
 </body>
