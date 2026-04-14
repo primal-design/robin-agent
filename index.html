@@ -266,7 +266,7 @@
 <!-- NAV -->
 <nav>
   <div class="nav-logo" onclick="showLanding()">
-    <div class="nav-logo-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
+    <div class="nav-logo-icon">🦊</div>
     <span class="nav-logo-text">Robin</span>
   </div>
   <div class="nav-right">
@@ -465,7 +465,7 @@
   function addRobin(text) {
     const wrap = document.createElement('div')
     wrap.className = 'msg-wrap robin'
-    wrap.innerHTML = `<div class="robin-avatar">R</div><div class="bubble">${text}</div>`
+    wrap.innerHTML = `<div class="robin-avatar">🦊</div><div class="bubble">${text}</div>`
     document.getElementById('messages').appendChild(wrap)
     scrollDown()
     return wrap
@@ -498,7 +498,7 @@
     const wrap = document.createElement('div')
     wrap.className = 'msg-wrap robin'
     wrap.id = 'operator'
-    wrap.innerHTML = `<div class="robin-avatar">R</div><div class="bubble"><div class="operator-state"><div class="op-dot"></div>${text}</div></div>`
+    wrap.innerHTML = `<div class="robin-avatar">🦊</div><div class="bubble"><div class="operator-state"><div class="op-dot"></div>${text}</div></div>`
     document.getElementById('messages').appendChild(wrap)
     scrollDown()
     return wrap
@@ -508,7 +508,7 @@
     const wrap = document.createElement('div')
     wrap.className = 'msg-wrap robin'
     wrap.id = 'typing'
-    wrap.innerHTML = `<div class="robin-avatar">R</div><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`
+    wrap.innerHTML = `<div class="robin-avatar">🦊</div><div class="bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`
     document.getElementById('messages').appendChild(wrap)
     scrollDown()
   }
