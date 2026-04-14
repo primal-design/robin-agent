@@ -10,6 +10,44 @@ const __dir = dirname(fileURLToPath(import.meta.url))
 
 const ai  = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
 
+// ── Zero-skill hustles ────────────────────────────────────────────────────
+const ZERO_SKILL_HUSTLES = [
+  {
+    id: 'reviews',
+    title: 'Get Google reviews for local businesses',
+    timeline: '£50-200 in 7 days',
+    effort: '2 hours/day',
+    pitch: 'Message 10 restaurants. Get paid £50-100 each to get them 5 reviews.'
+  },
+  {
+    id: 'delivery',
+    title: 'Same-day errand / delivery service',
+    timeline: '£50-150 in 3 days',
+    effort: 'As much as you want',
+    pitch: 'Post on Facebook: "I do errands, pickups, deliveries in [your area]. £15/hour."'
+  },
+  {
+    id: 'cleaning',
+    title: 'End of tenancy / deep clean',
+    timeline: '£100-300 in 5 days',
+    effort: '4-6 hours per job',
+    pitch: 'Post on Gumtree and local Facebook groups. First job gets you a review.'
+  },
+  {
+    id: 'resell',
+    title: 'Buy and resell locally',
+    timeline: '£50-200 in 7 days',
+    effort: '2-3 hours browsing',
+    pitch: 'Find free or cheap items on Facebook Marketplace. Clean them. Resell for 3x.'
+  }
+]
+
+function formatZeroSkillHustles() {
+  return ZERO_SKILL_HUSTLES.map(h =>
+    `- ${h.title} (${h.timeline}, ${h.effort}): ${h.pitch}`
+  ).join('\n')
+}
+
 // ── Skills loader ─────────────────────────────────────────────────────────
 function loadSkills() {
   const skillsDir = join(__dir, 'skills')
@@ -153,12 +191,16 @@ RULES:
 - Max 2 sentences. Never more.
 - No lists, no bullet points, no long explanations.
 - Never keep asking what their situation is — if they say they need money, MOVE. Ask ONE thing: what can they do (skill, service, product)?
+- If they say they have no skills or don't know what to do, pick ONE hustle from the zero-skill list below and tell them exactly what to do TODAY.
 - If they say they're frustrated or stuck, skip the sympathy — give them one concrete action RIGHT NOW.
 - Once you know their skill or niche, tell them exactly what to sell and who to sell it to. Be specific.
 - If you have enough to suggest a side hustle, suggest it. Don't keep asking questions.
 - Never say "great question", "I'm here to help", or anything corporate.
 - Only build a full 21-day plan when they say "build", "let's go", "make me a plan" or similar.
 - End every message with 🦊
+
+ZERO-SKILL HUSTLES (use these when user has no skills or doesn't know where to start):
+${formatZeroSkillHustles()}
 
 Current time: ${new Date().toLocaleString('en-US', { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true })}
 What you know about this user: ${memory.facts.join(', ') || 'nothing yet'}${profileContext}${skillsSection}`,
