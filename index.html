@@ -373,6 +373,14 @@
     <p>Your data, your control.</p>
 
     <div class="settings-section">
+      <h3>Integrations</h3>
+      <div class="settings-row">
+        <div class="settings-row-left">Gmail<span id="gmail-status-text">Not connected</span></div>
+        <button class="settings-btn" id="gmail-connect-btn" onclick="connectGmail()">Connect</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
       <h3>Your progress</h3>
       <div class="settings-row">
         <div class="settings-row-left">Streak<span id="s-streak">0 days</span></div>
@@ -471,6 +479,7 @@
     document.getElementById('s-earned').textContent = '£' + (store.total_earned || 0)
     hide('page-chat'); hide('page-landing')
     show('page-settings', 'flex')
+    checkGmailStatus()
   }
 
   function show(id, display = 'block') { document.getElementById(id).style.display = display }
@@ -922,6 +931,58 @@
       document.getElementById(`status-${wrapId}`).innerHTML = '<span style="color:#ef4444">Analysis failed — try again</span>'
     }
   }
+
+  // ── Gmail integration ─────────────────────────────────────────────────────
+  async function checkGmailStatus() {
+    try {
+      const res  = await fetch(`/email/status?sessionId=${sessionId}`)
+      const data = await res.json()
+      const txt  = document.getElementById('gmail-status-text')
+      const btn  = document.getElementById('gmail-connect-btn')
+      if (!txt || !btn) return
+      if (data.connected) {
+        txt.textContent = data.email || 'Connected'
+        btn.textContent = 'Disconnect'
+        btn.onclick = disconnectGmail
+        btn.classList.add('danger')
+      } else {
+        txt.textContent = 'Not connected'
+        btn.textContent = 'Connect'
+        btn.onclick = connectGmail
+        btn.classList.remove('danger')
+      }
+    } catch {}
+  }
+
+  function connectGmail() {
+    window.open(`/email/auth?sessionId=${sessionId}`, '_blank', 'width=500,height=600')
+    // Re-check status after the popup closes
+    const timer = setInterval(async () => {
+      await checkGmailStatus()
+      const res  = await fetch(`/email/status?sessionId=${sessionId}`)
+      const data = await res.json()
+      if (data.connected) {
+        clearInterval(timer)
+        addMessage('robin', `Gmail connected ✅ I can now read your emails, draft replies, and notify you of new messages. 🦊`)
+      }
+    }, 3000)
+    setTimeout(() => clearInterval(timer), 120_000) // stop after 2 min
+  }
+
+  async function disconnectGmail() {
+    if (!confirm('Disconnect Gmail? Robin will no longer access your emails.')) return
+    await fetch('/email/disconnect', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId }) })
+    checkGmailStatus()
+  }
+
+  // Poll for new email notifications every 90s when chat is open
+  setInterval(async () => {
+    try {
+      const res  = await fetch(`/email/notifications?sessionId=${sessionId}`)
+      const data = await res.json()
+      if (data.notification) addMessage('robin', data.notification)
+    } catch {}
+  }, 90_000)
 
   // ── Phase 5: GDPR ─────────────────────────────────────────────────────────
   async function exportData() {

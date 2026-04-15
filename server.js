@@ -16,6 +16,11 @@ import {
 import {
   detectSignals, shouldTrigger, getTriggerRoute
 } from './lib/signals.js'
+import {
+  getAuthUrl, exchangeCode, listEmails, getEmailBody,
+  sendEmail, archiveEmails, markRead, findContact,
+  getLatestId, getEmailProfile
+} from './lib/gmail.js'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
 const ai    = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
@@ -320,6 +325,11 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
       },
       { name: 'log_task_done',    description: 'User completed a task. Log it, update streak.',      input_schema: { type: 'object', properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
       { name: 'find_leads',       description: 'Find local business leads using Google Maps. Use when user wants to find clients or prospects in their area.', input_schema: { type: 'object', properties: { niche: { type: 'string', description: 'Type of business e.g. restaurants, gyms, hair salons' }, location: { type: 'string', description: 'City or area e.g. Manchester, London Bridge' } }, required: ['niche', 'location'] } },
+      { name: 'read_emails',      description: 'Read emails from the user\'s Gmail inbox. Use for: checking new emails, today\'s emails, unread emails, emails from a specific person.', input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Gmail search query e.g. "from:john" or "newer_than:1d" or "is:unread"' }, maxResults: { type: 'number' }, unreadOnly: { type: 'boolean' } }, required: [] } },
+      { name: 'draft_email',      description: 'Draft an email for user approval before sending. Always draft first, never send without approval.', input_schema: { type: 'object', properties: { to: { type: 'string' }, subject: { type: 'string' }, body: { type: 'string' }, find_contact: { type: 'string', description: 'Name to look up in contacts if email address not known' } }, required: ['subject', 'body'] } },
+      { name: 'send_email',       description: 'Send a previously approved email draft. Only call after user says yes/send/go ahead.', input_schema: { type: 'object', properties: { to: { type: 'string' }, subject: { type: 'string' }, body: { type: 'string' }, threadId: { type: 'string' } }, required: ['to', 'subject', 'body'] } },
+      { name: 'clean_inbox',      description: 'Archive emails to clean the inbox. Use when user asks to clean, tidy, or clear emails.', input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Which emails to archive e.g. "older_than:30d" or "from:newsletter"' }, maxResults: { type: 'number' } }, required: ['query'] } },
+      { name: 'email_summary',    description: 'Summarise all emails from today or this week. Use for daily digest requests.', input_schema: { type: 'object', properties: { period: { type: 'string', enum: ['today', 'week'] } }, required: ['period'] } },
     ],
     messages: memory.messages.slice(-20)
   })
@@ -388,6 +398,104 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
           results.push({ type: 'tool_result', tool_use_id: id, content: `Found ${leads.length} ${input.niche} businesses in ${input.location}:\n${formatted}\n\nBest targets: low rating (3-4 stars) or few reviews = easiest to help and most likely to pay.` })
         } else {
           results.push({ type: 'tool_result', tool_use_id: id, content: `No results found for ${input.niche} in ${input.location}. Try a broader term or different area.` })
+        }
+      }
+
+      // ── Email tools ───────────────────────────────────────────────────────
+      if (name === 'read_emails') {
+        const tokens = await getEmailTokens(sessionId)
+        if (!tokens) {
+          results.push({ type: 'tool_result', tool_use_id: id, content: 'Gmail not connected. Ask the user to connect Gmail in Settings first.' })
+        } else {
+          try {
+            const emails = await listEmails(tokens, { query: input.query || '', maxResults: input.maxResults || 15, unreadOnly: input.unreadOnly })
+            if (!emails.length) {
+              results.push({ type: 'tool_result', tool_use_id: id, content: 'No emails found matching that query.' })
+            } else {
+              const formatted = emails.map((e, i) =>
+                `${i+1}. ${e.unread ? '🔵 ' : ''}From: ${e.from}\n   Subject: ${e.subject}\n   Date: ${e.date}\n   Preview: ${e.snippet}`
+              ).join('\n\n')
+              results.push({ type: 'tool_result', tool_use_id: id, content: `Found ${emails.length} email(s):\n\n${formatted}` })
+            }
+          } catch (err) {
+            results.push({ type: 'tool_result', tool_use_id: id, content: `Email read failed: ${err.message}` })
+          }
+        }
+      }
+
+      if (name === 'draft_email') {
+        const tokens = await getEmailTokens(sessionId)
+        if (!tokens) {
+          results.push({ type: 'tool_result', tool_use_id: id, content: 'Gmail not connected.' })
+        } else {
+          let to = input.to || ''
+          // Auto-find contact if email not provided
+          if (!to && input.find_contact) {
+            try {
+              const contacts = await findContact(tokens, input.find_contact)
+              if (contacts.length) to = contacts[0].email
+            } catch {}
+          }
+          // Save draft as pending action
+          memory.pending_action = { type: 'send_email', to, subject: input.subject, body: input.body }
+          const preview = `To: ${to || '(contact not found — please provide email)'}\nSubject: ${input.subject}\n\n${input.body}`
+          results.push({ type: 'tool_result', tool_use_id: id, content: `DRAFT READY:\n\n${preview}\n\nAsk user: "Want me to send this?"` })
+        }
+      }
+
+      if (name === 'send_email') {
+        const tokens = await getEmailTokens(sessionId)
+        if (!tokens) {
+          results.push({ type: 'tool_result', tool_use_id: id, content: 'Gmail not connected.' })
+        } else {
+          try {
+            await sendEmail(tokens, { to: input.to, subject: input.subject, body: input.body, threadId: input.threadId })
+            memory.pending_action = null
+            results.push({ type: 'tool_result', tool_use_id: id, content: `Email sent to ${input.to}. Subject: "${input.subject}"` })
+          } catch (err) {
+            results.push({ type: 'tool_result', tool_use_id: id, content: `Send failed: ${err.message}` })
+          }
+        }
+      }
+
+      if (name === 'clean_inbox') {
+        const tokens = await getEmailTokens(sessionId)
+        if (!tokens) {
+          results.push({ type: 'tool_result', tool_use_id: id, content: 'Gmail not connected.' })
+        } else {
+          try {
+            const emails = await listEmails(tokens, { query: input.query, maxResults: input.maxResults || 50 })
+            if (!emails.length) {
+              results.push({ type: 'tool_result', tool_use_id: id, content: 'No emails matched — inbox already clean.' })
+            } else {
+              await archiveEmails(tokens, emails.map(e => e.id))
+              results.push({ type: 'tool_result', tool_use_id: id, content: `Archived ${emails.length} emails matching "${input.query}". Inbox cleaned.` })
+            }
+          } catch (err) {
+            results.push({ type: 'tool_result', tool_use_id: id, content: `Clean failed: ${err.message}` })
+          }
+        }
+      }
+
+      if (name === 'email_summary') {
+        const tokens = await getEmailTokens(sessionId)
+        if (!tokens) {
+          results.push({ type: 'tool_result', tool_use_id: id, content: 'Gmail not connected.' })
+        } else {
+          try {
+            const query = input.period === 'week' ? 'newer_than:7d' : 'newer_than:1d'
+            const emails = await listEmails(tokens, { query, maxResults: 30 })
+            if (!emails.length) {
+              results.push({ type: 'tool_result', tool_use_id: id, content: `No emails in the last ${input.period === 'week' ? '7 days' : '24 hours'}.` })
+            } else {
+              const unread = emails.filter(e => e.unread).length
+              const senders = [...new Set(emails.map(e => e.from.replace(/<.*>/, '').trim()))].slice(0, 8)
+              const list = emails.slice(0, 15).map(e => `- ${e.unread ? '🔵 ' : ''}${e.from.replace(/<.*>/, '').trim()}: "${e.subject}" — ${e.snippet?.slice(0, 80)}`)
+              results.push({ type: 'tool_result', tool_use_id: id, content: `${input.period === 'week' ? 'This week' : 'Today'}: ${emails.length} emails, ${unread} unread.\nFrom: ${senders.join(', ')}\n\n${list.join('\n')}` })
+            }
+          } catch (err) {
+            results.push({ type: 'tool_result', tool_use_id: id, content: `Summary failed: ${err.message}` })
+          }
         }
       }
     }
@@ -686,6 +794,108 @@ app.post('/speak', async (req, res) => {
   } catch (err) {
     res.json({ fallback: true, text: clean })
   }
+})
+
+// ── Gmail OAuth ───────────────────────────────────────────────────────────
+async function getEmailTokens(sessionId) {
+  const user = await loadUser(sessionId)
+  return user?.gmail_tokens || null
+}
+
+app.get('/email/auth', (req, res) => {
+  const { sessionId = 'web-default' } = req.query
+  const url = getAuthUrl() + `&state=${encodeURIComponent(sessionId)}`
+  res.redirect(url)
+})
+
+app.get('/email/callback', async (req, res) => {
+  const { code, state: sessionId } = req.query
+  if (!code) return res.status(400).send('No code')
+  try {
+    const tokens  = await exchangeCode(code)
+    const user    = (await loadUser(sessionId)) || {}
+    user.gmail_tokens = tokens
+    await saveUser(sessionId, user)
+
+    // Get Gmail profile to confirm
+    const profile = await getEmailProfile(tokens)
+    user.gmail_email = profile.email
+    await saveUser(sessionId, user)
+
+    // Store first email ID baseline for new-email polling
+    const latestId = await getLatestId(tokens)
+    const session  = await loadSession(sessionId)
+    session.gmail_last_id = latestId
+    await saveSession(sessionId, session)
+
+    res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#fff">
+      <div style="font-size:48px">🦊</div>
+      <h2 style="color:#111">Gmail connected!</h2>
+      <p style="color:#555">Robin can now read and manage your emails.</p>
+      <p style="color:#E8722A;font-size:14px">${profile.email}</p>
+      <script>setTimeout(()=>window.close(),2000)</script>
+    </body></html>`)
+  } catch (err) {
+    res.status(500).send('Auth failed: ' + err.message)
+  }
+})
+
+app.get('/email/status', async (req, res) => {
+  const { sessionId = 'web-default' } = req.query
+  const user = await loadUser(sessionId)
+  res.json({ connected: !!user?.gmail_tokens, email: user?.gmail_email || null })
+})
+
+app.delete('/email/disconnect', async (req, res) => {
+  const { sessionId = 'web-default' } = req.body
+  const user = await loadUser(sessionId)
+  if (user) { delete user.gmail_tokens; delete user.gmail_email; await saveUser(sessionId, user) }
+  res.json({ ok: true })
+})
+
+// ── New email polling (every 90s) ─────────────────────────────────────────
+const emailNotifications = new Map() // sessionId → { message, at }
+
+async function pollNewEmails() {
+  if (!process.env.GMAIL_CLIENT_ID) return
+  // This is lightweight — only checks if there's a new message ID, no full read
+  // In production you'd iterate all active sessions from Redis
+  // For now it checks the web-default session
+  try {
+    const user = await loadUser('web-default')
+    if (!user?.gmail_tokens) return
+    const session   = await loadSession('web-default')
+    const lastId    = session.gmail_last_id
+    const latestId  = await getLatestId(user.gmail_tokens)
+    if (latestId && latestId !== lastId) {
+      // Fetch the new email details
+      const emails = await listEmails(user.gmail_tokens, { maxResults: 1, unreadOnly: false })
+      if (emails.length) {
+        const e = emails[0]
+        const from    = e.from.replace(/<.*>/, '').trim()
+        const subject = e.subject || '(no subject)'
+        emailNotifications.set('web-default', {
+          message: `📬 New email from **${from}** — "${subject}" 🦊`,
+          at: new Date().toISOString()
+        })
+        session.gmail_last_id = latestId
+        await saveSession('web-default', session)
+      }
+    }
+  } catch {}
+}
+
+setInterval(pollNewEmails, 90_000)
+
+// ── Email notification check (called by /pulse or /chat) ──────────────────
+app.get('/email/notifications', (req, res) => {
+  const { sessionId = 'web-default' } = req.query
+  const note = emailNotifications.get(sessionId)
+  if (note) {
+    emailNotifications.delete(sessionId)
+    return res.json({ notification: note.message })
+  }
+  res.json({ notification: null })
 })
 
 app.listen(PORT, () => console.log(`\n🦊 Robin running at http://localhost:${PORT}\n`))
