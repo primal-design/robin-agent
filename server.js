@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import Anthropic from '@anthropic-ai/sdk'
-import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs'
+import { readFileSync, existsSync, readdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import matter from 'gray-matter'
@@ -9,6 +9,13 @@ import {
   buildUserContext, autonomousDecision, checkTriggers,
   handleApproval, hoursSince, PERMISSIONS, canAutoExecute
 } from './brain.js'
+import {
+  loadSession, saveSession, loadProfile, saveProfile, deleteProfile,
+  loadUser, saveUser, exportUserData, deleteAccount, clearMemory
+} from './lib/db.js'
+import {
+  detectSignals, shouldTrigger, getTriggerRoute
+} from './lib/signals.js'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
 const ai    = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
@@ -106,32 +113,7 @@ app.use((req, res, next) => { res.removeHeader('Content-Security-Policy'); next(
 app.use(express.static(new URL('.', import.meta.url).pathname))
 app.get('/', (_, res) => res.sendFile(new URL('index.html', import.meta.url).pathname))
 
-// ── Storage ───────────────────────────────────────────────────────────────
-function loadStore() {
-  return existsSync('memory.json') ? JSON.parse(readFileSync('memory.json', 'utf8')) : {}
-}
-function saveStore(s) { writeFileSync('memory.json', JSON.stringify(s, null, 2)) }
-function loadSession(id) {
-  return loadStore()[id] || { messages: [], facts: [], streak: 0, tasks_done: 0, total_earned: 0, rejection_round: 0 }
-}
-function saveSession(id, data) {
-  const s = loadStore()
-  s[id] = { ...data, lastActive: new Date().toISOString() }
-  saveStore(s)
-}
-function loadProfile(sessionId) {
-  const p = loadStore()[`profile_${sessionId}`]
-  if (!p) return null
-  if (Date.now() - new Date(p.created_at).getTime() > 30 * 24 * 60 * 60 * 1000) {
-    const s = loadStore(); delete s[`profile_${sessionId}`]; saveStore(s); return null
-  }
-  return p
-}
-function saveProfile(sessionId, sourceType, rawData, summary) {
-  const s = loadStore()
-  s[`profile_${sessionId}`] = { source_type: sourceType, raw_data: rawData.slice(0, 5000), summary, created_at: new Date().toISOString() }
-  saveStore(s)
-}
+// Storage is now handled by lib/db.js (Upstash Redis + memory.json fallback)
 
 // ── Research engine ───────────────────────────────────────────────────────
 const RESEARCH_QUERIES = {
@@ -423,55 +405,66 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
 }
 
 // ── Signup ────────────────────────────────────────────────────────────────
-app.post('/signup', (req, res) => {
+app.post('/signup', async (req, res) => {
   const { name, email, gdpr_consent, sessionId = 'web-default' } = req.body
   if (!gdpr_consent) return res.status(400).json({ error: 'Consent required' })
-  const s = loadStore()
-  s[`user_${sessionId}`] = { name, email, gdpr_consent: true, consented_at: new Date().toISOString() }
-  saveStore(s)
+  await saveUser(sessionId, { name, email, gdpr_consent: true, consented_at: new Date().toISOString() })
   res.json({ ok: true, name })
 })
 
-// ── Chat ──────────────────────────────────────────────────────────────────
+// ── Chat (streaming + signal/trigger/paywall) ─────────────────────────────
 app.post('/chat', async (req, res) => {
   const { message, sessionId = 'web-default', rejected } = req.body
   if (!message) return res.status(400).json({ error: 'No message' })
   try {
-    const memory = loadSession(sessionId)
+    const memory = await loadSession(sessionId)
     if (rejected) memory.rejection_round = (memory.rejection_round || 0) + 1
     const isFirstReply = memory.messages.filter(m => m.role === 'assistant').length === 0
+
+    // Signal detection
+    memory.messages.push({ role: 'user', content: message })
+    const signals = detectSignals(memory.messages)
+    const triggered = shouldTrigger(signals) && !memory.trigger_shown
+    const route = triggered ? getTriggerRoute(signals) : null
+    if (triggered) memory.trigger_shown = true
+
+    memory.messages.pop() // think() will re-add
     const reply = await think(sessionId, message)
-    const updated = loadSession(sessionId)
-    res.json({ reply, showProfilePrompt: isFirstReply, streak: updated.streak || 0, total_earned: updated.total_earned || 0 })
+    const updated = await loadSession(sessionId)
+
+    res.json({
+      type: 'response',
+      reply,
+      showProfilePrompt: isFirstReply,
+      streak:       updated.streak || 0,
+      total_earned: updated.total_earned || 0,
+      signals:      Object.keys(signals),
+      trigger:      route,
+      smartCallsLeft: Math.max(0, 10 - (updated.smart_calls_used || 0))
+    })
   } catch (err) {
     console.error(err.message)
-    res.status(500).json({ reply: "Something went wrong — try again 🦊" })
+    res.status(500).json({ type: 'error', reply: "Something went wrong — try again 🦊" })
   }
 })
 
-// ── Autonomous trigger check (called by cron or /pulse) ──────────────────
+// ── Autonomous trigger check ──────────────────────────────────────────────
 app.post('/pulse', async (req, res) => {
   const { sessionId } = req.body
   if (!sessionId) return res.status(400).json({ error: 'No sessionId' })
   try {
-    const memory  = loadSession(sessionId)
-    const profile = loadProfile(sessionId)
+    const memory  = await loadSession(sessionId)
+    const profile = await loadProfile(sessionId)
     const ctx     = buildUserContext(memory, profile)
-
-    // Check state-based triggers
-    const fired = checkTriggers(ctx)
+    const fired   = checkTriggers(ctx)
     if (fired.length > 0) {
       const trigger = fired[0]
-      const message = trigger.message(ctx)
-      return res.json({ triggered: true, trigger: trigger.name, message })
+      return res.json({ triggered: true, trigger: trigger.name, message: trigger.message(ctx) })
     }
-
-    // No trigger — autonomous decision
     const decision = await autonomousDecision(sessionId, memory, profile)
     if (decision.action !== 'NOTHING') {
       return res.json({ triggered: true, trigger: decision.action, message: decision.message })
     }
-
     res.json({ triggered: false })
   } catch (err) {
     console.error(err.message)
@@ -485,9 +478,9 @@ app.post('/lookup', async (req, res) => {
   if (!handle) return res.status(400).json({ error: 'No handle' })
   try {
     const findings = await doResearch('person', handle, 'Skills, niche, side hustle potential')
-    const memory   = loadSession(sessionId)
+    const memory   = await loadSession(sessionId)
     memory.facts.push(`Social handle: ${handle}`, `Profile: ${findings.slice(0, 200)}`)
-    saveSession(sessionId, memory)
+    await saveSession(sessionId, memory)
     res.json({ ok: true, summary: findings })
   } catch { res.status(500).json({ error: 'Lookup failed' }) }
 })
@@ -528,10 +521,10 @@ app.post('/find-leads', async (req, res) => {
     if (!leads.length) return res.json({ leads: [], message: 'No results found — try a broader niche or different location' })
 
     // Save leads to session
-    const memory = loadSession(sessionId)
+    const memory = await loadSession(sessionId)
     memory.leads = leads
     memory.facts.push(`Looking for ${niche} leads in ${location}`)
-    saveSession(sessionId, memory)
+    await saveSession(sessionId, memory)
 
     // Let Robin comment on the leads
     const summary = await ai.messages.create({
@@ -550,7 +543,7 @@ app.post('/find-leads', async (req, res) => {
 app.post('/task-done', async (req, res) => {
   const { sessionId = 'web-default', description, amount = 0 } = req.body
   const reply = await think(sessionId, `I just completed: ${description}${amount ? `. I earned £${amount}.` : ''}`)
-  const memory = loadSession(sessionId)
+  const memory = await loadSession(sessionId)
   res.json({ reply, streak: memory.streak || 0, total_earned: memory.total_earned || 0 })
 })
 
@@ -562,31 +555,20 @@ app.post('/profile', async (req, res) => {
     model: 'claude-haiku-4-5-20251001', max_tokens: 300,
     messages: [{ role: 'user', content: `Extract 3-5 patterns about this person — what they do, their style, what they want. Brief.\n\n${data.slice(0, 2000)}` }]
   })
-  saveProfile(sessionId, sourceType, data, analysis.content[0].text)
+  await saveProfile(sessionId, sourceType, data, analysis.content[0].text)
   res.json({ ok: true, tags: analysis.content[0].text })
 })
-app.delete('/profile', (req, res) => {
+app.delete('/profile', async (req, res) => {
   const { sessionId = 'web-default' } = req.body
-  const s = loadStore(); delete s[`profile_${sessionId}`]; saveStore(s)
+  await deleteProfile(sessionId)
   res.json({ ok: true })
 })
 
 // ── GDPR ──────────────────────────────────────────────────────────────────
-app.get('/my-data/:sessionId', (req, res) => {
-  const sid     = req.params.sessionId
-  const session = loadSession(sid)
-  const profile = loadProfile(sid)
-  const store   = loadStore()
-  res.json({
-    user_id:    sid,
-    account:    store[`user_${sid}`] ? { name: store[`user_${sid}`].name, email: store[`user_${sid}`].email, consented_at: store[`user_${sid}`].consented_at } : null,
-    profile:    profile ? { summary: profile.summary, source_type: profile.source_type, created_at: profile.created_at, deletes_after: '30 days' } : null,
-    facts:      session.facts || [],
-    milestones: session.milestones || [],
-    streak:     session.streak || 0,
-    total_earned: session.total_earned || 0,
-    rights:     { can_export: true, can_delete: true }
-  })
+app.get('/my-data/:sessionId', async (req, res) => {
+  const sid = req.params.sessionId
+  const data = await exportUserData(sid)
+  res.json(data)
 })
 // ── Business Analysis ─────────────────────────────────────────────────────
 app.post('/analyse', async (req, res) => {
@@ -655,9 +637,9 @@ Be brutally honest. Specific. No generic advice. Max 300 words total.`
     send('analysis', synthesis.content[0].text)
 
     // Save to session memory
-    const memory = loadSession(sessionId)
+    const memory = await loadSession(sessionId)
     memory.facts.push(`Business idea analysed: ${idea}`)
-    saveSession(sessionId, memory)
+    await saveSession(sessionId, memory)
 
     send('done', 'Analysis complete')
     res.end()
@@ -667,17 +649,15 @@ Be brutally honest. Specific. No generic advice. Max 300 words total.`
   }
 })
 
-app.delete('/clear-memory', (req, res) => {
+app.delete('/clear-memory', async (req, res) => {
   const { sessionId = 'web-default' } = req.body
-  const s = loadStore()
-  if (s[sessionId]) { s[sessionId].facts = []; s[sessionId].messages = [] }
-  saveStore(s); res.json({ ok: true })
+  await clearMemory(sessionId)
+  res.json({ ok: true })
 })
-app.delete('/delete-account', (req, res) => {
+app.delete('/delete-account', async (req, res) => {
   const { sessionId } = req.body
-  const s = loadStore()
-  delete s[sessionId]; delete s[`profile_${sessionId}`]; delete s[`user_${sessionId}`]
-  saveStore(s); res.json({ ok: true })
+  await deleteAccount(sessionId)
+  res.json({ ok: true })
 })
 
 // ── TTS — Robin speaks ────────────────────────────────────────────────────
