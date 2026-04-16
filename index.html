@@ -465,6 +465,11 @@
     loadActions()
   }
 
+  // Load actions when user lands directly on app stage
+  if (localStorage.getItem('robin_name')) {
+    gostage(3); showsub(3, 0); loadActions()
+  }
+
   // ── Landing ───────────────────────────────────────────────────────────────
   function featClick(i) {
     if (i === 0) { gostage(3); showsub(3,0); }
@@ -511,20 +516,83 @@
   // ── Action feed ───────────────────────────────────────────────────────────
   async function loadActions() {
     try {
-      const res  = await fetch(`/summary/${sessionId}`)
+      const res  = await fetch(`/actions/${sessionId}`)
       const data = await res.json()
-      // Future: render real actions from data.summary.topActions
+      if (!data.actions) return
+      renderActions(data.actions)
+    } catch {}
+  }
+
+  function renderActions(actions) {
+    const feed = document.querySelector('#app-sub0 .feed')
+    if (!feed) return
+
+    // Clear existing demo cards
+    feed.querySelectorAll('.ac, .slabel').forEach(el => el.remove())
+
+    const needsApproval = actions.filter(a => a.type === 'draft_email' || a.type === 'send_message')
+    const auto          = actions.filter(a => a.type === 'remind' || a.type === 'notify')
+
+    if (needsApproval.length) {
+      const lbl = document.createElement('div')
+      lbl.className = 'slabel'; lbl.textContent = 'needs your approval'
+      feed.appendChild(lbl)
+      needsApproval.forEach(a => feed.appendChild(buildCard(a)))
+    }
+
+    if (auto.length) {
+      const lbl = document.createElement('div')
+      lbl.className = 'slabel'; lbl.textContent = 'handled automatically'
+      feed.appendChild(lbl)
+      auto.forEach(a => feed.appendChild(buildCard(a)))
+    }
+
+    updateBadge()
+
+    const empty = document.getElementById('feed-empty')
+    if (empty) empty.style.display = actions.length === 0 ? 'block' : 'none'
+  }
+
+  function buildCard(a) {
+    const card = document.createElement('div')
+    card.className = 'ac'; card.id = 'ac-' + a.id
+    card.innerHTML = `
+      <div class="at">
+        <span class="atitle">${a.title}</span>
+        <span class="rk m">${a.risk || 'medium'}</span>
+      </div>
+      <div class="asub">${a.to || ''} · just now</div>
+      ${a.body ? `<div class="dbox" id="dbox-${a.id}">"${a.body}"</div>` : ''}
+      <div class="abts">
+        <button class="ab p" onclick="approveAction('${a.id}', true)">Send</button>
+        ${a.body ? `<button class="ab" onclick="fedit('dbox-${a.id}',this)">Edit</button>` : ''}
+        <button class="ab g" onclick="approveAction('${a.id}', false)">Dismiss</button>
+        <span class="ameta">${a.type.toUpperCase()}</span>
+      </div>`
+    return card
+  }
+
+  async function approveAction(actionId, approved) {
+    const card = document.getElementById('ac-' + actionId)
+    if (card) { card.classList.add('done'); setTimeout(() => { card.style.display = 'none'; updateBadge() }, 500) }
+    try {
+      await fetch(`/actions/${actionId}/approve`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ sessionId, approved })
+      })
     } catch {}
   }
 
   function fdone(id) {
     const c = document.getElementById(id)
+    if (!c) return
     c.classList.add('done')
     setTimeout(() => { c.style.display = 'none'; updateBadge() }, 500)
   }
 
   function updateBadge() {
-    const n = document.querySelectorAll('#app-sub0 .ac:not([style*="none"])').length
+    const n = document.querySelectorAll('#app-sub0 .ac:not([style*="display: none"])').length
     const b = document.getElementById('act-badge')
     if (b) b.textContent = n
     const e = document.getElementById('feed-empty')
@@ -538,6 +606,11 @@
     b.innerHTML = '<textarea style="width:100%;background:transparent;border:none;outline:none;resize:none;font-size:13px;color:var(--color-text-primary);font-family:var(--font-sans);line-height:1.5;min-height:48px">'+t+'</textarea>'
     btn.textContent = 'Done'
   }
+
+  // Refresh feed every 30s when on actions tab
+  setInterval(() => {
+    if (document.getElementById('app-sub0')?.style.display !== 'none') loadActions()
+  }, 30_000)
 
   // ── Chat → POST /chat ─────────────────────────────────────────────────────
   function addMsg(cid, side, text) {

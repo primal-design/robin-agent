@@ -178,7 +178,9 @@ async function think(sessionId, userMessage, options = {}) {
   const isApproval = userMessage && approvalSignals.some(s => userMessage.toLowerCase().includes(s))
   if (isApproval && memory.pending_action) {
     const result = await handleApproval(sessionId, memory.pending_action, memory)
+    const doneId = memory.pending_action.id
     memory.pending_action = null
+    memory.pending_actions = (memory.pending_actions || []).filter(a => a.id !== doneId)
     const reply = result.followup
     memory.messages.push({ role: 'assistant', content: reply })
     saveSession(sessionId, memory)
@@ -363,7 +365,10 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
 
       if (name === 'draft_content') {
         // Needs approval — save as pending, don't auto-send
-        memory.pending_action = { type: 'send_message', draft: input.content, recipient: input.recipient || 'your contact', content_type: input.type }
+        memory.pending_actions = memory.pending_actions || []
+        const action = { id: Date.now().toString(), type: 'send_message', draft: input.content, recipient: input.recipient || 'your contact', content_type: input.type, risk: 'medium', created_at: new Date().toISOString() }
+        memory.pending_actions.push(action)
+        memory.pending_action = action
         results.push({
           type: 'tool_result', tool_use_id: id,
           content: `DRAFT READY (needs approval):\n\n${input.content}\n\nAsk user: "Want me to send this?"`
@@ -437,7 +442,10 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
             } catch {}
           }
           // Save draft as pending action
-          memory.pending_action = { type: 'send_email', to, subject: input.subject, body: input.body }
+          memory.pending_actions = memory.pending_actions || []
+          const emailAction = { id: Date.now().toString(), type: 'draft_email', to, subject: input.subject, body: input.body, risk: 'medium', created_at: new Date().toISOString() }
+          memory.pending_actions.push(emailAction)
+          memory.pending_action = emailAction
           const preview = `To: ${to || '(contact not found — please provide email)'}\nSubject: ${input.subject}\n\n${input.body}`
           results.push({ type: 'tool_result', tool_use_id: id, content: `DRAFT READY:\n\n${preview}\n\nAsk user: "Want me to send this?"` })
         }
@@ -450,7 +458,9 @@ ${skillContext ? `active skills: ${skillContext}` : ''}`
         } else {
           try {
             await sendEmail(tokens, { to: input.to, subject: input.subject, body: input.body, threadId: input.threadId })
+            const sentId = memory.pending_action?.id
             memory.pending_action = null
+            memory.pending_actions = (memory.pending_actions || []).filter(a => a.id !== sentId)
             results.push({ type: 'tool_result', tool_use_id: id, content: `Email sent to ${input.to}. Subject: "${input.subject}"` })
           } catch (err) {
             results.push({ type: 'tool_result', tool_use_id: id, content: `Send failed: ${err.message}` })
@@ -793,6 +803,54 @@ app.post('/speak', async (req, res) => {
     res.json({ fallback: true, text: clean })
   } catch (err) {
     res.json({ fallback: true, text: clean })
+  }
+})
+
+// ── Action feed ───────────────────────────────────────────────────────────
+app.get('/actions/:sessionId', async (req, res) => {
+  try {
+    const session = await loadSession(req.params.sessionId)
+    const actions = (session.pending_actions || [])
+      .slice(-20)
+      .reverse()
+      .map(a => ({
+        id:         a.id,
+        type:       a.type,
+        title:      a.type === 'draft_email'  ? `Reply to ${a.to}` :
+                    a.type === 'send_message' ? `Message to ${a.recipient}` :
+                    a.title || 'Action ready',
+        body:       a.body || a.draft || '',
+        to:         a.to || a.recipient || '',
+        subject:    a.subject || '',
+        risk:       a.risk || 'medium',
+        created_at: a.created_at
+      }))
+    res.json({ actions, count: actions.length })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+app.post('/actions/:actionId/approve', async (req, res) => {
+  const { sessionId, approved } = req.body
+  if (!sessionId) return res.status(400).json({ error: 'No sessionId' })
+  try {
+    const session = await loadSession(sessionId)
+    const action  = (session.pending_actions || []).find(a => a.id === req.params.actionId)
+    if (!action) return res.status(404).json({ error: 'Action not found' })
+
+    if (approved && action.type === 'draft_email') {
+      const tokens = await getEmailTokens(sessionId)
+      if (tokens) await sendEmail(tokens, { to: action.to, subject: action.subject, body: action.body })
+    }
+
+    session.pending_actions = (session.pending_actions || []).filter(a => a.id !== req.params.actionId)
+    if (session.pending_action?.id === req.params.actionId) session.pending_action = null
+    await saveSession(sessionId, session)
+
+    res.json({ ok: true, approved })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
   }
 })
 
