@@ -116,7 +116,8 @@ const PORT = process.env.PORT || 3000
 app.use(express.json({ limit: '2mb' }))
 app.use((req, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
 app.use(express.static(new URL('.', import.meta.url).pathname))
-app.get('/', (_, res) => res.sendFile(new URL('index.html', import.meta.url).pathname))
+app.use('/frontend', express.static(new URL('frontend', import.meta.url).pathname))
+app.get('/', (_, res) => res.sendFile(new URL('frontend/robin_site.html', import.meta.url).pathname))
 
 // Storage is now handled by lib/db.js (Upstash Redis + memory.json fallback)
 
