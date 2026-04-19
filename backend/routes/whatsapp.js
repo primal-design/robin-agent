@@ -7,14 +7,11 @@ import { Router } from 'express'
 import twilio from 'twilio'
 import { chatService } from '../services/chatService.js'
 
+
 const router = Router()
 
-// Twilio sends form-encoded bodies for WhatsApp webhooks
-import express from 'express'
-router.use(express.urlencoded({ extended: false }))
-
 // POST /whatsapp/incoming
-router.post('/whatsapp/incoming', async (req, res) => {
+router.post('/incoming', async (req, res) => {
   try {
     const from    = req.body.From  // e.g. "whatsapp:+447700900000"
     const body    = req.body.Body?.trim()
