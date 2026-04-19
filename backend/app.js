@@ -6,18 +6,19 @@ import 'dotenv/config'
 import express from 'express'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import twilio from 'twilio'
 
 import { assertRequired } from './config/env.js'
 import { globalLimit } from './middleware/rateLimit.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
+import { chatService } from './services/chatService.js'
 
 import authRouter    from './routes/auth.js'
 import chatRouter    from './routes/chat.js'
 import emailRouter   from './routes/email.js'
 import leadsRouter   from './routes/leads.js'
 import actionsRouter from './routes/actions.js'
-import privacyRouter   from './routes/privacy.js'
-import whatsappRouter  from './routes/whatsapp.js'
+import privacyRouter from './routes/privacy.js'
 
 assertRequired()
 
@@ -35,6 +36,25 @@ app.use(express.static(new URL('..', import.meta.url).pathname))
 app.use('/frontend', express.static(new URL('../frontend', import.meta.url).pathname))
 app.get('/', (_, res) => res.sendFile(new URL('../frontend/robin_site.html', import.meta.url).pathname))
 
+// ── WhatsApp webhook ──────────────────────────────────────────────────────
+app.post('/whatsapp/incoming', async (req, res) => {
+  try {
+    const from = req.body.From
+    const body = req.body.Body?.trim()
+    if (!from || !body) return res.set('Content-Type', 'text/xml').send('<Response></Response>')
+    const sessionId = from.replace('whatsapp:', '').replace(/\D/g, '')
+    const reply = await chatService(sessionId, body)
+    const twiml = new twilio.twiml.MessagingResponse()
+    twiml.message(reply)
+    res.set('Content-Type', 'text/xml').send(twiml.toString())
+  } catch (err) {
+    console.error('[WhatsApp]', err.message)
+    const twiml = new twilio.twiml.MessagingResponse()
+    twiml.message("Robin's having a moment — try again 🦊")
+    res.set('Content-Type', 'text/xml').send(twiml.toString())
+  }
+})
+
 // ── API Routes ────────────────────────────────────────────────────────────
 app.use('/',        authRouter)
 app.use('/',        chatRouter)
@@ -42,7 +62,6 @@ app.use('/email',   emailRouter)
 app.use('/actions', actionsRouter)
 app.use('/',        leadsRouter)
 app.use('/',        privacyRouter)
-app.use('/whatsapp', whatsappRouter)
 
 // ── Error handling ────────────────────────────────────────────────────────
 app.use(notFound)
