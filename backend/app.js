@@ -16,7 +16,8 @@ import chatRouter    from './routes/chat.js'
 import emailRouter   from './routes/email.js'
 import leadsRouter   from './routes/leads.js'
 import actionsRouter from './routes/actions.js'
-import privacyRouter from './routes/privacy.js'
+import privacyRouter   from './routes/privacy.js'
+import whatsappRouter  from './routes/whatsapp.js'
 
 assertRequired()
 
@@ -40,6 +41,7 @@ app.use('/email',   emailRouter)
 app.use('/actions', actionsRouter)
 app.use('/',        leadsRouter)
 app.use('/',        privacyRouter)
+app.use('/whatsapp', whatsappRouter)
 
 // ── Error handling ────────────────────────────────────────────────────────
 app.use(notFound)
