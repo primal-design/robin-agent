@@ -23,7 +23,8 @@ import {
 } from './lib/gmail.js'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
-const ai    = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
+let _ai = null
+function ai() { return _ai || (_ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })) }
 
 // ── Salary-replacing business models ─────────────────────────────────────
 // These are real businesses, not pocket money gigs
@@ -144,7 +145,7 @@ async function doResearch(type, query, context = '') {
   if (process.env.BRAVE_KEY) {
     for (const q of queries) { const r = await braveSearch(q); if (r) raw += `Search: "${q}"\n${r}\n\n` }
   } else { raw += '(No Brave key — using Claude knowledge only)\n\n' }
-  const s = await ai.messages.create({
+  const s = await ai().messages.create({
     model: 'claude-haiku-4-5-20251001', max_tokens: 600,
     messages: [{ role: 'user', content: `Research: "${query}" (${type}).\n${context ? `Why: ${context}\n` : ''}Data:\n${raw}\nSharp summary, bullet points, max 5 insights. Focus on what's actionable.` }]
   })
@@ -313,7 +314,7 @@ ${urlContext}
 ${rejectCtx}
 ${skillContext ? `active skills: ${skillContext}` : ''}`
 
-  const response = await ai.messages.create({
+  const response = await ai().messages.create({
     model,
     max_tokens: 1000,
     system: systemPrompt,
@@ -647,7 +648,7 @@ app.post('/find-leads', async (req, res) => {
     await saveSession(sessionId, memory)
 
     // Let Robin comment on the leads
-    const summary = await ai.messages.create({
+    const summary = await ai().messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 200,
       messages: [{ role: 'user', content: `You are Robin. Found ${leads.length} ${niche} businesses in ${location}. Best targets are those with 3-4 star ratings (room to improve reviews) or low review counts (easy to help). Pick the top 3 targets and say why in 2 sentences. End with 🦊\n\nLeads: ${JSON.stringify(leads.slice(0, 5))}` }]
@@ -671,7 +672,7 @@ app.post('/task-done', async (req, res) => {
 app.post('/profile', async (req, res) => {
   const { sessionId = 'web-default', sourceType, data } = req.body
   if (!data) return res.status(400).json({ error: 'No data' })
-  const analysis = await ai.messages.create({
+  const analysis = await ai().messages.create({
     model: 'claude-haiku-4-5-20251001', max_tokens: 300,
     messages: [{ role: 'user', content: `Extract 3-5 patterns about this person — what they do, their style, what they want. Brief.\n\n${data.slice(0, 2000)}` }]
   })
@@ -731,7 +732,7 @@ app.post('/analyse', async (req, res) => {
 
     // Layer 6-9: Synthesis — SWOT + ICP + Unit Economics + Verdict
     send('status', 'Building your analysis...')
-    const synthesis = await ai.messages.create({
+    const synthesis = await ai().messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1200,
       messages: [{
