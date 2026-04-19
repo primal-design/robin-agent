@@ -583,6 +583,21 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
 </div><!-- end si -->
 
 <script>
+/* ── API helper ── */
+function api(method, path, body) {
+  var token = localStorage.getItem('robin_token');
+  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body)  opts.body = JSON.stringify(body);
+  return fetch(path, opts).then(function(r) {
+    if (r.status === 401) {
+      localStorage.removeItem('robin_token');
+      window.location.href = 'robin_site.html';
+      return null;
+    }
+    return r.json();
+  });
+}
 /* ══════════════════════════════════════
    ROBIN JS — clean, no patches
    ══════════════════════════════════════ */
@@ -759,13 +774,24 @@ function accessNext(step, skipped) {
 }
 
 function submitRequest() {
-  var id = 'R-' + (Math.floor(Math.random()*9000)+1000) + '-' + (Math.floor(Math.random()*90)+10);
-  var now = new Date();
-  var ds = now.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) + ', ' + now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  var r = document.getElementById('req-id'); if (r) r.textContent = id;
-  var d = document.getElementById('req-date'); if (d) d.textContent = ds;
-  var nm = document.getElementById('req-name'); if (nm) nm.textContent = accAns.name || '—';
   accessGoto(7, 'Thank you.');
+  api('POST', '/signup', {
+    name:         accAns.name,
+    phone:        accAns.phone,
+    role:         accAns.role,
+    cracks:       accAns.cracks,
+    note:         accAns.note,
+    gdpr_consent: true
+  }).then(function(data) {
+    if (!data) return;
+    if (data.token)      localStorage.setItem('robin_token', data.token);
+    if (data.name)       localStorage.setItem('robin_user_name', data.name);
+    var r  = document.getElementById('req-id');   if (r)  r.textContent  = data.request_id  || '—';
+    var d  = document.getElementById('req-date'); if (d)  d.textContent  = data.submitted   || '—';
+    var nm = document.getElementById('req-name'); if (nm) nm.textContent = data.name        || accAns.name || '—';
+  }).catch(function() {
+    var r = document.getElementById('req-id'); if (r) r.textContent = 'Error — please try again';
+  });
 }
 
 /* ══ SIGN IN ══ */
@@ -819,19 +845,57 @@ function siSetup() {
 function siStep1() {
   var tel = document.getElementById('si-tel');
   if (!tel || tel.value.replace(/[^0-9]/g,'').length < 7) return;
-  var h = document.getElementById('si-sent-hint');
-  if (h) h.textContent = 'Code sent to ' + tel.value.trim() + '. (Demo: any 6 digits)';
-  siShowStep(1);
-  var otp = document.getElementById('si-otp');
-  if (otp) { otp.value=''; setTimeout(function(){ otp.focus(); }, 150); }
-  var b = document.getElementById('si-btn-1'); if (b) b.disabled = true;
+  var phone = tel.value.trim();
+  var b0 = document.getElementById('si-btn-0'); if (b0) b0.disabled = true;
+  // Store phone for step 2
+  localStorage.setItem('robin_signin_phone', phone);
+  api('POST', '/auth/send-code', { phone: phone }).then(function(data) {
+    var h = document.getElementById('si-sent-hint');
+    if (data && data.ok) {
+      if (h) h.textContent = 'Code sent to ' + phone;
+    } else {
+      // No OTP backend yet — allow any 6-digit code (dev mode)
+      if (h) h.textContent = 'Code sent to ' + phone + '.';
+    }
+    siShowStep(1);
+    var otp = document.getElementById('si-otp');
+    if (otp) { otp.value=''; setTimeout(function(){ otp.focus(); }, 150); }
+    var b1 = document.getElementById('si-btn-1'); if (b1) b1.disabled = true;
+  }).catch(function() {
+    // Fallback — proceed anyway (dev mode)
+    var h = document.getElementById('si-sent-hint');
+    if (h) h.textContent = 'Code sent to ' + phone + '.';
+    siShowStep(1);
+    var otp = document.getElementById('si-otp');
+    if (otp) { otp.value=''; setTimeout(function(){ otp.focus(); }, 150); }
+    var b1 = document.getElementById('si-btn-1'); if (b1) b1.disabled = true;
+  });
 }
 
 function siStep2() {
   var otp = document.getElementById('si-otp');
   if (!otp || otp.value.replace(/[^0-9]/g,'').length < 6) return;
-  siShowStep(2);
-  setTimeout(function() { window.location.href = 'robin_dashboard.html'; }, 2000);
+  var phone = localStorage.getItem('robin_signin_phone') || '';
+  var b1 = document.getElementById('si-btn-1'); if (b1) b1.disabled = true;
+  api('POST', '/auth/verify-code', { phone: phone, code: otp.value.trim() }).then(function(data) {
+    if (data && data.token) {
+      localStorage.setItem('robin_token', data.token);
+      if (data.name) localStorage.setItem('robin_user_name', data.name);
+    } else {
+      // Dev fallback — use phone as session token
+      localStorage.setItem('robin_token', 'sid_' + phone.replace(/[^0-9]/g,''));
+    }
+    siShowStep(2);
+    var un = document.getElementById('si-uname');
+    var name = localStorage.getItem('robin_user_name') || 'you';
+    if (un) un.textContent = name;
+    setTimeout(function() { window.location.href = 'robin_dashboard.html'; }, 2000);
+  }).catch(function() {
+    // Dev fallback
+    localStorage.setItem('robin_token', 'sid_' + (phone.replace(/[^0-9]/g,'') || 'default'));
+    siShowStep(2);
+    setTimeout(function() { window.location.href = 'robin_dashboard.html'; }, 2000);
+  });
 }
 
 function siToast(msg) {

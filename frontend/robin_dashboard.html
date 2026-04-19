@@ -291,19 +291,19 @@ nav.sb-nav{padding:12px 0;flex:1}
 
   <!-- Stats -->
   <div class="stats-grid">
-    <div class="stat-tile"><div class="stat-num">3</div><div class="stat-label">Need your word</div></div>
-    <div class="stat-tile"><div class="stat-num">7</div><div class="stat-label">Handled today</div></div>
-    <div class="stat-tile"><div class="stat-num">142</div><div class="stat-label">Total this month</div></div>
-    <div class="stat-tile"><div class="stat-num">2.4h</div><div class="stat-label">Est. time saved</div><div class="stat-delta">↑ vs last week</div></div>
+    <div class="stat-tile"><div class="stat-num" id="stat-pending">—</div><div class="stat-label">Need your word</div></div>
+    <div class="stat-tile"><div class="stat-num" id="stat-handled">—</div><div class="stat-label">Handled today</div></div>
+    <div class="stat-tile"><div class="stat-num" id="stat-streak">—</div><div class="stat-label">Day streak</div></div>
+    <div class="stat-tile"><div class="stat-num" id="stat-earned">—</div><div class="stat-label">Total earned</div></div>
   </div>
 
   <!-- Morning digest -->
-  <div class="digest-banner">
+  <div class="digest-banner" id="digest-banner">
     <div class="db-icon">🌅</div>
     <div class="db-body">
       <h3>Robin's morning brief</h3>
-      <p>James hasn't replied to the proposal in 4 days — likely needs a nudge. Sarah's invoice is now 17 days overdue. Your 2pm call with Mark has no prep yet — I've drafted a brief below.</p>
-      <div class="db-time">Prepared at 8:58am</div>
+      <p id="digest-text">Loading…</p>
+      <div class="db-time" id="digest-time"></div>
     </div>
   </div>
 
@@ -462,8 +462,8 @@ nav.sb-nav{padding:12px 0;flex:1}
     <div class="perm-row">
       <div class="perm-icon" style="background:#FEF0E8">📧</div>
       <div class="perm-info"><div class="perm-name">Gmail</div><div class="perm-desc">Read inbox, draft replies — never auto-sends</div></div>
-      <div class="perm-status on"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>Connected</div>
-      <button class="toggle on" onclick="togglePerm(this)" title="Gmail"></button>
+      <div class="perm-status" id="gmail-status"><span style="width:5px;height:5px;border-radius:50%;background:var(--ink3);display:inline-block"></span>Checking…</div>
+      <button class="toggle" id="gmail-toggle" onclick="toggleGmail(this)" title="Gmail"></button>
     </div>
     <div class="perm-row">
       <div class="perm-icon" style="background:#E8F4FD">📅</div>
@@ -527,6 +527,21 @@ nav.sb-nav{padding:12px 0;flex:1}
 </div><!-- end shell -->
 
 <script>
+/* ── API helper ── */
+function api(method, path, body) {
+  var token = localStorage.getItem('robin_token');
+  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body)  opts.body = JSON.stringify(body);
+  return fetch(path, opts).then(function(r) {
+    if (r.status === 401) {
+      localStorage.removeItem('robin_token');
+      window.location.href = 'robin_site.html';
+      return null;
+    }
+    return r.json();
+  });
+}
 /* ═══ DATE ═══ */
 var now = new Date();
 document.getElementById('today-date').textContent = now.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
@@ -541,30 +556,62 @@ function showView(id) {
 }
 
 /* ═══ ACTION CARDS ═══ */
-function approveAction(id, msg) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = '<div class="ac-done"><svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="2,6 5,9 10,3"/></svg> ' + msg + ' Logged.</div>';
-  updateBadges();
+function approveAction(actionId, msg) {
+  api('POST', '/actions/' + actionId + '/approve', { approved: true }).then(function() {
+    var el = document.getElementById('ac-' + actionId);
+    if (!el) return;
+    el.innerHTML = '<div class="ac-done"><svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="var(--green)" stroke-width="2"><polyline points="2,6 5,9 10,3"/></svg> ' + (msg || 'Done.') + ' Logged.</div>';
+    updateBadges();
+  });
 }
-function denyAction(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = '<div style="font-size:12px;color:var(--ink3);padding:8px 0">Denied — no action taken. Nothing stored.</div>';
-  updateBadges();
+function denyAction(actionId) {
+  api('POST', '/actions/' + actionId + '/approve', { approved: false }).then(function() {
+    var el = document.getElementById('ac-' + actionId);
+    if (!el) return;
+    el.innerHTML = '<div style="font-size:12px;color:var(--ink3);padding:8px 0">Denied — no action taken. Nothing stored.</div>';
+    updateBadges();
+  });
 }
-function laterAction(id) {
-  var el = document.getElementById(id);
+function laterAction(actionId) {
+  var el = document.getElementById('ac-' + actionId);
   if (!el) return;
-  var lbl = el.querySelector('.ac-title');
-  if (lbl) {
-    el.style.opacity = '.5';
+  el.style.opacity = '.5';
+  var acts = el.querySelector('.ac-actions');
+  if (acts) {
     var note = document.createElement('div');
     note.style.cssText='font-size:11px;color:var(--ink3);margin-top:10px';
     note.textContent='Moved to Approvals. Will expire in 72 hours.';
-    el.querySelector('.ac-actions').replaceWith(note);
+    acts.replaceWith(note);
   }
   updateBadges();
+}
+
+function loadActions() {
+  var token = localStorage.getItem('robin_token') || 'web-default';
+  var sid   = token.startsWith('sid_') ? token.slice(4) : token;
+  api('GET', '/actions/' + (sid || 'web-default')).then(function(data) {
+    if (!data || !data.actions || !data.actions.length) return;
+    var container = document.querySelector('#view-today .action-cards') || document.querySelector('.action-cards');
+    if (!container) return;
+    container.innerHTML = '';
+    data.actions.forEach(function(a) {
+      var card = document.createElement('div');
+      card.className = 'action-card';
+      card.id = 'ac-' + a.id;
+      var riskClass = a.risk === 'low' ? 'email' : a.risk === 'high' ? 'send' : 'meeting';
+      card.innerHTML =
+        '<div class="ac-meta"><span class="ac-type ' + riskClass + '">' + (a.type || 'action') + '</span></div>' +
+        '<div class="ac-title">' + (a.title || 'Action ready') + '</div>' +
+        (a.body ? '<div class="ac-body">' + a.body.slice(0, 200) + '</div>' : '') +
+        '<div class="ac-actions">' +
+          '<button class="ac-btn approve" onclick="approveAction(\'' + a.id + '\',\'Done\')">Approve →</button>' +
+          '<button class="ac-btn deny" onclick="denyAction(\'' + a.id + '\')">Deny</button>' +
+          '<button class="ac-btn later" onclick="laterAction(\'' + a.id + '\')">Later</button>' +
+        '</div>';
+      container.appendChild(card);
+    });
+    updateBadges();
+  }).catch(function(){});
 }
 function editAction(id) {
   var el = document.getElementById(id);
@@ -606,64 +653,126 @@ function updateMemCount() {
   document.getElementById('mem-badge').textContent = cnt;
 }
 function exportMemory() {
-  var data = {};
-  document.querySelectorAll('.mem-section').forEach(function(s) {
-    var cat = s.querySelector('.mem-section-title').textContent;
-    data[cat] = [];
-    s.querySelectorAll('.mem-item').forEach(function(item) {
-      data[cat].push({key: item.querySelector('.mem-key').textContent, value: item.querySelector('.mem-val').textContent});
-    });
+  var token = localStorage.getItem('robin_token') || 'web-default';
+  var sid   = token.startsWith('sid_') ? token.slice(4) : token;
+  api('GET', '/my-data/' + (sid || 'web-default')).then(function(data) {
+    if (!data) return;
+    var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'robin_memory.json'; a.click();
   });
-  var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'robin_memory.json'; a.click();
 }
 function clearMemory() {
   if (confirm('Clear all memory? Robin will forget everything it knows about you.')) {
-    document.querySelectorAll('.mem-item').forEach(function(item) { item.remove(); });
-    updateMemCount();
+    api('DELETE', '/clear-memory').then(function() {
+      document.querySelectorAll('.mem-item').forEach(function(item) { item.remove(); });
+      updateMemCount();
+    });
   }
 }
 
 /* ═══ PERMISSIONS ═══ */
+function toggleGmail(btn) {
+  var isOn = btn.classList.contains('on');
+  if (isOn) {
+    if (confirm('Revoke Gmail access? Robin will no longer read or draft emails.')) {
+      api('DELETE', '/email/disconnect').then(function() {
+        btn.classList.remove('on'); btn.classList.add('off');
+        var s = document.getElementById('gmail-status');
+        if (s) { s.className = 'perm-status off'; s.innerHTML = '<span style="width:5px;height:5px;border-radius:50%;background:rgba(26,24,22,.2);display:inline-block"></span>Revoked'; }
+      });
+    }
+  } else {
+    // Redirect to Gmail OAuth
+    var token = localStorage.getItem('robin_token') || 'web-default';
+    window.location.href = '/email/auth?sessionId=' + encodeURIComponent(token);
+  }
+}
 function togglePerm(btn) {
   var isOn = btn.classList.contains('on');
   var name = btn.getAttribute('title');
   if (isOn) {
-    if (confirm('Revoke ' + name + ' access? Robin will no longer use this integration.')) {
-      btn.classList.replace('on','off');
+    if (confirm('Revoke ' + name + ' access?')) {
+      btn.classList.remove('on'); btn.classList.add('off');
       var status = btn.previousElementSibling;
       if (status) { status.className = 'perm-status off'; status.innerHTML = '<span style="width:5px;height:5px;border-radius:50%;background:rgba(26,24,22,.2);display:inline-block"></span>Revoked'; }
     }
   } else {
-    btn.classList.replace('off','on');
+    btn.classList.remove('off'); btn.classList.add('on');
     var status = btn.previousElementSibling;
     if (status) { status.className = 'perm-status on'; status.innerHTML = '<span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>Connected'; }
   }
 }
 
+// Check Gmail status on load
+api('GET', '/email/status').then(function(data) {
+  if (!data) return;
+  var btn = document.getElementById('gmail-toggle');
+  var s   = document.getElementById('gmail-status');
+  if (data.connected) {
+    if (btn) { btn.classList.remove('off'); btn.classList.add('on'); }
+    if (s)   { s.className = 'perm-status on'; s.innerHTML = '<span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>' + (data.email || 'Connected'); }
+  } else {
+    if (btn) { btn.classList.remove('on'); btn.classList.add('off'); }
+    if (s)   { s.className = 'perm-status off'; s.innerHTML = '<span style="width:5px;height:5px;border-radius:50%;background:rgba(26,24,22,.2);display:inline-block"></span>Not connected'; }
+  }
+}).catch(function(){});
+
 /* ═══ DELETE ═══ */
 function confirmDelete() {
   if (confirm('This will permanently delete all your Robin data. Are you sure?')) {
     if (confirm('Last confirmation — this cannot be undone. Delete everything?')) {
-      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cormorant Garamond,serif;font-style:italic;font-size:24px;color:#3D3B37">All data deleted. Goodbye.</div>';
+      api('DELETE', '/delete-account').then(function() {
+        localStorage.clear();
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cormorant Garamond,serif;font-style:italic;font-size:24px;color:#3D3B37">All data deleted. Goodbye.</div>';
+        setTimeout(function() { window.location.href = 'robin_site.html'; }, 3000);
+      });
     }
   }
 }
 
 /* ═══ SIGN OUT ═══ */
 function signOut() {
+  localStorage.removeItem('robin_token');
   window.location.href = 'robin_site.html';
 }
 
 (function() {
-  // Restore view from localStorage (e.g. clicking Memory in nav)
+  // Restore view from localStorage
   var v = localStorage.getItem('rvw');
   if (v) { localStorage.removeItem('rvw'); showView(v); var t = document.getElementById('nav-' + v); if(t) t.classList.add('active'); }
   else { document.getElementById('nav-today').classList.add('active'); }
-  // User name
+
+  // Load user profile from backend, fall back to localStorage
   var uname = localStorage.getItem('robin_user_name') || 'Alex';
-  var els = [document.getElementById('nav-user-name'), document.getElementById('sb-uname'), document.getElementById('greet-name')];
-  els.forEach(function(el){ if(el) el.textContent = uname; });
+  function setName(n) {
+    var els = [document.getElementById('nav-user-name'), document.getElementById('sb-uname'), document.getElementById('greet-name')];
+    els.forEach(function(el){ if(el) el.textContent = n; });
+    localStorage.setItem('robin_user_name', n);
+  }
+  setName(uname);
+
+  api('GET', '/profile').then(function(data) {
+    if (data && data.name) setName(data.name);
+  }).catch(function(){});
+
+  // Load today's brief + stats from /pulse
+  api('POST', '/pulse').then(function(data) {
+    if (!data) return;
+    var s = data.stats || {};
+    var sp = document.getElementById('stat-pending'); if(sp) sp.textContent = s.pending || 0;
+    var sh = document.getElementById('stat-handled'); if(sh) sh.textContent = s.handled || 0;
+    var ss = document.getElementById('stat-streak');  if(ss) ss.textContent = s.streak  || 0;
+    var se = document.getElementById('stat-earned');  if(se) se.textContent = '£' + (s.total_earned || 0);
+    var dt = document.getElementById('digest-text');
+    if (dt) dt.textContent = data.triggered && data.message ? data.message : 'All clear today — nothing needs your attention right now.';
+    var dtime = document.getElementById('digest-time');
+    if (dtime) dtime.textContent = 'Prepared at ' + new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  }).catch(function(){
+    var dt = document.getElementById('digest-text'); if(dt) dt.textContent = 'All clear today.';
+  });
+
+  // Load real actions
+  loadActions();
 })();
 
 </script>

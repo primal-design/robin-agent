@@ -277,6 +277,21 @@ body{background:var(--bg);color:var(--ink);font-family:"Inter",sans-serif;font-w
 </div><!-- end shell -->
 
 <script>
+/* ── API helper ── */
+function api(method, path, body) {
+  var token = localStorage.getItem('robin_token');
+  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body)  opts.body = JSON.stringify(body);
+  return fetch(path, opts).then(function(r) {
+    if (r.status === 401) {
+      localStorage.removeItem('robin_token');
+      window.location.href = 'robin_site.html';
+      return null;
+    }
+    return r.json();
+  });
+}
 /* ═══════════════════════════════
    ROBIN CHAT — full implementation
    ═══════════════════════════════ */
@@ -360,26 +375,21 @@ function autoResize(el) {
 /* ─── Claude API ─── */
 async function callClaude(userMsg) {
   try {
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: buildSystem(),
-        messages: chatHistory
-      })
-    });
-    var data = await res.json();
+    var data = await api('POST', '/chat', { message: userMsg });
     setTyping(false);
-    var reply = (data.content && data.content[0] && data.content[0].text) || "I'm having trouble connecting right now.";
+    if (!data) return;
+    var reply = data.reply || data.message || "I'm having trouble connecting right now.";
     chatHistory.push({role:'assistant', content:reply});
     parseAndRender(reply);
     extractMemory(reply);
     saveState();
+    // Update streak/earned if returned
+    if (data.streak !== undefined) {
+      var se = document.getElementById('stat-streak'); if(se) se.textContent = data.streak;
+    }
   } catch(e) {
     setTyping(false);
-    addBubble('robin', 'Connection issue — please check your setup.');
+    addBubble('robin', 'Connection issue — please try again.');
   }
 }
 
