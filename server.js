@@ -114,6 +114,7 @@ function getRelevantSkills(message) {
 const app  = express()
 const PORT = process.env.PORT || 3000
 app.use(express.json({ limit: '2mb' }))
+app.use(express.urlencoded({ extended: false }))
 app.use((req, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
 app.use(express.static(new URL('.', import.meta.url).pathname))
 app.use('/frontend', express.static(new URL('frontend', import.meta.url).pathname))
@@ -955,6 +956,27 @@ app.get('/email/notifications', (req, res) => {
     return res.json({ notification: note.message })
   }
   res.json({ notification: null })
+})
+
+// ── WhatsApp webhook ──────────────────────────────────────────────────────
+app.post('/whatsapp/incoming', async (req, res) => {
+  try {
+    const from = req.body.From
+    const body = req.body.Body?.trim()
+    if (!from || !body) return res.set('Content-Type', 'text/xml').send('<Response></Response>')
+    const sessionId = from.replace('whatsapp:', '').replace(/\D/g, '')
+    const reply = await think(sessionId, body)
+    const { twiml: { MessagingResponse } } = await import('twilio')
+    const twiml = new MessagingResponse()
+    twiml.message(reply)
+    res.set('Content-Type', 'text/xml').send(twiml.toString())
+  } catch (err) {
+    console.error('[WhatsApp]', err.message)
+    const { twiml: { MessagingResponse } } = await import('twilio')
+    const twiml = new MessagingResponse()
+    twiml.message("Robin's having a moment — try again in a sec 🦊")
+    res.set('Content-Type', 'text/xml').send(twiml.toString())
+  }
 })
 
 app.listen(PORT, () => console.log(`\n🦊 Robin running at http://localhost:${PORT}\n`))
