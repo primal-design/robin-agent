@@ -645,25 +645,20 @@ if (chatHistory.length > 0) {
 <style>
 #fox-mount {
   position: fixed;
-  bottom: 90px;
-  right: 20px;
-  width: 72px;
-  height: 72px;
+  bottom: 80px;
+  right: 16px;
+  width: 96px;
+  height: 144px;
   z-index: 100;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
   cursor: pointer;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.18));
   transition: transform 0.2s;
 }
-#fox-mount:hover { transform: scale(1.08); }
-#fox-mount svg {
-  width: 100%;
-  height: 100%;
-}
-/* Speech bubble that appears on fox click */
+#fox-mount:hover { transform: scale(1.06); }
 #fox-bubble {
   position: fixed;
-  bottom: 170px;
-  right: 16px;
+  bottom: 232px;
+  right: 12px;
   background: #fff;
   border: 0.5px solid rgba(26,24,22,0.12);
   border-radius: 14px 14px 4px 14px;
@@ -680,77 +675,97 @@ if (chatHistory.length > 0) {
   transition: opacity 0.2s, transform 0.2s;
   pointer-events: none;
 }
-#fox-bubble.show {
-  opacity: 1;
-  transform: translateY(0);
+#fox-bubble.show { opacity: 1; transform: translateY(0); }
+
+/* Fox SVG state animations */
+#fox-svg {
+  width: 100%; height: 100%;
+  animation: fox-idle 4s ease-in-out 2.5s infinite;
+  transform-origin: 50% 60%;
 }
+@keyframes fox-idle {
+  0%,100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-5px) scale(1.01); }
+}
+/* Staggered reveal on load */
+#fox-art path {
+  opacity: 0;
+  transform: translateY(14px) scale(0.98);
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  animation: fox-appear 0.55s cubic-bezier(.2,.7,.3,1.1) forwards;
+}
+@keyframes fox-appear { to { opacity: 1; transform: translateY(0) scale(1); } }
+#fox-art path:nth-child(7) { animation-delay: 0.05s; }
+#fox-art path:nth-child(10){ animation-delay: 0.20s; }
+#fox-art path:nth-child(13){ animation-delay: 0.35s; }
+#fox-art path:nth-child(12){ animation-delay: 0.45s; }
+#fox-art path:nth-child(4) { animation-delay: 0.60s; }
+#fox-art path:nth-child(6) { animation-delay: 0.75s; }
+#fox-art path:nth-child(3) { animation-delay: 0.85s; }
+#fox-art path:nth-child(2) { animation-delay: 0.95s; }
+#fox-art path:nth-child(9) { animation-delay: 1.10s; }
+#fox-art path:nth-child(11){ animation-delay: 1.20s; }
+#fox-art path:nth-child(5) { animation-delay: 1.35s; }
+#fox-art path:nth-child(8) { animation-delay: 1.50s; }
+#fox-art path:nth-child(1) { animation-delay: 1.70s; }
+#fox-art path:nth-child(14){ animation-delay: 1.85s; }
+#fox-art path:nth-child(15){ animation-delay: 1.95s; }
+#fox-art path:nth-child(16){ animation-delay: 2.05s; }
+#fox-art path:nth-child(17){ animation-delay: 2.15s; }
+#fox-art path:nth-child(18){ animation-delay: 2.25s; }
+
+/* Typing — fox bounces urgently */
+@keyframes fox-thinking {
+  0%,100% { transform: translateY(0) scale(1) rotate(0deg); }
+  30%      { transform: translateY(-8px) scale(1.02) rotate(-2deg); }
+  60%      { transform: translateY(-4px) scale(1.01) rotate(1deg); }
+}
+.fox-typing #fox-svg { animation: fox-thinking 0.7s ease-in-out infinite !important; }
+
+/* Reply — quick happy bounce */
+@keyframes fox-happy {
+  0%,100% { transform: translateY(0) scale(1); }
+  25%      { transform: translateY(-10px) scale(1.04); }
+  50%      { transform: translateY(-2px) scale(0.99); }
+  75%      { transform: translateY(-7px) scale(1.03); }
+}
+.fox-reply #fox-svg { animation: fox-happy 0.5s ease-in-out 2 !important; }
+
+/* Talking — subtle nod */
+@keyframes fox-talk {
+  0%,100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-3px) scale(1.005); }
+}
+.fox-talking #fox-svg { animation: fox-talk 0.22s ease-in-out infinite !important; }
 </style>
 
 <div id="fox-mount" title="Robin" onclick="foxTapped()">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" id="robin-fox" style="width:100%;height:100%">
-  <style>
-    @keyframes fox-breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
-    @keyframes fox-blink{0%,88%,100%{transform:scaleY(1)}93%{transform:scaleY(0.08)}}
-    @keyframes fox-tail-idle{0%,100%{transform:rotate(0deg)}50%{transform:rotate(7deg)}}
-    @keyframes fox-tail-wag{0%,100%{transform:rotate(0deg)}20%{transform:rotate(22deg)}40%{transform:rotate(-12deg)}60%{transform:rotate(18deg)}80%{transform:rotate(-8deg)}}
-    @keyframes fox-glow{0%,100%{opacity:0}50%{opacity:1}}
-    #fox-body-g{animation:fox-breathe 3.5s ease-in-out infinite}
-    #fox-tail-g{transform-origin:28px 74px;animation:fox-tail-idle 3s ease-in-out infinite}
-    #fox-eye-l{transform-origin:42px 47px;animation:fox-blink 4.5s ease-in-out infinite}
-    #fox-eye-r{transform-origin:58px 47px;animation:fox-blink 4.5s ease-in-out infinite 0.1s}
-    #fox-gl,#fox-gr{opacity:0}
-    .fox-typing #fox-tail-g{animation:fox-tail-wag 0.55s ease-in-out infinite!important}
-    .fox-typing #fox-gl,.fox-typing #fox-gr{animation:fox-glow 0.7s ease-in-out infinite}
-    .fox-reply #fox-tail-g{animation:fox-tail-wag 0.4s ease-in-out 3!important}
-    @keyframes fox-chatter{0%,100%{transform:scaleY(0.3)}50%{transform:scaleY(1.5)}}
-    #fox-mouth-open{transform:scaleY(0.3);transform-origin:50px 59px;opacity:0}
-    .fox-talking #fox-mouth-open{animation:fox-chatter 0.22s ease-in-out infinite;opacity:1}
-    .fox-talking #fox-mouth-closed{opacity:0}
-  </style>
-  <!-- Tail -->
-  <g id="fox-tail-g">
-    <ellipse cx="24" cy="75" rx="15" ry="9" fill="#E8762B" transform="rotate(-28 24 75)"/>
-    <ellipse cx="18" cy="80" rx="7" ry="4" fill="#F5F0E8" transform="rotate(-28 18 80)"/>
-  </g>
-  <!-- Body -->
-  <g id="fox-body-g">
-    <ellipse cx="50" cy="67" rx="22" ry="17" fill="#E8762B"/>
-    <ellipse cx="50" cy="71" rx="12" ry="10" fill="#F5F0E8"/>
-    <rect x="37" y="79" width="8" height="9" rx="4" fill="#C85A1A"/>
-    <rect x="55" y="79" width="8" height="9" rx="4" fill="#C85A1A"/>
-    <ellipse cx="41" cy="88" rx="5" ry="2.5" fill="#1A1816"/>
-    <ellipse cx="59" cy="88" rx="5" ry="2.5" fill="#1A1816"/>
-  </g>
-  <!-- Ears -->
-  <polygon points="31,45 25,27 41,37" fill="#E8762B"/>
-  <polygon points="32,43 28,31 39,38" fill="#C85A1A"/>
-  <polygon points="69,45 75,27 59,37" fill="#E8762B"/>
-  <polygon points="68,43 72,31 61,38" fill="#C85A1A"/>
-  <!-- Head -->
-  <ellipse cx="50" cy="49" rx="20" ry="18" fill="#E8762B"/>
-  <ellipse cx="50" cy="54" rx="13" ry="10" fill="#F5F0E8"/>
-  <!-- Eyes -->
-  <g id="fox-eye-l"><ellipse cx="42" cy="46" rx="4" ry="4.5" fill="#1A1816"/><ellipse cx="43.5" cy="44.5" rx="1.3" ry="1.3" fill="#fff"/></g>
-  <g id="fox-eye-r"><ellipse cx="58" cy="46" rx="4" ry="4.5" fill="#1A1816"/><ellipse cx="59.5" cy="44.5" rx="1.3" ry="1.3" fill="#fff"/></g>
-  <!-- Glow rings -->
-  <ellipse id="fox-gl" cx="42" cy="46" rx="5.5" ry="6" fill="none" stroke="#B8976B" stroke-width="1.5"/>
-  <ellipse id="fox-gr" cx="58" cy="46" rx="5.5" ry="6" fill="none" stroke="#B8976B" stroke-width="1.5"/>
-  <!-- Nose + mouth -->
-  <ellipse cx="50" cy="54" rx="3" ry="2" fill="#1A1816"/>
-  <path id="fox-mouth-closed" d="M46 57 Q50 61 54 57" fill="none" stroke="#1A1816" stroke-width="1.2" stroke-linecap="round"/>
-  <ellipse id="fox-mouth-open" cx="50" cy="59" rx="4" ry="3" fill="#1A1816"/>
-  <!-- Whiskers -->
-  <line x1="36" y1="54" x2="46" y2="55" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
-  <line x1="36" y1="57" x2="46" y2="57" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
-  <line x1="54" y1="55" x2="64" y2="54" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
-  <line x1="54" y1="57" x2="64" y2="57" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
-</svg>
+  <svg id="fox-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 832 1248">
+    <g id="fox-art" fill="#111" stroke="none" fill-rule="evenodd">
+      <path d="M 722 900 L 714 880 L 708 870 L 700 860 L 685 846 L 670 837 L 664 836 L 664 838 L 676 847 L 691 863 L 699 875 L 707 894 L 710 910 L 710 935 L 705 960 L 699 975 L 690 991 L 677 1008 L 670 1015 L 657 1025 L 655 1024 L 668 1011 L 676 998 L 671 1005 L 658 1018 L 648 1026 L 621 1042 L 597 1051 L 575 1056 L 562 1057 L 561 1058 L 550 1058 L 549 1059 L 512 1058 L 511 1057 L 490 1055 L 471 1051 L 493 1057 L 492 1058 L 486 1058 L 453 1051 L 436 1045 L 426 1043 L 416 1039 L 399 1035 L 392 1032 L 389 1032 L 369 1025 L 354 1022 L 350 1020 L 355 1019 L 356 1020 L 364 1020 L 365 1021 L 375 1022 L 361 1018 L 345 1015 L 330 1014 L 329 1013 L 320 1013 L 319 1012 L 280 1012 L 279 1013 L 271 1013 L 270 1014 L 253 1016 L 223 1025 L 208 1032 L 195 1040 L 177 1056 L 176 1053 L 177 1052 L 178 1040 L 186 1013 L 197 990 L 211 970 L 230 951 L 246 939 L 261 931 L 281 924 L 273 925 L 257 930 L 240 938 L 233 943 L 231 942 L 240 934 L 253 925 L 274 914 L 289 908 L 310 902 L 331 898 L 339 898 L 340 897 L 378 897 L 379 898 L 385 898 L 411 903 L 439 911 L 413 901 L 417 900 L 456 912 L 477 921 L 483 922 L 495 927 L 511 931 L 514 931 L 501 927 L 484 919 L 487 918 L 508 925 L 540 932 L 555 933 L 556 934 L 582 933 L 608 926 L 620 920 L 627 915 L 637 905 L 642 898 L 648 883 L 649 874 L 648 870 L 644 884 L 639 894 L 623 910 L 615 915 L 604 919 L 590 922 L 582 922 L 581 923 L 557 923 L 556 922 L 548 922 L 547 921 L 541 921 L 526 918 L 496 910 L 449 894 L 438 892 L 434 890 L 430 890 L 426 888 L 400 884 L 399 883 L 393 883 L 392 882 L 366 881 L 365 880 L 341 881 L 340 882 L 331 882 L 330 883 L 318 884 L 297 889 L 266 901 L 239 917 L 218 935 L 214 941 L 202 954 L 189 974 L 182 988 L 174 1011 L 171 1026 L 171 1034 L 170 1035 L 170 1059 L 171 1064 L 173 1068 L 176 1067 L 181 1061 L 197 1048 L 212 1040 L 228 1034 L 255 1028 L 290 1026 L 291 1027 L 305 1027 L 306 1028 L 319 1029 L 345 1034 L 375 1042 L 404 1052 L 407 1052 L 420 1057 L 423 1057 L 448 1065 L 452 1065 L 461 1068 L 486 1072 L 492 1074 L 508 1075 L 509 1076 L 521 1076 L 522 1077 L 554 1077 L 555 1076 L 580 1074 L 601 1069 L 629 1059 L 662 1041 L 682 1025 L 700 1004 L 713 982 L 722 957 L 724 941 L 725 940 L 725 915 Z"/>
+      <path d="M 464 447 L 463 450 L 465 454 L 476 469 L 486 489 L 485 491 L 477 483 L 482 496 L 485 509 L 485 517 L 486 518 L 485 543 L 482 558 L 479 566 L 484 553 L 486 543 L 487 542 L 488 543 L 487 550 L 491 537 L 491 528 L 492 527 L 491 512 L 492 511 L 507 530 L 520 543 L 554 571 L 582 599 L 581 601 L 568 588 L 580 601 L 594 619 L 607 639 L 620 664 L 631 691 L 644 736 L 648 757 L 648 763 L 649 764 L 649 772 L 650 773 L 650 786 L 651 787 L 650 808 L 653 786 L 654 785 L 655 786 L 655 824 L 654 825 L 654 835 L 653 836 L 652 848 L 657 832 L 659 814 L 660 813 L 661 770 L 660 769 L 658 745 L 650 710 L 641 686 L 642 683 L 651 702 L 657 721 L 657 718 L 646 681 L 636 658 L 615 620 L 600 599 L 588 585 L 568 566 L 523 530 L 504 512 L 494 498 L 493 494 L 494 493 L 499 496 L 499 493 L 492 478 L 481 462 L 467 448 Z"/>
+      <path d="M 451 402 L 450 402 L 451 409 L 459 424 L 459 426 L 449 441 L 437 466 L 429 492 L 427 508 L 424 511 L 423 510 L 401 509 L 400 510 L 385 511 L 377 514 L 376 516 L 394 553 L 379 563 L 365 575 L 350 591 L 333 614 L 320 638 L 315 651 L 310 668 L 309 680 L 307 685 L 298 675 L 282 653 L 260 618 L 237 573 L 228 552 L 228 550 L 249 526 L 248 521 L 239 513 L 232 509 L 228 504 L 240 490 L 246 481 L 254 465 L 259 449 L 259 441 L 257 437 L 252 452 L 246 464 L 234 483 L 217 506 L 219 509 L 241 524 L 218 551 L 233 590 L 248 620 L 258 635 L 254 628 L 255 626 L 270 648 L 285 667 L 309 693 L 309 697 L 314 673 L 319 658 L 329 636 L 339 620 L 349 607 L 371 584 L 406 555 L 392 530 L 385 520 L 387 518 L 394 518 L 395 517 L 410 517 L 411 518 L 424 518 L 425 519 L 432 519 L 433 518 L 438 493 L 451 457 L 466 428 L 462 418 Z"/>
+      <path d="M 298 237 L 291 237 L 271 243 L 256 250 L 241 260 L 228 273 L 221 285 L 216 305 L 213 312 L 200 326 L 176 340 L 162 346 L 140 353 L 137 358 L 138 365 L 145 379 L 155 392 L 165 401 L 179 407 L 193 410 L 223 410 L 224 411 L 238 412 L 252 418 L 261 428 L 266 441 L 266 455 L 265 456 L 264 466 L 257 486 L 250 500 L 250 503 L 255 502 L 268 494 L 269 496 L 262 511 L 258 528 L 258 536 L 257 537 L 258 565 L 261 577 L 263 576 L 266 571 L 267 572 L 270 596 L 278 621 L 278 619 L 279 618 L 280 619 L 284 631 L 292 645 L 285 628 L 285 625 L 278 604 L 275 589 L 275 580 L 274 579 L 274 585 L 273 586 L 272 585 L 271 562 L 272 561 L 273 550 L 266 556 L 264 560 L 263 559 L 263 548 L 266 532 L 265 537 L 263 540 L 262 536 L 263 535 L 264 525 L 270 504 L 278 488 L 278 486 L 276 486 L 261 493 L 260 492 L 265 481 L 267 479 L 273 461 L 273 442 L 271 437 L 272 434 L 275 440 L 269 425 L 258 413 L 243 406 L 233 404 L 220 404 L 219 403 L 209 403 L 208 404 L 193 403 L 175 398 L 166 393 L 156 383 L 152 377 L 160 370 L 163 363 L 163 356 L 161 354 L 162 352 L 181 345 L 195 338 L 208 329 L 215 322 L 222 310 L 225 295 L 228 287 L 232 280 L 239 272 L 248 264 L 261 255 L 283 244 L 297 239 Z"/>
+      <path d="M 547 727 L 538 725 L 527 725 L 526 724 L 511 725 L 493 730 L 483 735 L 476 740 L 464 752 L 455 765 L 450 776 L 445 792 L 444 805 L 443 806 L 444 831 L 449 852 L 454 864 L 467 883 L 475 891 L 486 897 L 497 899 L 484 887 L 475 875 L 465 852 L 461 827 L 461 842 L 460 843 L 458 838 L 457 808 L 458 807 L 459 796 L 464 779 L 474 761 L 485 749 L 491 744 L 500 739 L 519 733 L 536 732 L 556 736 L 573 745 L 590 759 L 569 738 L 563 734 Z"/>
+      <path d="M 441 406 L 429 413 L 418 422 L 385 454 L 356 490 L 333 527 L 318 559 L 321 554 L 322 556 L 313 577 L 308 593 L 306 604 L 305 605 L 304 604 L 304 599 L 301 619 L 300 620 L 300 627 L 299 628 L 300 657 L 303 668 L 304 649 L 305 648 L 305 642 L 309 621 L 318 588 L 320 585 L 329 559 L 330 558 L 331 561 L 328 570 L 342 536 L 360 505 L 388 467 L 412 441 L 413 438 L 425 427 L 412 438 L 410 437 Z"/>
+      <path d="M 334 159 L 331 162 L 325 173 L 312 207 L 306 235 L 306 246 L 305 247 L 306 253 L 309 250 L 317 218 L 320 213 L 321 208 L 333 180 L 336 177 L 340 183 L 346 199 L 352 230 L 352 257 L 351 258 L 351 266 L 350 267 L 348 284 L 353 276 L 355 264 L 357 260 L 358 265 L 359 252 L 360 251 L 359 222 L 353 197 L 349 188 L 350 186 L 366 206 L 372 216 L 382 238 L 381 232 L 382 231 L 384 234 L 387 244 L 390 267 L 391 268 L 391 291 L 389 298 L 394 290 L 397 278 L 397 259 L 390 233 L 377 206 L 363 186 L 344 165 L 338 160 Z"/>
+      <path d="M 281 675 L 286 688 L 291 708 L 296 739 L 298 745 L 299 758 L 300 759 L 301 775 L 302 776 L 302 783 L 304 792 L 304 801 L 305 802 L 305 813 L 306 814 L 308 877 L 312 867 L 313 852 L 314 851 L 314 841 L 315 840 L 314 807 L 315 806 L 316 811 L 317 811 L 316 809 L 316 791 L 315 790 L 314 771 L 313 770 L 313 764 L 307 733 L 297 699 L 290 684 L 284 676 Z"/>
+      <path d="M 446 640 L 442 644 L 437 654 L 434 669 L 436 690 L 439 700 L 442 705 L 443 711 L 426 742 L 414 773 L 404 810 L 403 819 L 399 832 L 396 849 L 389 871 L 389 874 L 394 868 L 403 848 L 428 762 L 437 739 L 450 712 L 450 707 L 443 690 L 440 674 L 441 654 Z"/>
+      <path d="M 343 670 L 349 696 L 351 719 L 352 720 L 352 732 L 353 733 L 353 782 L 352 783 L 352 799 L 351 800 L 349 839 L 348 840 L 347 860 L 346 861 L 346 870 L 345 871 L 345 873 L 346 873 L 352 859 L 360 817 L 361 799 L 362 798 L 362 784 L 363 783 L 363 750 L 362 749 L 362 737 L 361 736 L 361 729 L 360 728 L 358 710 L 353 691 Z"/>
+      <path d="M 401 267 L 400 272 L 416 297 L 427 321 L 431 333 L 440 350 L 443 353 L 442 355 L 431 348 L 427 347 L 427 351 L 431 362 L 437 374 L 442 381 L 440 382 L 436 380 L 440 399 L 442 401 L 444 398 L 444 390 L 445 389 L 453 392 L 456 391 L 450 383 L 438 361 L 440 360 L 444 363 L 453 366 L 458 365 L 448 352 L 440 336 L 436 324 L 437 323 L 441 329 L 427 298 L 414 279 Z"/>
+      <path d="M 286 361 L 273 366 L 286 362 L 293 362 L 294 361 L 304 361 L 314 363 L 315 364 L 314 365 L 309 365 L 308 366 L 321 368 L 340 378 L 354 391 L 362 403 L 360 405 L 355 402 L 342 399 L 329 400 L 329 402 L 341 414 L 348 427 L 352 443 L 352 459 L 350 461 L 349 460 L 349 456 L 346 447 L 347 466 L 346 467 L 345 477 L 341 488 L 328 511 L 340 495 L 348 479 L 350 469 L 352 466 L 353 469 L 356 456 L 356 440 L 354 430 L 348 416 L 340 405 L 341 404 L 349 405 L 358 408 L 370 414 L 370 411 L 367 403 L 359 390 L 345 376 L 347 375 L 354 379 L 343 371 L 317 361 L 321 360 L 323 361 L 314 359 L 295 359 Z"/>
+      <path d="M 248 170 L 246 172 L 247 205 L 254 237 L 256 242 L 259 242 L 261 241 L 258 226 L 258 221 L 259 220 L 262 227 L 251 182 L 251 177 L 252 176 L 259 180 L 274 192 L 301 218 L 302 218 L 303 211 L 299 205 L 284 190 L 271 180 L 253 170 Z"/>
+      <path d="M 319 702 L 325 712 L 345 736 L 345 731 L 338 719 L 323 704 L 322 705 Z"/>
+      <path d="M 432 768 L 431 777 L 438 793 L 439 783 Z"/>
+    </g>
+  </svg>
 </div>
 <div id="fox-bubble">Hey! Ask me anything 🦊</div>
 
 <script>
 // ── Robin Fox controller ──────────────────────────────────────────────────
-var _foxEl    = document.getElementById('robin-fox');
+var _foxEl    = document.getElementById('fox-mount');
 var _foxTimer = null;
 var _audioCtx = null;
 
