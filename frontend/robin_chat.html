@@ -640,5 +640,94 @@ if (chatHistory.length > 0) {
   });
 }
 </script>
+
+<!-- ── Robin Fox animated avatar ── -->
+<style>
+#fox-mount {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 72px;
+  height: 72px;
+  z-index: 100;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+#fox-mount:hover { transform: scale(1.08); }
+#fox-mount svg {
+  width: 100%;
+  height: 100%;
+}
+/* Speech bubble that appears on fox click */
+#fox-bubble {
+  position: fixed;
+  bottom: 170px;
+  right: 16px;
+  background: #fff;
+  border: 0.5px solid rgba(26,24,22,0.12);
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-family: "Inter", sans-serif;
+  color: #1A1816;
+  max-width: 180px;
+  line-height: 1.5;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  z-index: 101;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+#fox-bubble.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+
+<div id="fox-mount" title="Robin" onclick="foxTapped()"></div>
+<div id="fox-bubble" id="fox-bubble">Hey! Ask me anything 🦊</div>
+
+<script src="/frontend/robin-fox.js"></script>
+<script>
+// Initialise fox in the fixed corner mount
+RobinFox.init('fox-mount');
+
+// Fox tap — show a random encouragement bubble
+var foxQuips = [
+  "What's your next move? 🦊",
+  "You're closer than you think 🦊",
+  "One task. Just one. Go. 🦊",
+  "What did you get done today? 🦊",
+  "Ask me anything 🦊",
+  "Let's get it 🦊"
+];
+var foxBubbleTimer = null;
+function foxTapped() {
+  var bubble = document.getElementById('fox-bubble');
+  bubble.textContent = foxQuips[Math.floor(Math.random() * foxQuips.length)];
+  bubble.classList.add('show');
+  clearTimeout(foxBubbleTimer);
+  foxBubbleTimer = setTimeout(function() { bubble.classList.remove('show'); }, 2500);
+}
+
+// Also hook into setTyping and addBubble if not already patched
+var _origSetTyping = window.setTyping;
+if (typeof _origSetTyping === 'function' && !window._foxPatched) {
+  window._foxPatched = true;
+  window.setTyping = function(on) {
+    _origSetTyping(on);
+    on ? RobinFox.typing() : RobinFox.idle();
+  };
+  var _origAddBubble = window.addBubble;
+  if (typeof _origAddBubble === 'function') {
+    window.addBubble = function(side, text) {
+      _origAddBubble(side, text);
+      if (side === 'robin') RobinFox.reply();
+    };
+  }
+}
+</script>
 </body>
 </html>
