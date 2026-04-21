@@ -686,47 +686,91 @@ if (chatHistory.length > 0) {
 }
 </style>
 
-<div id="fox-mount" title="Robin" onclick="foxTapped()"></div>
-<div id="fox-bubble" id="fox-bubble">Hey! Ask me anything 🦊</div>
+<div id="fox-mount" title="Robin" onclick="foxTapped()">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" id="robin-fox" style="width:100%;height:100%">
+  <style>
+    @keyframes fox-breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.5px)}}
+    @keyframes fox-blink{0%,88%,100%{transform:scaleY(1)}93%{transform:scaleY(0.08)}}
+    @keyframes fox-tail-idle{0%,100%{transform:rotate(0deg)}50%{transform:rotate(7deg)}}
+    @keyframes fox-tail-wag{0%,100%{transform:rotate(0deg)}20%{transform:rotate(22deg)}40%{transform:rotate(-12deg)}60%{transform:rotate(18deg)}80%{transform:rotate(-8deg)}}
+    @keyframes fox-glow{0%,100%{opacity:0}50%{opacity:1}}
+    #fox-body-g{animation:fox-breathe 3.5s ease-in-out infinite}
+    #fox-tail-g{transform-origin:28px 74px;animation:fox-tail-idle 3s ease-in-out infinite}
+    #fox-eye-l{transform-origin:42px 47px;animation:fox-blink 4.5s ease-in-out infinite}
+    #fox-eye-r{transform-origin:58px 47px;animation:fox-blink 4.5s ease-in-out infinite 0.1s}
+    #fox-gl,#fox-gr{opacity:0}
+    .fox-typing #fox-tail-g{animation:fox-tail-wag 0.55s ease-in-out infinite!important}
+    .fox-typing #fox-gl,.fox-typing #fox-gr{animation:fox-glow 0.7s ease-in-out infinite}
+    .fox-reply #fox-tail-g{animation:fox-tail-wag 0.4s ease-in-out 3!important}
+  </style>
+  <!-- Tail -->
+  <g id="fox-tail-g">
+    <ellipse cx="24" cy="75" rx="15" ry="9" fill="#E8762B" transform="rotate(-28 24 75)"/>
+    <ellipse cx="18" cy="80" rx="7" ry="4" fill="#F5F0E8" transform="rotate(-28 18 80)"/>
+  </g>
+  <!-- Body -->
+  <g id="fox-body-g">
+    <ellipse cx="50" cy="67" rx="22" ry="17" fill="#E8762B"/>
+    <ellipse cx="50" cy="71" rx="12" ry="10" fill="#F5F0E8"/>
+    <rect x="37" y="79" width="8" height="9" rx="4" fill="#C85A1A"/>
+    <rect x="55" y="79" width="8" height="9" rx="4" fill="#C85A1A"/>
+    <ellipse cx="41" cy="88" rx="5" ry="2.5" fill="#1A1816"/>
+    <ellipse cx="59" cy="88" rx="5" ry="2.5" fill="#1A1816"/>
+  </g>
+  <!-- Ears -->
+  <polygon points="31,45 25,27 41,37" fill="#E8762B"/>
+  <polygon points="32,43 28,31 39,38" fill="#C85A1A"/>
+  <polygon points="69,45 75,27 59,37" fill="#E8762B"/>
+  <polygon points="68,43 72,31 61,38" fill="#C85A1A"/>
+  <!-- Head -->
+  <ellipse cx="50" cy="49" rx="20" ry="18" fill="#E8762B"/>
+  <ellipse cx="50" cy="54" rx="13" ry="10" fill="#F5F0E8"/>
+  <!-- Eyes -->
+  <g id="fox-eye-l"><ellipse cx="42" cy="46" rx="4" ry="4.5" fill="#1A1816"/><ellipse cx="43.5" cy="44.5" rx="1.3" ry="1.3" fill="#fff"/></g>
+  <g id="fox-eye-r"><ellipse cx="58" cy="46" rx="4" ry="4.5" fill="#1A1816"/><ellipse cx="59.5" cy="44.5" rx="1.3" ry="1.3" fill="#fff"/></g>
+  <!-- Glow rings -->
+  <ellipse id="fox-gl" cx="42" cy="46" rx="5.5" ry="6" fill="none" stroke="#B8976B" stroke-width="1.5"/>
+  <ellipse id="fox-gr" cx="58" cy="46" rx="5.5" ry="6" fill="none" stroke="#B8976B" stroke-width="1.5"/>
+  <!-- Nose + mouth -->
+  <ellipse cx="50" cy="54" rx="3" ry="2" fill="#1A1816"/>
+  <path d="M46 57 Q50 61 54 57" fill="none" stroke="#1A1816" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="36" y1="54" x2="46" y2="55" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
+  <line x1="36" y1="57" x2="46" y2="57" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
+  <line x1="54" y1="55" x2="64" y2="54" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
+  <line x1="54" y1="57" x2="64" y2="57" stroke="#1A1816" stroke-width="0.7" opacity="0.4"/>
+</svg>
+</div>
+<div id="fox-bubble">Hey! Ask me anything 🦊</div>
 
-<script src="/frontend/robin-fox.js"></script>
 <script>
-// Initialise fox in the fixed corner mount
-RobinFox.init('fox-mount');
-
-// Fox tap — show a random encouragement bubble
-var foxQuips = [
-  "What's your next move? 🦊",
-  "You're closer than you think 🦊",
-  "One task. Just one. Go. 🦊",
-  "What did you get done today? 🦊",
-  "Ask me anything 🦊",
-  "Let's get it 🦊"
-];
-var foxBubbleTimer = null;
-function foxTapped() {
-  var bubble = document.getElementById('fox-bubble');
-  bubble.textContent = foxQuips[Math.floor(Math.random() * foxQuips.length)];
-  bubble.classList.add('show');
-  clearTimeout(foxBubbleTimer);
-  foxBubbleTimer = setTimeout(function() { bubble.classList.remove('show'); }, 2500);
+// ── Robin Fox controller ──
+var _foxEl = document.getElementById('robin-fox');
+var _foxTimer = null;
+function foxState(s){
+  if(!_foxEl) return;
+  _foxEl.classList.remove('fox-typing','fox-reply');
+  if(s) _foxEl.classList.add('fox-'+s);
 }
-
-// Also hook into setTyping and addBubble if not already patched
-var _origSetTyping = window.setTyping;
-if (typeof _origSetTyping === 'function' && !window._foxPatched) {
-  window._foxPatched = true;
-  window.setTyping = function(on) {
-    _origSetTyping(on);
-    on ? RobinFox.typing() : RobinFox.idle();
+function foxTapped(){
+  var quips=["What's your next move? 🦊","You're closer than you think 🦊","One task. Just one. Go. 🦊","What did you get done today? 🦊","Ask me anything 🦊","Let's get it 🦊"];
+  var b=document.getElementById('fox-bubble');
+  b.textContent=quips[Math.floor(Math.random()*quips.length)];
+  b.classList.add('show');
+  clearTimeout(_foxTimer);
+  _foxTimer=setTimeout(function(){b.classList.remove('show');},2500);
+}
+// Hook into setTyping + addBubble
+var _oST=window.setTyping;
+if(typeof _oST==='function'){
+  window.setTyping=function(on){_oST(on);foxState(on?'typing':null);};
+}
+var _oAB=window.addBubble;
+if(typeof _oAB==='function'){
+  window.addBubble=function(side,text){
+    _oAB(side,text);
+    if(side==='robin'){foxState('reply');setTimeout(function(){foxState(null);},2000);}
   };
-  var _origAddBubble = window.addBubble;
-  if (typeof _origAddBubble === 'function') {
-    window.addBubble = function(side, text) {
-      _origAddBubble(side, text);
-      if (side === 'robin') RobinFox.reply();
-    };
-  }
 }
 </script>
 </body>
