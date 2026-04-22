@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Robin · Admin</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--ink:#1A1816;--ink2:#6B6560;--gold:#B8976B;--gold2:#9A7A54;--bg:#FAFAF8;--rule:#E8E4DF;--green:#2ecc71;--red:#e74c3c;--orange:#f39c12}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+  nav{background:#fff;border-bottom:1px solid var(--rule);padding:0 40px;height:60px;display:flex;align-items:center;justify-content:space-between}
+  .brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:600;letter-spacing:.02em}
+  .brand em{color:var(--gold2);font-style:italic}
+  .nav-r{font-size:12px;color:var(--ink2);letter-spacing:.06em;text-transform:uppercase}
+  main{max-width:960px;margin:40px auto;padding:0 24px}
+  h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;font-weight:300;margin-bottom:6px}
+  .sub{font-size:13px;color:var(--ink2);margin-bottom:32px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px}
+  .stat{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:20px 24px}
+  .stat-n{font-size:32px;font-weight:300;font-family:'Cormorant Garamond',Georgia,serif;color:var(--ink)}
+  .stat-l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-top:4px}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+  th{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);padding:14px 20px;text-align:left;border-bottom:1px solid var(--rule);background:#FAFAF8;font-weight:400}
+  td{padding:16px 20px;font-size:13px;border-bottom:1px solid var(--rule);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:#FAFAF8}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+  .badge-pending{background:#FFF8E7;color:var(--orange)}
+  .badge-accepted{background:#EAFAF1;color:#27ae60}
+  .badge-rejected{background:#FDEDEC;color:var(--red)}
+  .btn-accept{background:var(--ink);color:#fff;border:none;padding:7px 16px;border-radius:4px;font-size:12px;cursor:pointer;letter-spacing:.04em}
+  .btn-accept:hover{background:#333}
+  .btn-reject{background:none;color:var(--red);border:1px solid var(--red);padding:7px 16px;border-radius:4px;font-size:12px;cursor:pointer;letter-spacing:.04em;margin-left:6px}
+  .btn-reject:hover{background:var(--red);color:#fff}
+  .btn-notify{background:var(--gold);color:#fff;border:none;padding:7px 16px;border-radius:4px;font-size:12px;cursor:pointer;letter-spacing:.04em}
+  .btn-notify:hover{background:var(--gold2)}
+  .empty{text-align:center;padding:60px;color:var(--ink2);font-size:14px}
+  .toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--ink);color:#fff;padding:12px 24px;font-size:13px;border-radius:4px;opacity:0;transition:opacity .3s,transform .3s;z-index:999;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .filter-bar{display:flex;gap:10px;margin-bottom:20px}
+  .filter-btn{background:#fff;border:1px solid var(--rule);padding:7px 18px;border-radius:20px;font-size:12px;cursor:pointer;letter-spacing:.04em;color:var(--ink2)}
+  .filter-btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .loading{text-align:center;padding:60px;color:var(--ink2)}
+  #login-wall{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+  .login-box{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:48px;width:360px;text-align:center}
+  .login-box h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:300;margin-bottom:8px}
+  .login-box p{font-size:13px;color:var(--ink2);margin-bottom:28px}
+  .login-input{width:100%;padding:12px 16px;border:1px solid var(--rule);border-radius:4px;font-size:14px;outline:none;margin-bottom:12px}
+  .login-input:focus{border-color:var(--gold)}
+  .login-btn{width:100%;padding:13px;background:var(--ink);color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase}
+  .login-err{font-size:12px;color:var(--red);margin-top:8px;display:none}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- Login wall -->
+<div id="login-wall">
+  <div class="login-box">
+    <h2>Robin <em style="color:var(--gold2);font-style:italic">Admin</em></h2>
+    <p>Enter the admin password to continue.</p>
+    <input class="login-input" type="password" id="admin-pw" placeholder="Password" onkeydown="if(event.key==='Enter')adminLogin()"/>
+    <button class="login-btn" onclick="adminLogin()">Enter →</button>
+    <p class="login-err" id="login-err">Incorrect password.</p>
+  </div>
+</div>
+
+<nav>
+  <div class="brand">Robin <em>Admin</em></div>
+  <div class="nav-r">Waitlist Manager</div>
+</nav>
+
+<main>
+  <h1>Waitlist</h1>
+  <p class="sub" id="last-refresh">Loading...</p>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="s-total">—</div><div class="stat-l">Total</div></div>
+    <div class="stat"><div class="stat-n" id="s-pending">—</div><div class="stat-l">Pending</div></div>
+    <div class="stat"><div class="stat-n" id="s-accepted">—</div><div class="stat-l">Accepted</div></div>
+    <div class="stat"><div class="stat-n" id="s-rejected">—</div><div class="stat-l">Rejected</div></div>
+  </div>
+
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+    <button class="filter-btn" onclick="setFilter('accepted',this)">Accepted</button>
+    <button class="filter-btn" onclick="setFilter('rejected',this)">Rejected</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Request ID</th>
+        <th>Submitted</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="waitlist-body">
+      <tr><td colspan="6" class="loading">Loading...</td></tr>
+    </tbody>
+  </table>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_PASSWORD = 'robin-admin-2026'
+var currentFilter = 'all'
+var allRows = []
+
+function adminLogin() {
+  var pw = document.getElementById('admin-pw').value
+  if (pw === ADMIN_PASSWORD) {
+    document.getElementById('login-wall').style.display = 'none'
+    loadWaitlist()
+  } else {
+    var e = document.getElementById('login-err')
+    e.style.display = 'block'
+    setTimeout(function(){ e.style.display='none' }, 2000)
+  }
+}
+
+function api(method, path, body) {
+  return fetch(path, {
+    method: method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(r){ return r.json() })
+}
+
+function loadWaitlist() {
+  api('GET', '/admin/waitlist').then(function(data) {
+    allRows = data.rows || []
+    updateStats()
+    renderTable()
+    document.getElementById('last-refresh').textContent =
+      'Last refreshed ' + new Date().toLocaleTimeString('en-GB')
+  }).catch(function(){ toast('Failed to load waitlist') })
+}
+
+function updateStats() {
+  document.getElementById('s-total').textContent    = allRows.length
+  document.getElementById('s-pending').textContent  = allRows.filter(r=>r.status==='pending').length
+  document.getElementById('s-accepted').textContent = allRows.filter(r=>r.status==='accepted').length
+  document.getElementById('s-rejected').textContent = allRows.filter(r=>r.status==='rejected').length
+}
+
+function setFilter(f, btn) {
+  currentFilter = f
+  document.querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active') })
+  btn.classList.add('active')
+  renderTable()
+}
+
+function renderTable() {
+  var rows = currentFilter === 'all' ? allRows : allRows.filter(r => r.status === currentFilter)
+  var tb = document.getElementById('waitlist-body')
+  if (rows.length === 0) {
+    tb.innerHTML = '<tr><td colspan="6" class="empty">No entries.</td></tr>'
+    return
+  }
+  tb.innerHTML = rows.map(function(r) {
+    var date = new Date(r.submitted_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+    var badge = '<span class="badge badge-' + r.status + '">' + r.status + '</span>'
+    var actions = ''
+    if (r.status === 'pending') {
+      actions = '<button class="btn-accept" onclick="updateStatus(\'' + r.phone + '\',\'accepted\')">Accept</button>' +
+                '<button class="btn-reject" onclick="updateStatus(\'' + r.phone + '\',\'rejected\')">Reject</button>'
+    } else if (r.status === 'accepted') {
+      actions = '<button class="btn-notify" onclick="notifyUser(\'' + r.phone + '\',\'' + r.name + '\')">Notify again</button>'
+    } else {
+      actions = '<button class="btn-accept" onclick="updateStatus(\'' + r.phone + '\',\'accepted\')">Reinstate</button>'
+    }
+    return '<tr>' +
+      '<td><strong>' + r.name + '</strong></td>' +
+      '<td style="font-family:monospace;font-size:12px">' + r.phone + '</td>' +
+      '<td style="font-family:monospace;font-size:12px;color:var(--ink2)">' + r.request_id + '</td>' +
+      '<td style="color:var(--ink2)">' + date + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td>' + actions + '</td>' +
+    '</tr>'
+  }).join('')
+}
+
+function updateStatus(phone, status) {
+  api('POST', '/admin/waitlist/update', { phone: phone, status: status }).then(function(data) {
+    if (data.ok) {
+      toast(status === 'accepted' ? '✓ Accepted — WhatsApp notification sent' : '✓ Status updated')
+      loadWaitlist()
+    } else {
+      toast('Error: ' + (data.error || 'unknown'))
+    }
+  })
+}
+
+function notifyUser(phone, name) {
+  api('POST', '/admin/waitlist/notify', { phone: phone, name: name }).then(function(data) {
+    toast(data.ok ? '✓ Notification sent' : 'Failed to send')
+  })
+}
+
+function toast(msg) {
+  var t = document.getElementById('toast')
+  t.textContent = msg
+  t.classList.add('show')
+  setTimeout(function(){ t.classList.remove('show') }, 3000)
+}
+
+document.getElementById('admin-pw').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') adminLogin()
+})
+</script>
+</body>
+</html>

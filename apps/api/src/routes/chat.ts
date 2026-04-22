@@ -151,4 +151,57 @@ router.post('/auth/verify-code', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// ── ADMIN ROUTES ──────────────────────────────────────────
+router.get('/admin/waitlist', async (req, res, next) => {
+  try {
+    const { db } = await import('../db/client.js')
+    const { rows } = await db.query(
+      `SELECT request_id, name, phone, role, note, status, submitted_at
+       FROM waitlist ORDER BY submitted_at DESC`
+    )
+    res.json({ rows })
+  } catch (err) { next(err) }
+})
+
+router.post('/admin/waitlist/update', async (req, res, next) => {
+  try {
+    const { phone, status } = req.body
+    if (!phone || !status) return res.status(400).json({ error: 'Missing fields' })
+    const { db } = await import('../db/client.js')
+    await db.query(`UPDATE waitlist SET status=$1 WHERE phone=$2`, [status, phone])
+
+    // If accepting, notify user via WhatsApp
+    if (status === 'accepted') {
+      const user = await db.query(`SELECT name FROM waitlist WHERE phone=$1`, [phone])
+      const name = user.rows[0]?.name || 'there'
+      try {
+        const twilio = (await import('twilio')).default
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+        await client.messages.create({
+          from: process.env.TWILIO_WHATSAPP_FROM,
+          to:   `whatsapp:${phone}`,
+          body: `Hi ${name} 👋 You're in.\n\nRobin is ready for you. Sign in here:\nhttps://robin-agent.onrender.com/frontend/robin_site.html\n\nReply to this message anytime to talk to Robin directly.`
+        })
+      } catch(e) {
+        console.warn('[admin] WhatsApp notify failed:', (e as Error).message)
+      }
+    }
+    res.json({ ok: true })
+  } catch (err) { next(err) }
+})
+
+router.post('/admin/waitlist/notify', async (req, res, next) => {
+  try {
+    const { phone, name } = req.body
+    const twilio = (await import('twilio')).default
+    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    await client.messages.create({
+      from: process.env.TWILIO_WHATSAPP_FROM,
+      to:   `whatsapp:${phone}`,
+      body: `Hi ${name} 👋 You're in.\n\nRobin is ready for you. Sign in here:\nhttps://robin-agent.onrender.com/frontend/robin_site.html`
+    })
+    res.json({ ok: true })
+  } catch (err) { next(err) }
+})
+
 export default router
