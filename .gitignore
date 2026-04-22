@@ -1,6 +1,7 @@
 node_modules/
 apps/api/node_modules/
 apps/worker/node_modules/
+apps/api/dist/
 .env
 .env.save
 .en

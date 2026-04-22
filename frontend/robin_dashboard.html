@@ -776,10 +776,8 @@ function checkFirstVisit() {
 }
 
 function connectGmail() {
-  var token = localStorage.getItem('robin_token') || ''
-  var phone = ''
-  try { phone = atob(token.replace('tok_','')).split(':')[0] } catch(e){}
-  window.location.href = '/email/connect?phone=' + encodeURIComponent(phone)
+  var token = localStorage.getItem('robin_token') || 'web-default'
+  window.location.href = '/email/auth?sessionId=' + encodeURIComponent(token)
 }
 
 function checkGmailStatus() {
