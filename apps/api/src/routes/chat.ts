@@ -69,4 +69,26 @@ router.post('/signup', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+router.post('/waitlist/check', async (req, res, next) => {
+  try {
+    const { phone } = req.body
+    if (!phone) return res.status(400).json({ error: 'Phone required' })
+    const { db } = await import('../db/client.js')
+    const result = await db.query(
+      `SELECT request_id, name, submitted_at FROM waitlist WHERE phone=$1 LIMIT 1`,
+      [phone]
+    )
+    if (result.rows.length > 0) {
+      const row = result.rows[0]
+      return res.json({
+        exists: true,
+        request_id: row.request_id,
+        name: row.name,
+        submitted: new Date(row.submitted_at).toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
+      })
+    }
+    res.json({ exists: false })
+  } catch (err) { next(err) }
+})
+
 export default router

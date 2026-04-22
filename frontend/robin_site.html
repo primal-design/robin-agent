@@ -539,6 +539,22 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
       </div>
     </div>
 
+  <!-- Screen 8: Already registered -->
+    <div class="a-screen" data-screen="8">
+      <div class="a-conf">
+        <h1>You're already with us.</h1>
+        <p class="a-conf-body">Your request is being reviewed. We haven't forgotten you.</p>
+        <div class="a-meta">
+          <div class="a-meta-row"><span class="a-meta-label">Request ID</span><span class="a-meta-val" id="existing-req-id">—</span></div>
+          <div class="a-meta-row"><span class="a-meta-label">Submitted</span><span class="a-meta-val" id="existing-req-date">—</span></div>
+          <div class="a-meta-row"><span class="a-meta-label">Name</span><span class="a-meta-val" id="existing-req-name">—</span></div>
+        </div>
+        <div class="a-seal-wrap"><div class="a-seal">美</div></div>
+        <p class="a-sig">Sit tight.</p>
+        <button class="q-back" style="margin-top:40px;display:inline-block" onclick="closeAccess()">← Return to Robin</button>
+      </div>
+    </div>
+
   </div><!-- end a-stage -->
   <div id="a-micro"></div>
 </div><!-- end access-view -->
@@ -731,6 +747,17 @@ function setupAccessListeners() {
     ph.addEventListener('input', function() {
       accAns.phone = ph.value.trim();
       var b = document.getElementById('next-4'); if (b) b.disabled = accAns.phone.length < 6;
+    });
+    ph.addEventListener('blur', function() {
+      if (accAns.phone.length < 6) return;
+      api('POST', '/waitlist/check', { phone: accAns.phone }).then(function(data) {
+        if (data && data.exists) {
+          var r = document.getElementById('existing-req-id');   if (r)  r.textContent = data.request_id || '—';
+          var d = document.getElementById('existing-req-date'); if (d)  d.textContent = data.submitted  || '—';
+          var n = document.getElementById('existing-req-name'); if (n)  n.textContent = data.name       || '—';
+          accessGoto(8);
+        }
+      }).catch(function(){});
     });
     ph.addEventListener('keydown', function(e) { if (e.key === 'Enter' && accAns.phone.length >= 6) accessNext(4); });
   }
