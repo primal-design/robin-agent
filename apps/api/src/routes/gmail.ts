@@ -109,6 +109,12 @@ function gmailErrorMessage(err: unknown) {
   return full
 }
 
+function withStep(step: string, err: unknown) {
+  const wrapped = new Error(`${step}: ${gmailErrorMessage(err)}`)
+  ;(wrapped as Error & { cause?: unknown }).cause = err
+  return wrapped
+}
+
 // Step 1 — redirect user to Google consent screen
 router.get('/email/connect', async (req, res) => {
   const userId = await resolveUserId(req.query as Record<string, unknown>)
@@ -131,17 +137,32 @@ router.get('/email/callback', async (req, res) => {
   if (!code || !userId) return res.status(400).send('Missing code or state')
 
   try {
-    const tokens = await exchangeCode(code)
-    const profile = await getEmailProfile(tokens)
+    let tokens
+    try {
+      tokens = await exchangeCode(code)
+    } catch (err) {
+      throw withStep('Failed exchanging the Google authorization code', err)
+    }
 
-    await db.query(
-      `INSERT INTO gmail_tokens (user_id, access_token, refresh_token, expiry_date, email)
-       VALUES ($1,$2,$3,$4,$5)
-       ON CONFLICT (user_id) DO UPDATE SET
-         access_token=$2, refresh_token=COALESCE($3, gmail_tokens.refresh_token),
-         expiry_date=$4, email=$5, updated_at=now()`,
-      [userId, tokens.access_token, tokens.refresh_token, tokens.expiry_date, profile.email]
-    )
+    let profile
+    try {
+      profile = await getEmailProfile(tokens)
+    } catch (err) {
+      throw withStep('Google granted access but Robin could not read the Gmail profile', err)
+    }
+
+    try {
+      await db.query(
+        `INSERT INTO gmail_tokens (user_id, access_token, refresh_token, expiry_date, email)
+         VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (user_id) DO UPDATE SET
+           access_token=$2, refresh_token=COALESCE($3, gmail_tokens.refresh_token),
+           expiry_date=$4, email=$5, updated_at=now()`,
+        [userId, tokens.access_token, tokens.refresh_token, tokens.expiry_date, profile.email]
+      )
+    } catch (err) {
+      throw withStep('Google granted access but Robin could not save the Gmail connection', err)
+    }
 
     // Redirect to dashboard with success
     res.redirect('/frontend/robin_dashboard.html?gmail=connected')

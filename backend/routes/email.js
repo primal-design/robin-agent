@@ -84,6 +84,12 @@ function gmailErrorMessage(err) {
   return full
 }
 
+function withStep(step, err) {
+  const wrapped = new Error(`${step}: ${gmailErrorMessage(err)}`)
+  wrapped.cause = err
+  return wrapped
+}
+
 // GET /email/auth
 router.get('/auth', (req, res) => {
   const sessionId = resolveSessionId(req.query)
@@ -103,8 +109,19 @@ router.get('/callback', async (req, res) => {
   const { code, state: sessionId } = req.query
   if (!code) return res.status(400).send('No code')
   try {
-    const tokens = await exchangeCode(code)
-    const { email } = await saveGmailConnection(sessionId, tokens)
+    let tokens
+    try {
+      tokens = await exchangeCode(code)
+    } catch (err) {
+      throw withStep('Failed exchanging the Google authorization code', err)
+    }
+
+    let email
+    try {
+      ;({ email } = await saveGmailConnection(sessionId, tokens))
+    } catch (err) {
+      throw withStep('Google granted access but Robin could not finish saving the Gmail connection', err)
+    }
 
     res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px;background:#fff">
       <div style="font-size:48px">🦊</div>
