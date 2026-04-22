@@ -205,3 +205,37 @@ router.post('/admin/waitlist/notify', async (req, res, next) => {
 })
 
 export default router
+
+// ── DASHBOARD ROUTES ──────────────────────────────────────
+router.get('/profile', async (req, res, next) => {
+  try {
+    const token = (req.headers.authorization || '').replace('Bearer ', '')
+    if (!token) return res.json({ name: '' })
+    // Decode phone from token
+    const decoded = Buffer.from(token.replace('tok_', ''), 'base64').toString()
+    const phone = decoded.split(':')[0]
+    const { db } = await import('../db/client.js')
+    const result = await db.query(`SELECT name FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+    res.json({ name: result.rows[0]?.name || '' })
+  } catch (err) { next(err) }
+})
+
+router.post('/pulse', async (req, res, next) => {
+  try {
+    res.json({
+      stats: { pending: 0, handled: 0, streak: 0, total_earned: 0 },
+      triggered: false,
+      message: 'All clear today.'
+    })
+  } catch (err) { next(err) }
+})
+
+router.get('/actions/:sessionId', async (req, res, next) => {
+  try {
+    res.json({ actions: [] })
+  } catch (err) { next(err) }
+})
+
+router.post('/actions/:actionId/approve', async (req, res, next) => {
+  res.json({ ok: true })
+})
