@@ -200,7 +200,7 @@ nav.sb-nav{padding:12px 0;flex:1}
     <a class="app-nav-tab" id="nav-today" href="robin_dashboard.html">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M6 2v4M10 2v4"/></svg>
       Today
-      <span class="app-nav-badge">3</span>
+      <span class="app-nav-badge" id="badge-today" style="display:none">0</span>
     </a>
     <a class="app-nav-tab" id="nav-chat" href="robin_chat.html">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12v9H9l-3 3V11H2z"/></svg>
@@ -244,19 +244,19 @@ nav.sb-nav{padding:12px 0;flex:1}
     <div class="sb-link on" onclick="showView('today')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12"/><path d="M6 2v4"/><path d="M10 2v4"/></svg>
       Today's brief
-      <span class="sb-badge">3</span>
+      <span class="sb-badge" id="badge-brief" style="display:none">0</span>
     </div>
     <div class="sb-link" onclick="showView('actions')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l2.5 2.5L13 4"/></svg>
       Approvals
-      <span class="sb-badge">2</span>
+      <span class="sb-badge" id="badge-approvals" style="display:none">0</span>
     </div>
 
     <div class="sb-section">My Robin</div>
     <div class="sb-link" onclick="showView('memory')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v2.75l1.75 1.75"/></svg>
       Memory
-      <span class="sb-badge g" id="mem-badge">14</span>
+      <span class="sb-badge g" id="mem-badge" style="display:none">0</span>
     </div>
     <div class="sb-link" onclick="showView('history')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12M2 4h12M2 12h8"/></svg>
@@ -365,7 +365,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 <div class="view" id="view-memory">
   <div class="view-top">
     <div><h1 class="view-title serif">What Robin <em>knows about you.</em></h1><div class="view-sub">Everything Robin has learned. Edit or delete any fact at any time.</div></div>
-    <div class="view-date"><span id="mem-count">14</span> facts</div>
+    <div class="view-date"><span id="mem-count">0</span> facts</div>
   </div>
 
   <div class="mem-section">
@@ -616,7 +616,7 @@ function deleteMem(btn) {
 function updateMemCount() {
   var cnt = document.querySelectorAll('.mem-item').length;
   document.getElementById('mem-count').textContent = cnt;
-  document.getElementById('mem-badge').textContent = cnt;
+  var mb=document.getElementById('mem-badge'); if(mb){mb.textContent=cnt; mb.style.display=cnt>0?'inline-block':'none';} var mc=document.getElementById('mem-count'); if(mc) mc.textContent=cnt;
 }
 function exportMemory() {
   var token = localStorage.getItem('robin_token') || 'web-default';
