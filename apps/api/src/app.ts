@@ -5,6 +5,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 import twilio from 'twilio'
 import whatsappRouter from './routes/whatsapp.js'
 import chatRouter     from './routes/chat.js'
+import gmailRouter    from './routes/gmail.js'
 import { chatService } from './services/chat.service.js'
 import { findOrCreateUser } from './db/client.js'
 
@@ -20,6 +21,7 @@ export function createApp() {
   app.get('/health', (_, res) => res.json({ ok: true, service: 'robin-api' }))
 
   app.use('/whatsapp', whatsappRouter)
+  app.use('/',         gmailRouter)
   app.use('/',         chatRouter)
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

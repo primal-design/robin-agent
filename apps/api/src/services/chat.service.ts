@@ -1,9 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { env } from '../config/env.js'
-import { loadSession, saveSession, type Session } from '../db/client.js'
+import { loadSession, saveSession, db, type Session } from '../db/client.js'
 import { buildUserContext, handleApproval } from '../brain/brain.js'
 import { buildSystemPrompt, rejectionContext } from '../brain/prompts.js'
 import { doResearch } from '../brain/planner.js'
+import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 
 let _ai: Anthropic | null = null
 function ai() { return _ai || (_ai = new Anthropic({ apiKey: env.anthropicKey })) }
@@ -90,12 +91,33 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     }
   }
 
+  if (name === 'read_emails' || name === 'get_email_body' || name === 'send_email') {
+    const tokRow = await db.query(`SELECT access_token, refresh_token, expiry_date FROM gmail_tokens WHERE user_id=$1`, [memory.userId])
+    if (!tokRow.rows.length) return { type: 'tool_result' as const, tool_use_id: id, content: `Gmail not connected. Ask the user to connect Gmail by visiting: https://robin-agent.onrender.com/email/connect?phone=THEIR_PHONE` }
+    const tokens = { access_token: tokRow.rows[0].access_token, refresh_token: tokRow.rows[0].refresh_token, expiry_date: tokRow.rows[0].expiry_date }
+    if (name === 'read_emails') {
+      const emails = await listEmails(tokens, { query: input.query as string, maxResults: input.maxResults as number || 10, unreadOnly: input.unreadOnly as boolean })
+      if (!emails.length) return { type: 'tool_result' as const, tool_use_id: id, content: 'No emails found.' }
+      const summary = emails.map((e: any) => `[${e.id}] ${e.unread ? '🔴' : '⚪'} From: ${e.from}\nSubject: ${e.subject}\nDate: ${e.date}\nPreview: ${e.snippet}`).join('\n\n')
+      return { type: 'tool_result' as const, tool_use_id: id, content: summary }
+    }
+    if (name === 'get_email_body') {
+      const body = await getEmailBody(tokens, input.messageId as string)
+      return { type: 'tool_result' as const, tool_use_id: id, content: body || 'Empty email.' }
+    }
+    if (name === 'send_email') {
+      await sendEmail(tokens, { to: input.to as string, subject: input.subject as string, body: input.body as string, threadId: input.threadId as string })
+      return { type: 'tool_result' as const, tool_use_id: id, content: `Email sent to ${input.to}` }
+    }
+  }
+
   return { type: 'tool_result' as const, tool_use_id: id, content: 'Unknown tool.' }
 }
 
 // ── Main chat service ─────────────────────────────────────────────────────
 export async function chatService(userId: string, userMessage: string): Promise<string> {
   const memory = await loadSession(userId)
+  memory.userId = userId
 
   if (userMessage) memory.messages.push({ role: 'user', content: userMessage })
 
@@ -130,6 +152,9 @@ export async function chatService(userId: string, userMessage: string): Promise<
       { name: 'research',         description: 'Research a person, market, topic, or trend',  input_schema: { type: 'object' as const, properties: { type: { type: 'string' }, query: { type: 'string' }, context: { type: 'string' } }, required: ['type', 'query'] } },
       { name: 'log_task_done',    description: 'Log a completed task, update streak',          input_schema: { type: 'object' as const, properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
       { name: 'find_leads',       description: 'Find local business leads via Google Maps',   input_schema: { type: 'object' as const, properties: { niche: { type: 'string' }, location: { type: 'string' } }, required: ['niche', 'location'] } },
+      { name: 'read_emails',      description: 'Read emails from the user Gmail inbox',        input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, maxResults: { type: 'number' }, unreadOnly: { type: 'boolean' } }, required: [] } },
+      { name: 'get_email_body',   description: 'Get the full body of a specific email by ID',  input_schema: { type: 'object' as const, properties: { messageId: { type: 'string' } }, required: ['messageId'] } },
+      { name: 'send_email',       description: 'Send an email on behalf of the user',          input_schema: { type: 'object' as const, properties: { to: { type: 'string' }, subject: { type: 'string' }, body: { type: 'string' }, threadId: { type: 'string' } }, required: ['to', 'subject', 'body'] } },
     ],
     messages: memory.messages.slice(-20) as Anthropic.MessageParam[],
   })

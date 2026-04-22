@@ -11,6 +11,7 @@ export const db = new Pool({
 
 // ── Session helpers (replaces memory.json / Redis) ────────────────────────
 export interface Session {
+  userId?:          string
   messages:         { role: string; content: unknown }[]
   facts:            string[]
   streak:           number
