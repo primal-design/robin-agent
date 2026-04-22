@@ -36,9 +36,40 @@ function resolveSessionId(query = {}) {
   return 'web-default'
 }
 
+function stringifyErrorDetail(value) {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (value instanceof Error) return value.message || value.name || 'Unknown error'
+
+  if (typeof value === 'object') {
+    const fields = [
+      value.error_description,
+      value.description,
+      value.message,
+      value.detail,
+      value.hint,
+      value.code,
+      typeof value.error === 'string' ? value.error : '',
+      typeof value.error === 'object' && value.error ? value.error.error_description : '',
+      typeof value.error === 'object' && value.error ? value.error.message : '',
+      typeof value.error === 'object' && value.error ? value.error.status : '',
+    ]
+
+    const match = fields.find(item => typeof item === 'string' && item.trim())
+    if (match) return match
+
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return Object.prototype.toString.call(value)
+    }
+  }
+
+  return String(value)
+}
+
 function gmailErrorMessage(err) {
-  const detail = err?.response?.data?.error_description || err?.response?.data?.error || err?.message || 'Unknown error'
-  const full = String(detail)
+  const full = stringifyErrorDetail(err?.response?.data || err?.message || err || 'Unknown error')
 
   if (full.includes('invalid_client')) {
     return 'Google rejected the client credentials. Check GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET in Render.'

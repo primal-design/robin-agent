@@ -43,13 +43,58 @@ async function resolveUserId(query: Record<string, unknown>) {
   return ''
 }
 
+function stringifyErrorDetail(value: unknown): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (value instanceof Error) return value.message || value.name || 'Unknown error'
+
+  if (typeof value === 'object') {
+    const obj = value as {
+      error_description?: unknown
+      description?: unknown
+      message?: unknown
+      detail?: unknown
+      hint?: unknown
+      code?: unknown
+      error?: unknown
+    }
+
+    const nestedError = typeof obj.error === 'object' && obj.error !== null
+      ? obj.error as { error_description?: unknown, message?: unknown, status?: unknown }
+      : null
+
+    const fields = [
+      obj.error_description,
+      obj.description,
+      obj.message,
+      obj.detail,
+      obj.hint,
+      obj.code,
+      typeof obj.error === 'string' ? obj.error : '',
+      nestedError?.error_description,
+      nestedError?.message,
+      nestedError?.status,
+    ]
+
+    const match = fields.find((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    if (match) return match
+
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return Object.prototype.toString.call(value)
+    }
+  }
+
+  return String(value)
+}
+
 function gmailErrorMessage(err: unknown) {
   const responseData = typeof err === 'object' && err !== null && 'response' in err
-    ? (err as { response?: { data?: { error?: string, error_description?: string } } }).response?.data
+    ? (err as { response?: { data?: unknown } }).response?.data
     : undefined
 
-  const detail = responseData?.error_description || responseData?.error || (err instanceof Error ? err.message : 'Unknown error')
-  const full = String(detail || 'Unknown error')
+  const full = stringifyErrorDetail(responseData || (err instanceof Error ? err.message : err) || 'Unknown error')
 
   if (full.includes('invalid_client')) {
     return 'Google rejected the client credentials. Check GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET in Render.'
