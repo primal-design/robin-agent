@@ -878,25 +878,22 @@ function siStep1() {
   // Store phone for step 2
   localStorage.setItem('robin_signin_phone', phone);
   api('POST', '/auth/send-code', { phone: phone }).then(function(data) {
-    var h = document.getElementById('si-sent-hint');
-    if (data && data.ok) {
-      if (h) h.textContent = 'Code sent to ' + phone;
-    } else {
-      // No OTP backend yet — allow any 6-digit code (dev mode)
-      if (h) h.textContent = 'Code sent to ' + phone + '.';
+    if (data && data.error === 'not_accepted') {
+      var h = document.getElementById('si-sent-hint');
+      if (h) h.textContent = "You don't have access yet. Request it below.";
+      if (b0) b0.disabled = false;
+      siToast("No access yet — request it first.");
+      return;
     }
+    var h = document.getElementById('si-sent-hint');
+    if (h) h.textContent = 'Code sent to ' + phone + ' via WhatsApp.';
     siShowStep(1);
     var otp = document.getElementById('si-otp');
     if (otp) { otp.value=''; setTimeout(function(){ otp.focus(); }, 150); }
     var b1 = document.getElementById('si-btn-1'); if (b1) b1.disabled = true;
   }).catch(function() {
-    // Fallback — proceed anyway (dev mode)
-    var h = document.getElementById('si-sent-hint');
-    if (h) h.textContent = 'Code sent to ' + phone + '.';
-    siShowStep(1);
-    var otp = document.getElementById('si-otp');
-    if (otp) { otp.value=''; setTimeout(function(){ otp.focus(); }, 150); }
-    var b1 = document.getElementById('si-btn-1'); if (b1) b1.disabled = true;
+    if (b0) b0.disabled = false;
+    siToast('Something went wrong — try again.');
   });
 }
 
