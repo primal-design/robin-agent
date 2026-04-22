@@ -185,6 +185,8 @@ nav.sb-nav{padding:12px 0;flex:1}
 .app-nav-user{font-size:12px;color:rgba(26,24,22,.45);font-weight:300}
 .app-nav-out{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:rgba(26,24,22,.35);background:none;border:none;cursor:pointer;font-family:"Inter",sans-serif;transition:color .2s}
 .app-nav-out:hover{color:#A53D2F}
+.ob-chip{background:#FAFAF8;border:1px solid var(--rule);padding:10px 16px;border-radius:4px;font-size:13px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink);transition:border-color .2s}
+.ob-chip:hover{border-color:var(--gold);color:var(--gold2)}
 </style>
 </head>
 <body>
@@ -307,74 +309,40 @@ nav.sb-nav{padding:12px 0;flex:1}
     </div>
   </div>
 
-  <!-- Action cards -->
-  <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:12px">Needs your approval</div>
-
-  <!-- Card 1 -->
-  <div class="action-card" id="ac1">
-    <div class="ac-top">
-      <span class="ac-type email">Email</span>
-      <span class="ac-risk">Low risk</span>
-    </div>
-    <div class="ac-title">Follow-up to James — proposal</div>
-    <div class="ac-who">james@techcorp.com · 4 days no reply</div>
-    <div class="ac-draft">"Hi James — just checking in on the proposal I sent over. Happy to jump on a call if it would help clarify anything. Let me know."</div>
-    <div class="ac-meta">
-      <div class="ac-meta-item">Data: <strong>email thread · James's name</strong></div>
-      <div class="ac-meta-item">Undo: <strong>recall within 30s</strong></div>
-    </div>
-    <div class="ac-actions">
-      <button class="ac-btn approve" onclick="approveAction('ac1','Sent to James.')">Send</button>
-      <button class="ac-btn edit" onclick="editAction('ac1')">Edit draft</button>
-      <button class="ac-btn deny" onclick="denyAction('ac1')">Deny</button>
-      <button class="ac-btn later" onclick="laterAction('ac1')">Later</button>
+  <!-- Action cards — loaded dynamically -->
+  <div id="actions-section">
+    <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:12px">Needs your approval</div>
+    <div id="actions-list"></div>
+    <div class="empty-state" id="actions-empty" style="display:none">
+      <h3>Nothing waiting.</h3>
+      <p>Robin has no pending actions for you right now.</p>
     </div>
   </div>
 
-  <!-- Card 2 -->
-  <div class="action-card" id="ac2">
-    <div class="ac-top">
-      <span class="ac-type invoice">Invoice</span>
-      <span class="ac-risk">Medium risk</span>
+  <!-- Onboarding prompt — shown on first visit -->
+  <div id="onboarding-card" style="display:none;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:32px;margin-top:8px">
+    <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold2);margin-bottom:16px">Getting started</div>
+    <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:300;margin-bottom:10px">What should Robin <em style="color:var(--gold2)">start with?</em></h3>
+    <p style="font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:24px">Tell Robin what you're working on — a project, a problem, a goal. Robin will figure out what needs doing and come back with a plan.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
+      <button class="ob-chip" onclick="startWith('I need to find new clients for my business')">Find new clients</button>
+      <button class="ob-chip" onclick="startWith('I have emails and follow-ups I've been putting off')">Clear my inbox</button>
+      <button class="ob-chip" onclick="startWith('I'm working on a side hustle and need help moving faster')">Side hustle help</button>
+      <button class="ob-chip" onclick="startWith('Show me what you can do')">Show me what you do</button>
     </div>
-    <div class="ac-title">Chase £4,200 invoice — Sarah / Bloom Co</div>
-    <div class="ac-who">sarah@bloomco.com · 17 days overdue</div>
-    <div class="ac-draft">"Hi Sarah — a quick note on invoice #1094 for £4,200, now 17 days past the agreed date. Please let me know when we can expect payment, or if there's anything I can help with."</div>
-    <div class="ac-meta">
-      <div class="ac-meta-item">Data: <strong>invoice #1094 · amount · due date</strong></div>
-      <div class="ac-meta-item">Undo: <strong>follow-up email within 24h</strong></div>
-    </div>
-    <div class="ac-actions">
-      <button class="ac-btn approve" onclick="approveAction('ac2','Chase sent to Sarah.')">Send</button>
-      <button class="ac-btn edit" onclick="editAction('ac2')">Edit draft</button>
-      <button class="ac-btn deny" onclick="denyAction('ac2')">Deny</button>
-      <button class="ac-btn later" onclick="laterAction('ac2')">Later</button>
-    </div>
-  </div>
-
-  <!-- Card 3 -->
-  <div class="action-card" id="ac3">
-    <div class="ac-top">
-      <span class="ac-type meeting">Meeting brief</span>
-      <span class="ac-risk">No action needed</span>
-    </div>
-    <div class="ac-title">2:00pm — Mark Chen, Vertex Partners</div>
-    <div class="ac-who">Series A conversation · 45 min</div>
-    <div class="ac-draft">Background: Vertex Partners focuses on B2B SaaS, £2-10M tickets. Mark is a Partner, joined 2022. Last contact: your cold email 3 weeks ago, he replied same day — strong signal.<br/><br/>Suggested opener: Reference their recent investment in Notion competitor — "I saw you backed Craft.do. Robin sits in a similar space but for ops rather than notes."</div>
-    <div class="ac-meta">
-      <div class="ac-meta-item">Data: <strong>calendar · LinkedIn · your notes</strong></div>
-    </div>
-    <div class="ac-actions">
-      <button class="ac-btn approve" onclick="approveAction('ac3','Brief saved.')">Save brief</button>
-      <button class="ac-btn deny" onclick="denyAction('ac3')">Dismiss</button>
+    <div style="display:flex;gap:10px">
+      <input id="ob-input" type="text" placeholder="Or tell Robin directly..." style="flex:1;padding:12px 16px;border:1px solid var(--rule);border-radius:4px;font-size:13px;outline:none;font-family:inherit"/>
+      <button onclick="startWithInput()" style="background:var(--ink);color:#fff;border:none;padding:12px 20px;border-radius:4px;font-size:13px;cursor:pointer;letter-spacing:.04em">Go →</button>
     </div>
   </div>
 
   <!-- Handled today -->
-  <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin:28px 0 12px">Handled automatically today</div>
-  <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">📧</div><div class="hist-body"><div class="hist-title">Confirmed meeting with Sophie — 10am Thursday</div><div class="hist-meta">08:42 · Calendar · no personal data stored</div></div><span class="hist-status auto">Auto</span></div>
-  <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">📋</div><div class="hist-body"><div class="hist-title">Summarised 4 unread emails from this morning</div><div class="hist-meta">08:58 · Gmail · processed, not stored</div></div><span class="hist-status auto">Auto</span></div>
-  <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">🔔</div><div class="hist-body"><div class="hist-title">Reminder: Q3 planning doc due Friday</div><div class="hist-meta">09:00 · From your notes · no external data</div></div><span class="hist-status auto">Auto</span></div>
+  <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin:28px 0 12px">Handled today</div>
+  <div id="handled-list">
+    <div class="empty-state" id="handled-empty">
+      <p style="font-size:13px;color:var(--ink2)">Nothing handled yet today.</p>
+    </div>
+  </div>
 </div>
 
 <!-- APPROVALS VIEW -->
@@ -417,8 +385,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 
   <div class="mem-section">
     <div class="mem-section-title">Key contacts</div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">James</div><div class="mem-val">High-priority client, TechCorp — replies fast, likes concise emails</div><span class="mem-conf hi">91%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Sarah</div><div class="mem-val">Bloom Co — consistently pays late, needs firm but polite chasers</div><span class="mem-conf hi">88%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
+    <!-- memory loaded dynamically -->
     <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Mark Chen</div><div class="mem-val">Vertex Partners, Series A — warm lead, responded quickly to cold email</div><span class="mem-conf lo">71%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
   </div>
 
@@ -441,8 +408,7 @@ nav.sb-nav{padding:12px 0;flex:1}
   </div>
   <div class="card"><div class="card-label">This week</div><div class="card-body" style="font-size:13px">23 actions · 19 approved · 2 denied · 2 auto</div></div>
   <div style="margin-top:20px">
-    <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">📧</div><div class="hist-body"><div class="hist-title">Reply to James — proposal follow-up</div><div class="hist-meta">Today 09:15 · You approved</div></div><span class="hist-status sent">Sent</span></div>
-    <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">💰</div><div class="hist-body"><div class="hist-title">Invoice chase — Bloom Co £4,200</div><div class="hist-meta">Today 09:20 · You approved</div></div><span class="hist-status sent">Sent</span></div>
+    <!-- history loaded dynamically -->
     <div class="hist-row"><div class="hist-icon" style="background:var(--redl)">🚫</div><div class="hist-body"><div class="hist-title">Meeting invite to Mike — Thursday 4pm</div><div class="hist-meta">Yesterday 16:02 · You denied</div></div><span class="hist-status denied">Denied</span></div>
     <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">📧</div><div class="hist-body"><div class="hist-title">Response to Sophie — confirmed Thursday 10am</div><div class="hist-meta">Yesterday 14:30 · You approved</div></div><span class="hist-status sent">Sent</span></div>
     <div class="hist-row"><div class="hist-icon" style="background:var(--ambl)">📋</div><div class="hist-body"><div class="hist-title">Meeting brief — Sophie / Design review</div><div class="hist-meta">Yesterday 09:00 · Auto-prepared</div></div><span class="hist-status auto">Auto</span></div>
@@ -775,6 +741,48 @@ function signOut() {
   loadActions();
 })();
 
+
+// ── ONBOARDING ──
+function checkFirstVisit() {
+  var name = localStorage.getItem('robin_user_name') || 'there'
+  var seen = localStorage.getItem('robin_dashboard_seen')
+  // Show onboarding if first visit
+  if (!seen) {
+    var ob = document.getElementById('onboarding-card')
+    if (ob) ob.style.display = 'block'
+    var ae = document.getElementById('actions-empty')
+    if (ae) ae.style.display = 'none'
+  } else {
+    var ae = document.getElementById('actions-empty')
+    if (ae) ae.style.display = 'block'
+  }
+  // Update stats to zeros
+  var els = ['stat-word','stat-handled','stat-streak','stat-earned']
+  els.forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent='0' })
+  // Update morning brief
+  var dt = document.getElementById('digest-text')
+  if (dt && !seen) dt.textContent = "Robin is ready. Tell me what you're working on below."
+  else if (dt) dt.textContent = 'All clear today — nothing needs your attention right now.'
+}
+
+function startWith(msg) {
+  localStorage.setItem('robin_dashboard_seen', '1')
+  localStorage.setItem('robin_onboarding_msg', msg)
+  window.location.href = 'robin_chat.html'
+}
+
+function startWithInput() {
+  var inp = document.getElementById('ob-input')
+  if (!inp || !inp.value.trim()) return
+  startWith(inp.value.trim())
+}
+
+document.getElementById('ob-input') && document.getElementById('ob-input').addEventListener('keydown', function(e){
+  if (e.key === 'Enter') startWithInput()
+})
+
+// Run on load
+checkFirstVisit()
 </script>
 </body>
 </html>
