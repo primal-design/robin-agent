@@ -15,7 +15,8 @@ import { doResearch } from '../brain/planner.js'
 import { chatService } from '../services/chatService.js'
 
 const router  = Router()
-const ai      = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
+let _ai = null
+function ai() { return _ai || (_ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })) }
 
 // ── Google Maps helpers ───────────────────────────────────────────────────
 async function findLocalLeads(niche, location, limit = 10) {
@@ -62,7 +63,7 @@ router.post('/find-leads', optionalAuth, async (req, res, next) => {
     memory.facts.push(`Looking for ${niche} leads in ${location}`)
     await saveSession(req.sessionId, memory)
 
-    const summary = await ai.messages.create({
+    const summary = await ai().messages.create({
       model:    'claude-haiku-4-5-20251001',
       max_tokens: 200,
       messages: [{ role: 'user', content: `You are Robin. Found ${leads.length} ${niche} businesses in ${location}. Best targets are those with 3-4 star ratings (room to improve reviews) or low review counts (easy to help). Pick the top 3 targets and say why in 2 sentences. End with 🦊\n\nLeads: ${JSON.stringify(leads.slice(0, 5))}` }]
@@ -101,7 +102,7 @@ router.post('/analyse', optionalAuth, async (req, res, next) => {
     send('keywords', keywords)
 
     send('status', 'Building your analysis...')
-    const synthesis   = await ai.messages.create({
+    const synthesis   = await ai().messages.create({
       model: 'claude-sonnet-4-6', max_tokens: 1200,
       messages: [{ role: 'user', content: `You are Robin — a sharp business analyst. Analyse this idea: "${idea}"\n\nResearch gathered:\nDEMAND: ${demand}\nCOMPETITION: ${competition}\nMARKET: ${market}\nKEYWORDS: ${keywords}\n\nNow give a structured analysis covering:\n1. SWOT (4 bullets each — specific to this idea)\n2. ICP — describe the ideal customer in 3 sentences (age, pain, where they hang out)\n3. Unit Economics — realistic price point, estimated margin, CAC challenge\n4. Verdict — GO / GO WITH CHANGES / VALIDATE FIRST / STOP + one-line reason\n5. ONE next step — the single most important thing to do in the next 48 hours\n\nBe brutally honest. Specific. No generic advice. Max 300 words total.` }]
     })
@@ -124,7 +125,7 @@ router.post('/profile', optionalAuth, async (req, res, next) => {
   try {
     const { sourceType, data } = req.body
     if (!data) return res.status(400).json({ error: 'No data' })
-    const analysis = await ai.messages.create({
+    const analysis = await ai().messages.create({
       model: 'claude-haiku-4-5-20251001', max_tokens: 300,
       messages: [{ role: 'user', content: `Extract 3-5 patterns about this person — what they do, their style, what they want. Brief.\n\n${data.slice(0, 2000)}` }]
     })

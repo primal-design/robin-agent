@@ -19,7 +19,8 @@ import {
 } from '../lib/gmail.js'
 
 const __dir = dirname(fileURLToPath(import.meta.url))
-const ai    = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
+let _ai = null
+function ai() { return _ai || (_ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })) }
 
 // ── Skills loader ─────────────────────────────────────────────────────────
 function loadSkills() {
@@ -97,7 +98,7 @@ export async function chatService(sessionId, userMessage, options = {}) {
   const signals    = detectInlineSignals(recentText)
   const systemPrompt = buildSystemPrompt({ ctx, signals, rejectCtx, skillContext, urlContext })
 
-  const response = await ai.messages.create({
+  const response = await ai().messages.create({
     model,
     max_tokens: 1000,
     system: systemPrompt,

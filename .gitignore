@@ -1,2 +1,13 @@
+node_modules/
 apps/api/node_modules/
 apps/worker/node_modules/
+.env
+.env.save
+.en
+.envgrep
+memory.json
+agent.js
+.learnings/
+imessage.log
+imessage.error.log
+com.robin.imessage.plist

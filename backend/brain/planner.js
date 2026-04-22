@@ -4,7 +4,8 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 
-const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
+let _ai = null
+function ai() { return _ai || (_ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })) }
 
 const RESEARCH_QUERIES = {
   person:     (q) => [`${q} background career`, `${q} social media work`, `${q} projects skills`],
@@ -31,7 +32,7 @@ export async function doResearch(type, query, context = '') {
   if (process.env.BRAVE_KEY) {
     for (const q of queries) { const r = await braveSearch(q); if (r) raw += `Search: "${q}"\n${r}\n\n` }
   } else { raw += '(No Brave key — using Claude knowledge only)\n\n' }
-  const s = await ai.messages.create({
+  const s = await ai().messages.create({
     model: 'claude-haiku-4-5-20251001', max_tokens: 600,
     messages: [{ role: 'user', content: `Research: "${query}" (${type}).\n${context ? `Why: ${context}\n` : ''}Data:\n${raw}\nSharp summary, bullet points, max 5 insights. Focus on what's actionable.` }]
   })

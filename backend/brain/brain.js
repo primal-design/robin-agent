@@ -12,7 +12,8 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 
-const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })
+let _ai = null
+function ai() { return _ai || (_ai = new Anthropic({ apiKey: process.env.ANTHROPIC_KEY })) }
 
 // ── Permission matrix ─────────────────────────────────────────────────────
 export const PERMISSIONS = {
@@ -99,7 +100,7 @@ export function buildUserContext(session, profile) {
 export async function autonomousDecision(sessionId, session, profile) {
   const ctx = buildUserContext(session, profile)
 
-  const decision = await ai.messages.create({
+  const decision = await ai().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 400,
     system: `You are Robin — a side hustle mentor making a proactive decision about a user WITHOUT being asked.
@@ -213,7 +214,7 @@ export async function handleApproval(sessionId, pendingAction, session) {
 
 // ── Craft a message given full user context ───────────────────────────────
 export async function craftMessage(ctx, instruction) {
-  const response = await ai.messages.create({
+  const response = await ai().messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 200,
     system: `You are Robin — a side hustle mentor. Write ONE short message (2 sentences max) based on the instruction. End with 🦊. No corporate language. Be direct.`,

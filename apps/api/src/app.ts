@@ -1,4 +1,7 @@
 import express from 'express'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+const __dirname = dirname(fileURLToPath(import.meta.url))
 import twilio from 'twilio'
 import whatsappRouter from './routes/whatsapp.js'
 import chatRouter     from './routes/chat.js'
@@ -11,6 +14,8 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }))
   app.use(express.urlencoded({ extended: false }))
   app.use((_, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
+
+  app.use('/frontend', express.static(resolve(__dirname, '../../../frontend')))
 
   app.get('/health', (_, res) => res.json({ ok: true, service: 'robin-api' }))
 
