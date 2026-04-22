@@ -217,8 +217,8 @@ nav.sb-nav{padding:12px 0;flex:1}
     </a>
   </div>
   <div class="app-nav-right">
-    <span class="app-nav-user" id="nav-user-name">Alex</span>
-    <button class="app-nav-out" onclick="window.location.href='robin_site.html'">Sign out</button>
+    <span class="app-nav-user" id="nav-user-name">You</span>
+    <button class="app-nav-out" onclick="signOut()">Sign out</button>
   </div>
 </div>
 <div class="shell">
@@ -231,8 +231,8 @@ nav.sb-nav{padding:12px 0;flex:1}
       <span class="sb-name serif">Robin</span>
     </div>
     <div class="sb-user">
-      <div class="sb-user-name" id="sb-uname">Alex Morgan</div>
-      <div class="sb-user-role" id="sb-urole">Founder · Acme Studio</div>
+      <div class="sb-user-name" id="sb-uname">Your account</div>
+      <div class="sb-user-role" id="sb-urole">Sign in to load your profile</div>
       <div class="sb-status"><div class="sb-status-dot"></div>Active</div>
     </div>
   </div>
@@ -286,7 +286,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 <div class="view on" id="view-today">
   <div class="view-top">
     <div>
-      <h1 class="view-title serif">Good morning, <em id="greet-name">Alex.</em></h1>
+      <h1 class="view-title serif">Good morning, <em id="greet-name">there.</em></h1>
       <div class="view-sub">Here's what Robin surfaced for you today. <a href="robin_chat.html" style="color:var(--gold2);text-decoration:none;font-size:12px">→ Open chat</a></div>
     </div>
     <div class="view-date" id="today-date"></div>
@@ -380,29 +380,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 
   <div class="mem-section">
     <div class="mem-section-title">Identity</div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Name</div><div class="mem-val">Alex Morgan</div><span class="mem-conf hi">98%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Company</div><div class="mem-val">Acme Studio</div><span class="mem-conf hi">95%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Role</div><div class="mem-val">Founder & CEO</div><span class="mem-conf hi">92%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-  </div>
-
-  <div class="mem-section">
-    <div class="mem-section-title">Work style</div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">No-meeting days</div><div class="mem-val">Fridays — always blocked</div><span class="mem-conf hi">89%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Email tone</div><div class="mem-val">Direct, no exclamation marks, short sentences</div><span class="mem-conf hi">84%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Best time for calls</div><div class="mem-val">Afternoons, 2–5pm preferred</div><span class="mem-conf lo">62%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Morning digest</div><div class="mem-val">9:00am via iMessage</div><span class="mem-conf hi">100%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-  </div>
-
-  <div class="mem-section">
-    <div class="mem-section-title">Key contacts</div>
-    <!-- memory loaded dynamically -->
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Mark Chen</div><div class="mem-val">Vertex Partners, Series A — warm lead, responded quickly to cold email</div><span class="mem-conf lo">71%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-  </div>
-
-  <div class="mem-section">
-    <div class="mem-section-title">Pain points</div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Biggest frustration</div><div class="mem-val">Forgetting to follow up with warm leads</div><span class="mem-conf hi">86%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
-    <div class="mem-item"><div class="mem-dot"></div><div class="mem-key">Open loops</div><div class="mem-val">Invoice collection from 3 clients, Q3 planning, hiring round</div><span class="mem-conf lo">64%</span><button class="mem-del" onclick="deleteMem(this)">delete</button></div>
+    <div id="mem-empty-message" class="card-body" style="padding:8px 0 0;color:var(--ink3)">Robin hasn't saved any profile details yet.</div>
   </div>
 
   <div style="margin-top:24px;padding-top:24px;border-top:.5px solid var(--rule);display:flex;gap:12px">
@@ -494,7 +472,7 @@ nav.sb-nav{padding:12px 0;flex:1}
   <div class="settings-section">
     <div class="ss-title serif">Voice & <em>style</em></div>
     <div class="pref-row"><div class="pref-label">Draft tone</div><div class="pref-val">Concise, direct</div><button class="pref-edit">Change</button></div>
-    <div class="pref-row"><div class="pref-label">Sign-off</div><div class="pref-val">Alex (no sign-off)</div><button class="pref-edit">Change</button></div>
+    <div class="pref-row"><div class="pref-label">Sign-off</div><div class="pref-val" id="pref-signoff">Your name (no sign-off)</div><button class="pref-edit">Change</button></div>
     <div class="pref-row"><div class="pref-label">Formality level</div><div class="pref-val">Semi-formal</div><button class="pref-edit">Change</button></div>
   </div>
 </div>
@@ -512,6 +490,8 @@ function api(method, path, body) {
   return fetch(path, opts).then(function(r) {
     if (r.status === 401) {
       localStorage.removeItem('robin_token');
+      localStorage.removeItem('robin_user_name');
+      localStorage.removeItem('robin_user_role');
       window.location.href = 'robin_site.html';
       return null;
     }
@@ -627,6 +607,65 @@ function updateMemCount() {
   var cnt = document.querySelectorAll('.mem-item').length;
   document.getElementById('mem-count').textContent = cnt;
   var mb=document.getElementById('mem-badge'); if(mb){mb.textContent=cnt; mb.style.display=cnt>0?'inline-block':'none';} var mc=document.getElementById('mem-count'); if(mc) mc.textContent=cnt;
+  var empty = document.getElementById('mem-empty-message');
+  if (empty) empty.style.display = cnt > 0 ? 'none' : 'block';
+}
+function makeMemItem(key, value, confidence) {
+  var row = document.createElement('div');
+  row.className = 'mem-item';
+  row.innerHTML =
+    '<div class="mem-dot"></div>' +
+    '<div class="mem-key">' + key + '</div>' +
+    '<div class="mem-val">' + value + '</div>' +
+    '<span class="mem-conf hi">' + (confidence || '100%') + '</span>' +
+    '<button class="mem-del" onclick="deleteMem(this)">delete</button>';
+  return row;
+}
+function renderProfileMemory(profile) {
+  var section = document.querySelector('#view-memory .mem-section');
+  if (!section) return;
+  section.querySelectorAll('.mem-item').forEach(function(item) { item.remove(); });
+
+  if (profile && profile.name) section.appendChild(makeMemItem('Name', profile.name, '100%'));
+  if (profile && profile.role) section.appendChild(makeMemItem('Role', profile.role, '100%'));
+
+  updateMemCount();
+}
+function setName(name) {
+  var clean = (name || '').trim();
+  var navName = clean || 'You';
+  var sidebarName = clean || 'Your account';
+  var greetingName = clean || 'there';
+  var els = [
+    [document.getElementById('nav-user-name'), navName],
+    [document.getElementById('sb-uname'), sidebarName],
+    [document.getElementById('greet-name'), greetingName],
+  ];
+  els.forEach(function(entry) {
+    var el = entry[0];
+    var value = entry[1];
+    if (el) el.textContent = value;
+  });
+  if (clean) localStorage.setItem('robin_user_name', clean);
+  else localStorage.removeItem('robin_user_name');
+  var signoff = document.getElementById('pref-signoff');
+  if (signoff) signoff.textContent = clean ? (clean + ' (no sign-off)') : 'Your name (no sign-off)';
+}
+function setRole(role) {
+  var clean = (role || '').trim();
+  var roleEl = document.getElementById('sb-urole');
+  if (roleEl) roleEl.textContent = clean || 'Sign in to load your profile';
+  if (clean) localStorage.setItem('robin_user_role', clean);
+  else localStorage.removeItem('robin_user_role');
+}
+function applyProfile(profile) {
+  profile = profile || {};
+  setName(profile.name || localStorage.getItem('robin_user_name') || '');
+  setRole(profile.role || localStorage.getItem('robin_user_role') || '');
+  renderProfileMemory({
+    name: profile.name || localStorage.getItem('robin_user_name') || '',
+    role: profile.role || localStorage.getItem('robin_user_role') || '',
+  });
 }
 function exportMemory() {
   var token = localStorage.getItem('robin_token') || 'web-default';
@@ -709,6 +748,8 @@ function confirmDelete() {
 /* ═══ SIGN OUT ═══ */
 function signOut() {
   localStorage.removeItem('robin_token');
+  localStorage.removeItem('robin_user_name');
+  localStorage.removeItem('robin_user_role');
   window.location.href = 'robin_site.html';
 }
 
@@ -718,17 +759,13 @@ function signOut() {
   if (v) { localStorage.removeItem('rvw'); showView(v); var t = document.getElementById('nav-' + v); if(t) t.classList.add('active'); }
   else { document.getElementById('nav-today').classList.add('active'); }
 
-  // Load user profile from backend, fall back to localStorage
-  var uname = localStorage.getItem('robin_user_name') || 'Alex';
-  function setName(n) {
-    var els = [document.getElementById('nav-user-name'), document.getElementById('sb-uname'), document.getElementById('greet-name')];
-    els.forEach(function(el){ if(el) el.textContent = n; });
-    localStorage.setItem('robin_user_name', n);
-  }
-  setName(uname);
+  applyProfile({
+    name: localStorage.getItem('robin_user_name') || '',
+    role: localStorage.getItem('robin_user_role') || '',
+  });
 
   api('GET', '/profile').then(function(data) {
-    if (data && data.name) setName(data.name);
+    if (data) applyProfile(data);
   }).catch(function(){});
 
   // Load today's brief + stats from /pulse
@@ -805,6 +842,7 @@ document.getElementById('ob-input') && document.getElementById('ob-input').addEv
 
 // Run on load
 checkFirstVisit()
+updateMemCount()
 checkGmailStatus()
 </script>
 </body>

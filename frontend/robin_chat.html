@@ -201,8 +201,8 @@ body{background:var(--bg);color:var(--ink);font-family:"Inter",sans-serif;font-w
     </a>
   </div>
   <div class="app-nav-right">
-    <span class="app-nav-user" id="nav-user-name">Alex</span>
-    <button class="app-nav-out" onclick="window.location.href='robin_site.html'">Sign out</button>
+    <span class="app-nav-user" id="nav-user-name">You</span>
+    <button class="app-nav-out" onclick="signOut()">Sign out</button>
   </div>
 </div>
 <div class="topbar">
@@ -287,6 +287,8 @@ function api(method, path, body) {
   return fetch(path, opts).then(function(r) {
     if (r.status === 401) {
       localStorage.removeItem('robin_token');
+      localStorage.removeItem('robin_user_name');
+      localStorage.removeItem('robin_user_role');
       window.location.href = 'robin_site.html';
       return null;
     }
@@ -622,9 +624,23 @@ function extractMemory(text) {
   // This is handled in parseAndRender
 }
 
+function signOut() {
+  localStorage.removeItem('robin_token');
+  localStorage.removeItem('robin_user_name');
+  localStorage.removeItem('robin_user_role');
+  window.location.href = 'robin_site.html';
+}
+
 /* ─── Init ─── */
 document.getElementById('nav-chat').classList.add('active');
-var nu = localStorage.getItem('robin_user_name') || 'Alex'; var nel = document.getElementById('nav-user-name'); if(nel) nel.textContent = nu;
+var nu = localStorage.getItem('robin_user_name') || 'You'; var nel = document.getElementById('nav-user-name'); if(nel) nel.textContent = nu;
+api('GET', '/profile').then(function(data) {
+  if (data && data.name) {
+    localStorage.setItem('robin_user_name', data.name);
+    if (data.role) localStorage.setItem('robin_user_role', data.role);
+    if (nel) nel.textContent = data.name;
+  }
+}).catch(function(){});
 loadState();
 renderMemoryPanel();
 updateStatus();

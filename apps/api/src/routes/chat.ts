@@ -3,6 +3,23 @@ import { chatService } from '../services/chat.service.js'
 
 const router = Router()
 
+function phoneFromToken(token: string) {
+  const raw = token.trim()
+  if (!raw) return ''
+
+  if (raw.startsWith('tok_')) {
+    try {
+      const decoded = Buffer.from(raw.slice(4), 'base64').toString()
+      return decoded.split(':')[0]?.trim() ?? ''
+    } catch {
+      return ''
+    }
+  }
+
+  if (raw.startsWith('sid_')) return raw.slice(4).trim()
+  return raw
+}
+
 router.post('/chat', async (req, res, next) => {
   try {
     const { message, sessionId } = req.body
@@ -142,12 +159,13 @@ router.post('/auth/verify-code', async (req, res, next) => {
     await db.query(`UPDATE auth_codes SET used=true WHERE id=$1`, [result.rows[0].id])
 
     const user = await db.query(
-      `SELECT name FROM waitlist WHERE phone=$1 LIMIT 1`, [phone]
+      `SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone]
     )
     const name = user.rows[0]?.name || ''
+    const role = user.rows[0]?.role || ''
     const token = 'tok_' + Buffer.from(`${phone}:${Date.now()}`).toString('base64')
 
-    res.json({ ok: true, token, name })
+    res.json({ ok: true, token, name, role })
   } catch (err) { next(err) }
 })
 
@@ -210,13 +228,15 @@ export default router
 router.get('/profile', async (req, res, next) => {
   try {
     const token = (req.headers.authorization || '').replace('Bearer ', '')
-    if (!token) return res.json({ name: '' })
-    // Decode phone from token
-    const decoded = Buffer.from(token.replace('tok_', ''), 'base64').toString()
-    const phone = decoded.split(':')[0]
+    if (!token) return res.json({ name: '', role: '' })
+    const phone = phoneFromToken(token)
+    if (!phone) return res.json({ name: '', role: '' })
     const { db } = await import('../db/client.js')
-    const result = await db.query(`SELECT name FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
-    res.json({ name: result.rows[0]?.name || '' })
+    const result = await db.query(`SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+    res.json({
+      name: result.rows[0]?.name || '',
+      role: result.rows[0]?.role || '',
+    })
   } catch (err) { next(err) }
 })
 

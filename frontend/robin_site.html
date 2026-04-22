@@ -822,6 +822,7 @@ function submitRequest() {
     if (!data) return;
     if (data.token)      localStorage.setItem('robin_token', data.token);
     if (data.name)       localStorage.setItem('robin_user_name', data.name);
+    if (accAns.role)     localStorage.setItem('robin_user_role', accAns.role);
     var r  = document.getElementById('req-id');   if (r)  r.textContent  = data.request_id  || '—';
     var d  = document.getElementById('req-date'); if (d)  d.textContent  = data.submitted   || '—';
     var nm = document.getElementById('req-name'); if (nm) nm.textContent = data.name        || accAns.name || '—';
@@ -917,6 +918,7 @@ function siStep2() {
     if (data && data.token) {
       localStorage.setItem('robin_token', data.token);
       if (data.name) localStorage.setItem('robin_user_name', data.name);
+      if (data.role) localStorage.setItem('robin_user_role', data.role);
     } else {
       // Dev fallback — use phone as session token
       localStorage.setItem('robin_token', 'sid_' + phone.replace(/[^0-9]/g,''));
