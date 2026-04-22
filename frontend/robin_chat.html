@@ -231,10 +231,10 @@ body{background:var(--bg);color:var(--ink);font-family:"Inter",sans-serif;font-w
       <h2 class="ws-title serif">Hello. I'm <em>Robin.</em></h2>
       <p class="ws-sub">Your AI chief of staff. Ask me anything, or let me prepare something for you. Every action I take needs your word first.</p>
       <div class="ws-prompts">
-        <button class="ws-prompt" onclick="sendPrompt('Draft a follow-up email to James about the proposal')">Draft a follow-up email to James about the proposal</button>
-        <button class="ws-prompt" onclick="sendPrompt('What\'s on my plate today?')">What's on my plate today?</button>
-        <button class="ws-prompt" onclick="sendPrompt('Help me prepare for my 2pm call with Mark')">Help me prepare for my 2pm call with Mark</button>
-        <button class="ws-prompt" onclick="sendPrompt('Chase the overdue invoice from Sarah at Bloom Co')">Chase the overdue invoice from Sarah at Bloom Co</button>
+        <button class="ws-prompt" onclick="sendPrompt('What can you help me with?')">What can you help me with?</button>
+        <button class="ws-prompt" onclick="sendPrompt('Help me find new clients')">Help me find new clients</button>
+        <button class="ws-prompt" onclick="sendPrompt('What should I focus on today?')">What should I focus on today?</button>
+        <button class="ws-prompt" onclick="sendPrompt('Help me with my side hustle')">Help me with my side hustle</button>
       </div>
     </div>
 
@@ -638,6 +638,13 @@ if (chatHistory.length > 0) {
       addBubble(m.role === 'user' ? 'user' : 'robin', m.content.substring(0, 400) + (m.content.length > 400 ? '…' : ''));
     }
   });
+
+  // Auto-send onboarding message from dashboard
+  var obMsg = localStorage.getItem('robin_onboarding_msg')
+  if (obMsg) {
+    localStorage.removeItem('robin_onboarding_msg')
+    setTimeout(function() { sendPrompt(obMsg) }, 600)
+  }
 }
 </script>
 
