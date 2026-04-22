@@ -572,6 +572,7 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
         <h2 class="si-title serif">Your number. <em>That's it.</em></h2>
         <p class="si-hint">We'll send a one-time code to verify it's you.</p>
         <input id="si-tel" class="si-inp" type="tel" placeholder="+44 7700 900 123" autocomplete="tel"/>
+        <p id="si-error" style="font-size:13px;color:#c0392b;margin:8px 0 0;display:none;font-weight:400"></p>
         <div class="si-actions">
           <button class="si-link" onclick="siClose()">Cancel</button>
           <button id="si-btn-0" class="si-btn" disabled onclick="siStep1()">Send code →</button>
@@ -864,6 +865,8 @@ function siSetup() {
     tel.addEventListener('input', function() {
       var b = document.getElementById('si-btn-0');
       if (b) b.disabled = tel.value.replace(/[^0-9]/g,'').length < 7;
+      var err = document.getElementById('si-error');
+      if (err) err.style.display = 'none';
     });
     tel.addEventListener('keydown', function(e) { if (e.key==='Enter') siStep1(); });
   }
@@ -885,12 +888,13 @@ function siStep1() {
   localStorage.setItem('robin_signin_phone', phone);
   api('POST', '/auth/send-code', { phone: phone }).then(function(data) {
     if (data && data.error === 'not_accepted') {
-      var h = document.getElementById('si-sent-hint');
-      if (h) h.textContent = "You don't have access yet. Request it below.";
+      var err = document.getElementById('si-error');
+      if (err) { err.textContent = "This number doesn't have access yet."; err.style.display = 'block'; }
       if (b0) b0.disabled = false;
-      siToast("No access yet — request it first.");
       return;
     }
+    var err = document.getElementById('si-error');
+    if (err) err.style.display = 'none';
     var h = document.getElementById('si-sent-hint');
     if (h) h.textContent = 'Code sent to ' + phone + ' via WhatsApp.';
     siShowStep(1);
