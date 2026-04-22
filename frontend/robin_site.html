@@ -755,7 +755,13 @@ function setupAccessListeners() {
           var r = document.getElementById('existing-req-id');   if (r)  r.textContent = data.request_id || '—';
           var d = document.getElementById('existing-req-date'); if (d)  d.textContent = data.submitted  || '—';
           var n = document.getElementById('existing-req-name'); if (n)  n.textContent = data.name       || '—';
-          accessGoto(8);
+          // Hide progress bar, deactivate all screens, show screen 8 only
+          var pg = document.getElementById('a-prog');
+          if (pg) pg.classList.remove('visible');
+          var v = document.getElementById('access-view');
+          v.querySelectorAll('.a-screen').forEach(function(s) { s.classList.remove('active'); });
+          var s8 = v.querySelector('.a-screen[data-screen="8"]');
+          if (s8) s8.classList.add('active');
         }
       }).catch(function(){});
     });
