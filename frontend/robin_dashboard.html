@@ -321,14 +321,23 @@ nav.sb-nav{padding:12px 0;flex:1}
   </div>
 
   <!-- Onboarding prompt — shown on first visit -->
+  <!-- Gmail connect banner -->
+  <div id="gmail-banner" style="display:none;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <div>
+      <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px">Connect Gmail so Robin can read and send emails</div>
+      <div style="font-size:12px;color:var(--ink2)">Robin needs access to your inbox to handle emails on your behalf.</div>
+    </div>
+    <button onclick="connectGmail()" style="white-space:nowrap;background:var(--ink);color:#fff;border:none;padding:10px 18px;border-radius:4px;font-size:12px;cursor:pointer;letter-spacing:.04em">Connect Gmail →</button>
+  </div>
+
   <div id="onboarding-card" style="display:none;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:32px;margin-top:8px">
     <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold2);margin-bottom:16px">Getting started</div>
     <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:300;margin-bottom:10px">What should Robin <em style="color:var(--gold2)">start with?</em></h3>
     <p style="font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:24px">Tell Robin what you're working on — a project, a problem, a goal. Robin will figure out what needs doing and come back with a plan.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <button class="ob-chip" onclick="startWith('I need to find new clients for my business')">Find new clients</button>
-      <button class="ob-chip" onclick="startWith('I have emails and follow-ups I've been putting off')">Clear my inbox</button>
-      <button class="ob-chip" onclick="startWith('I'm working on a side hustle and need help moving faster')">Side hustle help</button>
+      <button class="ob-chip" onclick="startWith('I have emails and follow-ups I have been putting off')">Clear my inbox</button>
+      <button class="ob-chip" onclick="startWith('I am working on a side hustle and need help moving faster')">Side hustle help</button>
       <button class="ob-chip" onclick="startWith('Show me what you can do')">Show me what you do</button>
     </div>
     <div style="display:flex;gap:10px">
@@ -766,6 +775,20 @@ function checkFirstVisit() {
   else if (dt) dt.textContent = 'All clear today — nothing needs your attention right now.'
 }
 
+function connectGmail() {
+  var token = localStorage.getItem('robin_token') || ''
+  var phone = ''
+  try { phone = atob(token.replace('tok_','')).split(':')[0] } catch(e){}
+  window.location.href = '/email/connect?phone=' + encodeURIComponent(phone)
+}
+
+function checkGmailStatus() {
+  api('GET', '/email/status').then(function(data) {
+    var banner = document.getElementById('gmail-banner')
+    if (banner) banner.style.display = (data && data.connected) ? 'none' : 'flex'
+  }).catch(function(){})
+}
+
 function startWith(msg) {
   localStorage.setItem('robin_dashboard_seen', '1')
   localStorage.setItem('robin_onboarding_msg', msg)
@@ -784,6 +807,7 @@ document.getElementById('ob-input') && document.getElementById('ob-input').addEv
 
 // Run on load
 checkFirstVisit()
+checkGmailStatus()
 </script>
 </body>
 </html>
