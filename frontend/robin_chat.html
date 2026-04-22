@@ -643,8 +643,62 @@ if (chatHistory.length > 0) {
   var obMsg = localStorage.getItem('robin_onboarding_msg')
   if (obMsg) {
     localStorage.removeItem('robin_onboarding_msg')
-    setTimeout(function() { sendPrompt(obMsg) }, 600)
+    setTimeout(function() { robinDoTask(obMsg) }, 400)
   }
+}
+
+/* ── Live task runner ── */
+var taskSteps = {
+  'I have emails and follow-ups I've been putting off': [
+    'Opening your inbox…','Scanning unread messages…','Identifying what needs a reply…','Flagging overdue follow-ups…','Preparing a summary for you…'
+  ],
+  'I need to find new clients for my business': [
+    'Thinking about your business…','Identifying target markets…','Finding lead sources…','Building an outreach plan…'
+  ],
+  'I'm working on a side hustle and need help moving faster': [
+    'Understanding your situation…','Mapping what's slowing you down…','Building a priority list…'
+  ],
+  'Show me what you can do': ['Let me show you what I've got…']
+}
+
+function robinDoTask(msg) {
+  showChat()
+  addBubble('user', msg)
+  chatHistory.push({role:'user', content:msg})
+  msgCount++
+
+  // Status line above typing indicator
+  var statusEl = document.createElement('div')
+  statusEl.style.cssText = 'padding:6px 20px 0;font-size:12px;color:var(--gold2);letter-spacing:.05em;font-style:italic;transition:opacity .4s'
+  var typing = document.getElementById('typing')
+  if (typing) typing.parentNode.insertBefore(statusEl, typing)
+
+  setTyping(true)
+
+  var steps = taskSteps[msg] || ['On it…','Working…']
+  var i = 0
+  var stepTimer = setInterval(function() {
+    if (i < steps.length) { statusEl.textContent = steps[i]; i++ }
+  }, 1000)
+
+  // Call API
+  api('POST', '/chat', { message: msg }).then(function(data) {
+    clearInterval(stepTimer)
+    statusEl.style.opacity = '0'
+    setTimeout(function(){ if(statusEl.parentNode) statusEl.parentNode.removeChild(statusEl) }, 400)
+    setTyping(false)
+    if (!data) return
+    var reply = data.reply || data.message || "I'm having trouble connecting right now."
+    chatHistory.push({role:'assistant', content:reply})
+    parseAndRender(reply)
+    extractMemory(reply)
+    saveState()
+  }).catch(function() {
+    clearInterval(stepTimer)
+    statusEl.parentNode && statusEl.parentNode.removeChild(statusEl)
+    setTyping(false)
+    addBubble('robin', "Something went wrong — try again.")
+  })
 }
 </script>
 
