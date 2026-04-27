@@ -8,6 +8,7 @@ import chatRouter     from './routes/chat.js'
 import gmailRouter    from './routes/gmail.js'
 import { chatService } from './services/chat.service.js'
 import { findOrCreateUser } from './db/client.js'
+import fs from 'fs'
 
 export function createApp() {
   const app = express()
@@ -16,7 +17,25 @@ export function createApp() {
   app.use(express.urlencoded({ extended: false }))
   app.use((_, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
 
-  app.use('/frontend', express.static(resolve(__dirname, '../../../frontend')))
+  const frontendDir = resolve(__dirname, '../../../frontend')
+
+  // Inject auth shim into HTML responses
+  app.get('/frontend/:file', (req, res, next) => {
+    const filePath = resolve(frontendDir, req.params.file)
+    if (!filePath.endsWith('.html') || !fs.existsSync(filePath)) return next()
+
+    try {
+      let html = fs.readFileSync(filePath, 'utf-8')
+      if (!html.includes('robin_auth.js')) {
+        html = html.replace('</head>', '<script src="/frontend/robin_auth.js"></script></head>')
+      }
+      res.type('html').send(html)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  app.use('/frontend', express.static(frontendDir))
 
   app.get('/health', (_, res) => res.json({ ok: true, service: 'robin-api' }))
 
