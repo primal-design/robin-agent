@@ -29,6 +29,49 @@ function detectToneMode(signals: Record<string, boolean>, rejectionRound = 0): R
   return 'normal'
 }
 
+function updateRelationshipMemory(memory: Session, userMessage: string, signals: Record<string, boolean>) {
+  const relationship = ((memory as any).relationship_memory ||= {
+    recurring_patterns: [],
+    friction_points: [],
+    working_style: [],
+    wins: [],
+    voice_notes: [],
+    last_updated: null,
+  })
+
+  const addUnique = (key: string, value: string) => {
+    const list = relationship[key] || []
+    if (!list.includes(value)) list.push(value)
+    relationship[key] = list.slice(-8)
+  }
+
+  const text = userMessage.toLowerCase()
+  if (signals.task_avoidance) addUnique('recurring_patterns', 'User tends to get stuck when there are too many open loops.')
+  if (signals.frustration) addUnique('friction_points', 'Frustration rises when progress feels unclear or slow.')
+  if (signals.doubt) addUnique('friction_points', 'Self-doubt shows up around whether the offer is good enough or whether people will pay.')
+  if (signals.ambition) addUnique('working_style', 'User responds to direct momentum and concrete next steps.')
+  if (/draft|write|message|email|send/i.test(userMessage)) addUnique('working_style', 'User benefits when Robin drafts usable text instead of explaining theory.')
+  if (/done|finished|sent|completed|made|earned|closed/i.test(text)) addUnique('wins', `Recent win: ${userMessage.slice(0, 140)}`)
+  if (/too much|overwhelmed|busy/i.test(text)) addUnique('voice_notes', 'When overwhelmed, keep Robin very short and reduce pressure.')
+  if (/be direct|straight|no fluff/i.test(text)) addUnique('voice_notes', 'User explicitly prefers direct, no-fluff guidance.')
+
+  relationship.last_updated = new Date().toISOString()
+}
+
+function relationshipCallback(memory: Session): string {
+  const rel = (memory as any).relationship_memory
+  if (!rel) return 'No long-term relationship memory yet.'
+
+  const parts: string[] = []
+  if (rel.recurring_patterns?.length) parts.push(`Recurring patterns:\n- ${rel.recurring_patterns.slice(-4).join('\n- ')}`)
+  if (rel.friction_points?.length) parts.push(`Friction points:\n- ${rel.friction_points.slice(-4).join('\n- ')}`)
+  if (rel.working_style?.length) parts.push(`Working style:\n- ${rel.working_style.slice(-4).join('\n- ')}`)
+  if (rel.wins?.length) parts.push(`Recent wins:\n- ${rel.wins.slice(-3).join('\n- ')}`)
+  if (rel.voice_notes?.length) parts.push(`How to speak to this user:\n- ${rel.voice_notes.slice(-4).join('\n- ')}`)
+
+  return parts.length ? parts.join('\n') : 'No strong relationship memory yet.'
+}
+
 function humanCallback(memory: Session): string {
   const facts = (memory.facts || []).filter(Boolean).slice(-5)
   const milestones = ((memory.milestones || []) as any[]).slice(-3)
@@ -49,12 +92,7 @@ function firstRunReply(memory: Session): string | null {
   const assistantCount = memory.messages.filter((m: any) => m.role === 'assistant').length
   const userCount = memory.messages.filter((m: any) => m.role === 'user').length
   if (assistantCount > 0 || userCount > 1) return null
-
-  return `Hey — I’m Robin.
-
-I’ll keep this simple.
-
-What’s one thing that’s been slowing you down lately?`
+  return `Hey — I’m Robin.\n\nI’ll keep this simple.\n\nWhat’s one thing that’s been slowing you down lately?`
 }
 
 async function fetchUrlContext(message: string): Promise<string> {
@@ -75,20 +113,17 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     memory.facts.push(String(input.fact))
     return { type: 'tool_result' as const, tool_use_id: id, content: `Saved: ${input.fact}` }
   }
-
   if (name === 'update_milestone') {
     memory.milestones = memory.milestones || []
     ;(memory.milestones as unknown[]).push({ milestone: input.milestone, done: true, at: new Date().toISOString() })
     if (input.earned) memory.total_earned = (memory.total_earned || 0) + Number(input.earned)
     return { type: 'tool_result' as const, tool_use_id: id, content: `Milestone logged: ${input.milestone}` }
   }
-
   if (name === 'generate_plan') {
     memory.facts.push(`Goal: ${input.goal}`, `Niche: ${input.niche}`)
     memory.rejection_round = 0
     return { type: 'tool_result' as const, tool_use_id: id, content: `21-DAY PLAN\nGoal: ${input.goal}\nNiche: ${input.niche}\nTime: ${input.timePerDay} mins/day\n\nWEEK 1: Define offer → find 10 targets → write outreach → send to 5 people\nWEEK 2: Follow up → handle replies → book calls\nWEEK 3: Run calls → send proposals → close first ${input.goal}\n\nSTART TODAY: Write your offer in one sentence.` }
   }
-
   if (name === 'draft_content') {
     memory.pending_actions = memory.pending_actions || []
     const action = { id: `act_${Date.now()}`, type: 'send_message', draft: input.content, recipient: input.recipient || 'your contact', content_type: input.type, risk: 'medium' }
@@ -96,12 +131,10 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     memory.pending_action = action
     return { type: 'tool_result' as const, tool_use_id: id, content: `DRAFT READY (needs approval):\n\n${input.content}\n\nAsk user: "Want me to send this?"` }
   }
-
   if (name === 'research') {
     const findings = await doResearch(String(input.type), String(input.query), String(input.context || ''))
     return { type: 'tool_result' as const, tool_use_id: id, content: findings }
   }
-
   if (name === 'log_task_done') {
     memory.tasks_done   = (memory.tasks_done || 0) + 1
     memory.total_earned = (memory.total_earned || 0) + (Number(input.amount_earned) || 0)
@@ -109,7 +142,6 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     const hit100 = memory.total_earned >= 100 && (memory.total_earned - (Number(input.amount_earned) || 0)) < 100
     return { type: 'tool_result' as const, tool_use_id: id, content: hit100 ? `MILESTONE: First £100 hit. Streak: ${memory.streak}. Total: £${memory.total_earned}. Help user mark the win without overhyping it.` : `Task logged. Streak: ${memory.streak} days. Total: £${memory.total_earned}.` }
   }
-
   if (name === 'find_leads') {
     if (!env.googleMapsKey) return { type: 'tool_result' as const, tool_use_id: id, content: 'Google Maps not configured.' }
     try {
@@ -124,7 +156,6 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
       return { type: 'tool_result' as const, tool_use_id: id, content: 'Could not fetch leads right now.' }
     }
   }
-
   if (name === 'read_emails' || name === 'get_email_body' || name === 'send_email') {
     const tokRow = await db.query(`SELECT access_token, refresh_token, expiry_date FROM gmail_tokens WHERE user_id=$1`, [memory.userId])
     if (!tokRow.rows.length) return { type: 'tool_result' as const, tool_use_id: id, content: `Gmail not connected. Ask the user to connect Gmail by visiting: https://robin-agent.onrender.com/email/connect?phone=THEIR_PHONE` }
@@ -144,14 +175,12 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
       return { type: 'tool_result' as const, tool_use_id: id, content: `Email sent to ${input.to}` }
     }
   }
-
   return { type: 'tool_result' as const, tool_use_id: id, content: 'Unknown tool.' }
 }
 
 export async function chatService(userId: string, userMessage: string): Promise<string> {
   const memory = await loadSession(userId)
   memory.userId = userId
-
   if (userMessage) memory.messages.push({ role: 'user', content: userMessage })
 
   const opener = firstRunReply(memory)
@@ -161,13 +190,15 @@ export async function chatService(userId: string, userMessage: string): Promise<
     return opener
   }
 
+  const recentText = memory.messages.slice(-10).filter(m => m.role === 'user').map(m => typeof m.content === 'string' ? m.content : '').join(' ').toLowerCase()
+  const signals    = detectSignals(recentText)
+  if (userMessage) updateRelationshipMemory(memory, userMessage, signals)
+
   const ctx        = buildUserContext(memory)
   const rejectCtx  = rejectionContext(memory.rejection_round || 0)
   const urlContext = userMessage ? await fetchUrlContext(userMessage) : ''
-  const recentText = memory.messages.slice(-10).filter(m => m.role === 'user').map(m => typeof m.content === 'string' ? m.content : '').join(' ').toLowerCase()
-  const signals    = detectSignals(recentText)
   const toneMode   = detectToneMode(signals, memory.rejection_round || 0)
-  const callback   = humanCallback(memory)
+  const callback   = `${humanCallback(memory)}\n\nLONG-TERM RELATIONSHIP MEMORY:\n${relationshipCallback(memory)}`
   const onboarding = !memory.onboarding_completed && memory.messages.filter((m: any) => m.role === 'assistant').length < 4
 
   const approvalSignals = ['yes', 'do it', 'go ahead', 'send it', 'go for it', 'approved', 'yep', 'yeah do it']
@@ -180,15 +211,7 @@ export async function chatService(userId: string, userMessage: string): Promise<
     return result.followup
   }
 
-  const systemPrompt = buildSystemPrompt({
-    ctx,
-    signals,
-    rejectCtx,
-    skillContext: `HUMAN CALLBACKS:\n${callback}`,
-    urlContext,
-    toneMode,
-    onboarding,
-  })
+  const systemPrompt = buildSystemPrompt({ ctx, signals, rejectCtx, skillContext: `HUMAN CALLBACKS:\n${callback}`, urlContext, toneMode, onboarding })
   const msgCount     = memory.messages.filter((m: { role: string }) => m.role === 'assistant').length
   const model        = msgCount < 3 ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001'
 
@@ -224,9 +247,7 @@ export async function chatService(userId: string, userMessage: string): Promise<
 
   const reply = response.content[0].type === 'text' ? response.content[0].text : ''
   memory.messages.push({ role: 'assistant', content: reply })
-  if (onboarding && memory.messages.filter((m: any) => m.role === 'assistant').length >= 3) {
-    memory.onboarding_completed = true
-  }
+  if (onboarding && memory.messages.filter((m: any) => m.role === 'assistant').length >= 3) memory.onboarding_completed = true
   await saveSession(userId, memory)
   return reply
 }
