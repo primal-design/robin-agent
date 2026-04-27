@@ -1,58 +1,64 @@
-// Robin frontend auth shim
-// Stores signed session tokens returned by /auth/verify-code and adds them
-// to same-origin API requests as Authorization: Bearer <token>.
 (() => {
   const TOKEN_KEY = 'robin_token'
-  const LEGACY_KEYS = ['robin_session', 'sessionId']
   const originalFetch = window.fetch.bind(window)
 
   function getToken() {
-    return localStorage.getItem(TOKEN_KEY) || LEGACY_KEYS.map(k => localStorage.getItem(k)).find(Boolean) || ''
+    return localStorage.getItem(TOKEN_KEY) || ''
   }
 
   function setToken(token) {
     if (!token) return
     localStorage.setItem(TOKEN_KEY, token)
-    for (const key of LEGACY_KEYS) localStorage.removeItem(key)
+    addLogoutButton()
   }
 
   function clearToken() {
     localStorage.removeItem(TOKEN_KEY)
-    for (const key of LEGACY_KEYS) localStorage.removeItem(key)
+    document.getElementById('robin-logout')?.remove()
+  }
+
+  function addLogoutButton() {
+    if (document.getElementById('robin-logout')) return
+    const btn = document.createElement('button')
+    btn.id = 'robin-logout'
+    btn.innerText = 'Logout'
+    btn.style = 'position:fixed;top:10px;right:10px;z-index:9999'
+    btn.onclick = () => {
+      clearToken()
+      window.location.reload()
+    }
+    document.body.appendChild(btn)
   }
 
   function isSameOrigin(input) {
-    try {
-      if (typeof input === 'string') return input.startsWith('/') || new URL(input, window.location.origin).origin === window.location.origin
-      if (input && input.url) return new URL(input.url, window.location.origin).origin === window.location.origin
-    } catch {}
-    return false
+    return typeof input === 'string' ? input.startsWith('/') : input?.url?.startsWith('/')
   }
-
-  function urlOf(input) {
-    return typeof input === 'string' ? input : input?.url || ''
-  }
-
-  window.RobinAuth = { getToken, setToken, clearToken }
 
   window.fetch = async (input, init = {}) => {
     const token = getToken()
-    const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined))
+    const headers = new Headers(init.headers || {})
 
     if (token && isSameOrigin(input) && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`)
     }
 
-    const response = await originalFetch(input, { ...init, headers })
-    const url = urlOf(input)
+    const res = await originalFetch(input, { ...init, headers })
 
-    if (url.includes('/auth/verify-code') && response.ok) {
+    if (res.status === 401) {
+      clearToken()
+      alert('Session expired. Please sign in again.')
+    }
+
+    const url = typeof input === 'string' ? input : input?.url || ''
+    if (url.includes('/auth/verify-code') && res.ok) {
       try {
-        const data = await response.clone().json()
+        const data = await res.clone().json()
         if (data?.token) setToken(data.token)
       } catch {}
     }
 
-    return response
+    return res
   }
+
+  if (getToken()) addLogoutButton()
 })()
