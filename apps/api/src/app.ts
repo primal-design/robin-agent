@@ -2,12 +2,10 @@ import express from 'express'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
-import twilio from 'twilio'
 import whatsappRouter from './routes/whatsapp.js'
 import chatRouter     from './routes/chat.js'
 import gmailRouter    from './routes/gmail.js'
-import { chatService } from './services/chat.service.js'
-import { findOrCreateUser } from './db/client.js'
+import authRouter     from './routes/auth.js'
 import fs from 'fs'
 
 export function createApp() {
@@ -19,7 +17,6 @@ export function createApp() {
 
   const frontendDir = resolve(__dirname, '../../../frontend')
 
-  // Inject auth shim into HTML responses
   app.get('/frontend/:file', (req, res, next) => {
     const filePath = resolve(frontendDir, req.params.file)
     if (!filePath.endsWith('.html') || !fs.existsSync(filePath)) return next()
@@ -39,6 +36,7 @@ export function createApp() {
 
   app.get('/health', (_, res) => res.json({ ok: true, service: 'robin-api' }))
 
+  app.use('/',         authRouter)
   app.use('/whatsapp', whatsappRouter)
   app.use('/',         gmailRouter)
   app.use('/',         chatRouter)
