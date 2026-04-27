@@ -1,31 +1,82 @@
 import { Router } from 'express'
+import crypto from 'crypto'
 import { chatService } from '../services/chat.service.js'
 
 const router = Router()
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7
 
-function phoneFromToken(token: string) {
-  const raw = token.trim()
+function normalizePhone(phone: string) {
+  const raw = String(phone || '').trim()
   if (!raw) return ''
+  return raw.startsWith('+') ? raw : `+${raw.replace(/[^0-9]/g, '')}`
+}
 
-  if (raw.startsWith('tok_')) {
+function authSecret() {
+  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-robin-auth-secret'
+}
+
+function signPayload(payload: string) {
+  return crypto.createHmac('sha256', authSecret()).update(payload).digest('base64url')
+}
+
+function createSessionToken(phone: string) {
+  const payload = Buffer.from(JSON.stringify({ phone, exp: Date.now() + SESSION_TTL_MS })).toString('base64url')
+  return `rt_${payload}.${signPayload(payload)}`
+}
+
+function readSessionToken(token: string): { phone: string; expired: boolean } | null {
+  const raw = String(token || '').trim()
+  if (!raw) return null
+
+  if (raw.startsWith('rt_')) {
+    const [payload, sig] = raw.slice(3).split('.')
+    if (!payload || !sig || signPayload(payload) !== sig) return null
     try {
-      const decoded = Buffer.from(raw.slice(4), 'base64').toString()
-      return decoded.split(':')[0]?.trim() ?? ''
+      const data = JSON.parse(Buffer.from(payload, 'base64url').toString())
+      return { phone: normalizePhone(data.phone), expired: Number(data.exp || 0) <= Date.now() }
     } catch {
-      return ''
+      return null
     }
   }
 
-  if (raw.startsWith('sid_')) return raw.slice(4).trim()
-  return raw
+  // Legacy tokens are accepted during migration but cannot carry expiry.
+  if (raw.startsWith('tok_')) {
+    try {
+      const decoded = Buffer.from(raw.slice(4), 'base64').toString()
+      return { phone: normalizePhone(decoded.split(':')[0]?.trim() || ''), expired: false }
+    } catch {
+      return null
+    }
+  }
+
+  if (raw.startsWith('sid_')) return { phone: normalizePhone(raw.slice(4)), expired: false }
+  return { phone: normalizePhone(raw), expired: false }
+}
+
+function getBearer(req: any) {
+  return String(req.headers.authorization || '').replace(/^Bearer\s+/i, '')
+}
+
+function requireSession(req: any, res: any) {
+  const session = readSessionToken(getBearer(req))
+  if (!session?.phone) {
+    res.status(401).json({ error: 'missing_session', message: 'Please sign in again.' })
+    return null
+  }
+  if (session.expired) {
+    res.status(401).json({ error: 'session_expired', message: 'Your session expired. Please sign in again.' })
+    return null
+  }
+  return session
 }
 
 router.post('/chat', async (req, res, next) => {
   try {
     const { message, sessionId } = req.body
     if (!message) return res.status(400).json({ error: 'No message' })
-    // sessionId is used as a phone/identifier to find-or-create a user
-    const identifier = String(sessionId || req.ip || 'anonymous')
+
+    const session = readSessionToken(getBearer(req))
+    const identifier = session?.phone || normalizePhone(String(sessionId || '')) || String(req.ip || 'anonymous')
     const { findOrCreateUser } = await import('../db/client.js')
     const userId = await findOrCreateUser(identifier)
     const reply  = await chatService(userId, message)
@@ -36,17 +87,18 @@ router.post('/chat', async (req, res, next) => {
 router.post('/signup', async (req, res, next) => {
   try {
     const { name, phone, role, cracks, note } = req.body
-    if (!name || !phone) return res.status(400).json({ error: 'Name and phone required' })
+    const normalizedPhone = normalizePhone(phone)
+    if (!name || !normalizedPhone) return res.status(400).json({ error: 'Name and phone required' })
 
     const { findOrCreateUser, db } = await import('../db/client.js')
-    const userId = await findOrCreateUser(phone)
+    const userId = await findOrCreateUser(normalizedPhone)
 
     await db.query(`UPDATE users SET name=$1 WHERE id=$2`, [name, userId])
 
     // Return existing request if phone already on waitlist
     const existing = await db.query(
       `SELECT request_id, submitted_at FROM waitlist WHERE phone=$1 LIMIT 1`,
-      [phone]
+      [normalizedPhone]
     )
 
     let requestId: string
@@ -63,7 +115,7 @@ router.post('/signup', async (req, res, next) => {
       await db.query(
         `INSERT INTO waitlist (request_id, name, phone, role, cracks, note)
          VALUES ($1,$2,$3,$4,$5,$6)`,
-        [requestId, name, phone, role||null, cracks||null, note||null]
+        [requestId, name, normalizedPhone, role||null, cracks||null, note||null]
       )
     }
 
@@ -75,8 +127,8 @@ router.post('/signup', async (req, res, next) => {
       const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
       await client.messages.create({
         from: process.env.TWILIO_WHATSAPP_FROM,
-        to:   `whatsapp:${phone}`,
-        body: `Hi ${name} 👋 I'm Robin.\n\nYour access request has been received.\n\nRequest ID: ${requestId}\n\nI'll be in touch once your request is reviewed. Sit tight.`
+        to:   `whatsapp:${normalizedPhone}`,
+        body: `Hi ${name} 👋 I'm Robin.\n\nYour access request has been received.\n\nRequest ID: ${requestId}\n\nI'll be in touch once your request is reviewed.`
       })
     } catch (e) {
       console.warn('[signup] WhatsApp notify failed:', (e as Error).message)
@@ -88,7 +140,7 @@ router.post('/signup', async (req, res, next) => {
 
 router.post('/waitlist/check', async (req, res, next) => {
   try {
-    const { phone } = req.body
+    const phone = normalizePhone(req.body.phone)
     if (!phone) return res.status(400).json({ error: 'Phone required' })
     const { db } = await import('../db/client.js')
     const result = await db.query(
@@ -110,7 +162,7 @@ router.post('/waitlist/check', async (req, res, next) => {
 
 router.post('/auth/send-code', async (req, res, next) => {
   try {
-    const { phone } = req.body
+    const phone = normalizePhone(req.body.phone)
     if (!phone) return res.status(400).json({ error: 'Phone required' })
 
     const { db } = await import('../db/client.js')
@@ -128,21 +180,41 @@ router.post('/auth/send-code', async (req, res, next) => {
     await db.query(`DELETE FROM auth_codes WHERE phone=$1`, [phone])
     await db.query(`INSERT INTO auth_codes (phone, code) VALUES ($1, $2)`, [phone, code])
 
-    const twilio = (await import('twilio')).default
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-    await client.messages.create({
-      from: process.env.TWILIO_WHATSAPP_FROM,
-      to:   `whatsapp:${phone}`,
-      body: `Your Robin sign-in code is: *${code}*\n\nExpires in 10 minutes. Do not share this code.`
-    })
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_WHATSAPP_FROM) {
+      console.warn(`[auth] Twilio WhatsApp is not configured. Code for ${phone}: ${code}`)
+      return res.status(503).json({
+        error: 'code_delivery_not_configured',
+        message: 'Code delivery is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM.',
+        ...(process.env.NODE_ENV !== 'production' ? { debug_code: code } : {})
+      })
+    }
 
-    res.json({ ok: true })
+    try {
+      const twilio = (await import('twilio')).default
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+      await client.messages.create({
+        from: process.env.TWILIO_WHATSAPP_FROM,
+        to:   `whatsapp:${phone}`,
+        body: `Your Robin sign-in code is: *${code}*\n\nExpires in 10 minutes. Do not share this code.`
+      })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Unknown Twilio error'
+      console.warn(`[auth] Code delivery failed for ${phone}: ${message}`)
+      return res.status(502).json({
+        error: 'code_delivery_failed',
+        message: `Could not send your code over WhatsApp: ${message}`,
+        ...(process.env.NODE_ENV !== 'production' ? { debug_code: code } : {})
+      })
+    }
+
+    res.json({ ok: true, delivery: 'whatsapp' })
   } catch (err) { next(err) }
 })
 
 router.post('/auth/verify-code', async (req, res, next) => {
   try {
-    const { phone, code } = req.body
+    const phone = normalizePhone(req.body.phone)
+    const { code } = req.body
     if (!phone || !code) return res.status(400).json({ error: 'Phone and code required' })
 
     const { db } = await import('../db/client.js')
@@ -153,7 +225,7 @@ router.post('/auth/verify-code', async (req, res, next) => {
       [phone, code]
     )
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid or expired code' })
+      return res.status(401).json({ error: 'invalid_or_expired_code', message: 'Invalid or expired code' })
     }
 
     await db.query(`UPDATE auth_codes SET used=true WHERE id=$1`, [result.rows[0].id])
@@ -163,10 +235,14 @@ router.post('/auth/verify-code', async (req, res, next) => {
     )
     const name = user.rows[0]?.name || ''
     const role = user.rows[0]?.role || ''
-    const token = 'tok_' + Buffer.from(`${phone}:${Date.now()}`).toString('base64')
+    const token = createSessionToken(phone)
 
-    res.json({ ok: true, token, name, role })
+    res.json({ ok: true, token, expires_in: Math.floor(SESSION_TTL_MS / 1000), name, role })
   } catch (err) { next(err) }
+})
+
+router.post('/auth/logout', async (_req, res) => {
+  res.json({ ok: true })
 })
 
 // ── ADMIN ROUTES ──────────────────────────────────────────
@@ -183,7 +259,8 @@ router.get('/admin/waitlist', async (req, res, next) => {
 
 router.post('/admin/waitlist/update', async (req, res, next) => {
   try {
-    const { phone, status } = req.body
+    const phone = normalizePhone(req.body.phone)
+    const { status } = req.body
     if (!phone || !status) return res.status(400).json({ error: 'Missing fields' })
     const { db } = await import('../db/client.js')
     await db.query(`UPDATE waitlist SET status=$1 WHERE phone=$2`, [status, phone])
@@ -210,7 +287,8 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
 
 router.post('/admin/waitlist/notify', async (req, res, next) => {
   try {
-    const { phone, name } = req.body
+    const phone = normalizePhone(req.body.phone)
+    const { name } = req.body
     const twilio = (await import('twilio')).default
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
     await client.messages.create({
@@ -227,12 +305,10 @@ export default router
 // ── DASHBOARD ROUTES ──────────────────────────────────────
 router.get('/profile', async (req, res, next) => {
   try {
-    const token = (req.headers.authorization || '').replace('Bearer ', '')
-    if (!token) return res.json({ name: '', role: '' })
-    const phone = phoneFromToken(token)
-    if (!phone) return res.json({ name: '', role: '' })
+    const session = requireSession(req, res)
+    if (!session) return
     const { db } = await import('../db/client.js')
-    const result = await db.query(`SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+    const result = await db.query(`SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`, [session.phone])
     res.json({
       name: result.rows[0]?.name || '',
       role: result.rows[0]?.role || '',
@@ -242,6 +318,8 @@ router.get('/profile', async (req, res, next) => {
 
 router.post('/pulse', async (req, res, next) => {
   try {
+    const session = requireSession(req, res)
+    if (!session) return
     res.json({
       stats: { pending: 0, handled: 0, streak: 0, total_earned: 0 },
       triggered: false,
@@ -252,10 +330,14 @@ router.post('/pulse', async (req, res, next) => {
 
 router.get('/actions/:sessionId', async (req, res, next) => {
   try {
+    const session = requireSession(req, res)
+    if (!session) return
     res.json({ actions: [] })
   } catch (err) { next(err) }
 })
 
 router.post('/actions/:actionId/approve', async (req, res, next) => {
+  const session = requireSession(req, res)
+  if (!session) return
   res.json({ ok: true })
 })
