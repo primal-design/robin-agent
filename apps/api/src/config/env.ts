@@ -19,9 +19,17 @@ export const env = {
   gmailClientId:      process.env.GMAIL_CLIENT_ID ?? '',
   gmailClientSecret:  process.env.GMAIL_CLIENT_SECRET ?? '',
   gmailRedirectUri:   process.env.GMAIL_REDIRECT_URI ?? 'https://robin-agent.onrender.com/email/callback',
+  jwtSecret:          process.env.JWT_SECRET ?? 'dev-secret-change-me',
+  adminToken:         process.env.ADMIN_TOKEN ?? '',
 }
 
 export function assertRequired() {
   const missing = ['ANTHROPIC_KEY', 'DATABASE_URL'].filter(k => !process.env[k])
   if (missing.length) console.warn(`⚠️  Missing env vars: ${missing.join(', ')}`)
+  if (env.nodeEnv === 'production' && env.jwtSecret === 'dev-secret-change-me') {
+    console.warn('⚠️  JWT_SECRET is using the development default')
+  }
+  if (env.nodeEnv === 'production' && !env.adminToken) {
+    console.warn('⚠️  ADMIN_TOKEN is not configured')
+  }
 }
