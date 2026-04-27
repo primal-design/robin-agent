@@ -1,0 +1,164 @@
+import { Router } from 'express'
+import crypto from 'crypto'
+
+const router = Router()
+const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7
+
+function normalizePhone(phone: string) {
+  const raw = String(phone || '').trim()
+  if (!raw) return ''
+  return raw.startsWith('+') ? raw : `+${raw.replace(/[^0-9]/g, '')}`
+}
+
+function normalizeEmail(email: string) {
+  return String(email || '').trim().toLowerCase()
+}
+
+function authSecret() {
+  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-robin-auth-secret'
+}
+
+function signPayload(payload: string) {
+  return crypto.createHmac('sha256', authSecret()).update(payload).digest('base64url')
+}
+
+function createSessionToken(phone: string) {
+  const payload = Buffer.from(JSON.stringify({ phone, exp: Date.now() + SESSION_TTL_MS })).toString('base64url')
+  return `rt_${payload}.${signPayload(payload)}`
+}
+
+async function sendWhatsAppCode(phone: string, code: string) {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_WHATSAPP_FROM) {
+    throw new Error('Twilio WhatsApp is not configured')
+  }
+  const twilio = (await import('twilio')).default
+  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  await client.messages.create({
+    from: process.env.TWILIO_WHATSAPP_FROM,
+    to: `whatsapp:${phone}`,
+    body: `Your Robin sign-in code is: ${code}. Expires in 10 minutes.`
+  })
+}
+
+async function sendEmailCode(email: string, code: string) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('Email OTP is not configured. Set RESEND_API_KEY and AUTH_EMAIL_FROM.')
+  }
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: process.env.AUTH_EMAIL_FROM || 'Robin <no-reply@robin-agent.app>',
+      to: email,
+      subject: 'Your Robin sign-in code',
+      text: `Your Robin sign-in code is ${code}. It expires in 10 minutes.`
+    })
+  })
+  if (!response.ok) throw new Error(`Email provider failed with ${response.status}`)
+}
+
+router.post('/auth/send-code', async (req, res, next) => {
+  try {
+    const phone = normalizePhone(req.body.phone)
+    const requestedEmail = normalizeEmail(req.body.email)
+    if (!phone) return res.status(400).json({ error: 'phone_required', message: 'Phone required' })
+
+    const { db } = await import('../db/client.js')
+    const check = await db.query(
+      `SELECT name, email FROM waitlist WHERE phone=$1 AND status='accepted' LIMIT 1`,
+      [phone]
+    )
+    if (check.rows.length === 0) {
+      return res.status(403).json({ error: 'not_accepted', message: "You don't have access yet." })
+    }
+
+    const email = requestedEmail || normalizeEmail(check.rows[0]?.email)
+    if (requestedEmail && requestedEmail !== normalizeEmail(check.rows[0]?.email)) {
+      await db.query(`UPDATE waitlist SET email=$1 WHERE phone=$2`, [requestedEmail, phone])
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    await db.query(`DELETE FROM auth_codes WHERE phone=$1`, [phone])
+    await db.query(`INSERT INTO auth_codes (phone, code) VALUES ($1, $2)`, [phone, code])
+
+    const failures: string[] = []
+    try {
+      await sendWhatsAppCode(phone, code)
+      return res.json({ ok: true, delivery: 'whatsapp' })
+    } catch (e) {
+      failures.push(e instanceof Error ? e.message : String(e))
+    }
+
+    if (email) {
+      try {
+        await sendEmailCode(email, code)
+        return res.json({ ok: true, delivery: 'email', email })
+      } catch (e) {
+        failures.push(e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    console.warn(`[auth] OTP delivery failed for ${phone}. Code: ${code}. ${failures.join(' | ')}`)
+    return res.status(502).json({
+      error: 'code_delivery_failed',
+      message: email ? 'Could not send your code by WhatsApp or email.' : 'Could not send your code by WhatsApp, and no email is saved for fallback.',
+      failures,
+      ...(process.env.NODE_ENV !== 'production' ? { debug_code: code } : {})
+    })
+  } catch (err) { next(err) }
+})
+
+router.post('/auth/verify-code', async (req, res, next) => {
+  try {
+    const phone = normalizePhone(req.body.phone)
+    const code = String(req.body.code || '').trim()
+    if (!phone || !code) return res.status(400).json({ error: 'missing_fields', message: 'Phone and code required' })
+
+    const { db } = await import('../db/client.js')
+    const result = await db.query(
+      `SELECT id FROM auth_codes WHERE phone=$1 AND code=$2 AND used=false AND expires_at > now() LIMIT 1`,
+      [phone, code]
+    )
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'invalid_or_expired_code', message: 'Invalid or expired code' })
+    }
+
+    await db.query(`UPDATE auth_codes SET used=true WHERE id=$1`, [result.rows[0].id])
+    const user = await db.query(`SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+    res.json({
+      ok: true,
+      token: createSessionToken(phone),
+      expires_in: Math.floor(SESSION_TTL_MS / 1000),
+      name: user.rows[0]?.name || '',
+      role: user.rows[0]?.role || ''
+    })
+  } catch (err) { next(err) }
+})
+
+router.post('/auth/dev-login', async (req, res, next) => {
+  try {
+    if (process.env.NODE_ENV === 'production' || process.env.DEV_LOGIN_BYPASS !== 'true') {
+      return res.status(404).json({ error: 'not_found' })
+    }
+    const phone = normalizePhone(req.body.phone)
+    if (!phone) return res.status(400).json({ error: 'phone_required', message: 'Phone required' })
+
+    const { findOrCreateUser, db } = await import('../db/client.js')
+    await findOrCreateUser(phone)
+    await db.query(
+      `INSERT INTO waitlist (request_id, name, phone, email, status)
+       VALUES ($1,$2,$3,$4,'accepted')
+       ON CONFLICT (phone) DO UPDATE SET status='accepted', email=COALESCE(EXCLUDED.email, waitlist.email)`,
+      [`DEV-${Date.now().toString(36)}`, req.body.name || 'Dev User', phone, normalizeEmail(req.body.email) || null]
+    )
+
+    res.json({ ok: true, token: createSessionToken(phone), expires_in: Math.floor(SESSION_TTL_MS / 1000), name: req.body.name || 'Dev User', role: 'dev' })
+  } catch (err) { next(err) }
+})
+
+router.post('/auth/logout', async (_req, res) => res.json({ ok: true }))
+
+export default router
