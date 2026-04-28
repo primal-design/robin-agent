@@ -47,16 +47,36 @@ export async function nearbyPostcodes(postcode: string, radius = 1000): Promise<
   } catch { return null }
 }
 
-// ── NHS services (hospitals, GPs, pharmacies) ─────────────────────────────────
+// ── NHS services via Google Maps (no NHS key needed) ──────────────────────────
+async function nhsServicesViaGoogleMaps(postcode: string, type: 'hospitals' | 'gps' | 'pharmacies'): Promise<string | null> {
+  if (!env.googleMapsKey) return null
+  const keywordMap = { hospitals: 'NHS hospital', gps: 'GP surgery doctor', pharmacies: 'pharmacy chemist' }
+  const keyword = keywordMap[type]
+  try {
+    const query = encodeURIComponent(`${keyword} near ${postcode}`)
+    const res   = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${query}&key=${env.googleMapsKey}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data  = await res.json() as { results: { name: string; formatted_address: string; rating?: number; opening_hours?: { open_now?: boolean } }[] }
+    if (!data.results?.length) return null
+    const label = type.charAt(0).toUpperCase() + type.slice(1)
+    return `${label} near ${postcode} (Google Maps):\n` + data.results.slice(0, 6).map(r =>
+      `• ${r.name}\n  ${r.formatted_address}${r.rating ? ` | ⭐ ${r.rating}` : ''}${r.opening_hours?.open_now !== undefined ? (r.opening_hours.open_now ? ' | Open now' : ' | Closed') : ''}`
+    ).join('\n\n')
+  } catch { return null }
+}
+
+// ── NHS services (NHS API with Google Maps fallback) ──────────────────────────
 export async function nhsServices(postcode: string, type: 'hospitals' | 'gps' | 'pharmacies' = 'hospitals'): Promise<string | null> {
   try {
     // First get lat/lon from postcode
     const clean  = postcode.replace(/\s+/g, '').toUpperCase()
     const geoRes = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(clean)}`, { signal: AbortSignal.timeout(6000) })
-    if (!geoRes.ok) return null
+    if (!geoRes.ok) return nhsServicesViaGoogleMaps(postcode, type)
     const geoData = await geoRes.json() as { result?: { latitude: number; longitude: number } }
-    if (!geoData.result) return null
+    if (!geoData.result) return nhsServicesViaGoogleMaps(postcode, type)
     const { latitude, longitude } = geoData.result
+
+    if (!env.nhsApiKey) return nhsServicesViaGoogleMaps(postcode, type)
 
     const typeMap: Record<string, string> = {
       hospitals:  'HOS',
@@ -65,12 +85,11 @@ export async function nhsServices(postcode: string, type: 'hospitals' | 'gps' | 
     }
     const orgType = typeMap[type] || 'HOS'
 
-    const headers: Record<string, string> = { 'Accept': 'application/json' }
-    if (env.nhsApiKey) headers['subscription-key'] = env.nhsApiKey
+    const headers: Record<string, string> = { 'Accept': 'application/json', 'subscription-key': env.nhsApiKey }
 
-    const url = `https://api.nhs.uk/service-search/search?api-version=2&$filter=OrganisationTypeID eq '${orgType}'&$orderby=distance&$top=8&latitude=${latitude}&longitude=${longitude}&distance=10`
+    const url = `https://api.service.nhs.uk/service-search-api/search?$filter=OrganisationTypeID eq '${orgType}'&$orderby=distance&$top=8&latitude=${latitude}&longitude=${longitude}&distance=10`
     const res  = await fetch(url, { headers, signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return null
+    if (!res.ok) return nhsServicesViaGoogleMaps(postcode, type)
     const data  = await res.json() as {
       value?: {
         OrganisationName: string
@@ -81,7 +100,7 @@ export async function nhsServices(postcode: string, type: 'hospitals' | 'gps' | 
         Distance: number
       }[]
     }
-    if (!data.value?.length) return `No ${type} found near ${postcode}.`
+    if (!data.value?.length) return nhsServicesViaGoogleMaps(postcode, type)
 
     const label = type.charAt(0).toUpperCase() + type.slice(1)
     return `${label} near ${postcode}:\n` + data.value.map(s =>
