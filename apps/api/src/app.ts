@@ -16,6 +16,7 @@ export function createApp() {
   app.use((_, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
 
   const frontendDir = resolve(__dirname, '../../../frontend')
+  const assetVersion = '20260428-builder'
 
   app.get('/frontend/:file', (req, res, next) => {
     const filePath = resolve(frontendDir, req.params.file)
@@ -24,17 +25,19 @@ export function createApp() {
     try {
       let html = fs.readFileSync(filePath, 'utf-8')
       const scripts: string[] = []
-      if (!html.includes('robin_auth.js')) scripts.push('<script src="/frontend/robin_auth.js"></script>')
-      if (req.params.file === 'robin_site.html' && !html.includes('landing_copy_fix.js')) scripts.push('<script src="/frontend/landing_copy_fix.js"></script>')
-      if (!html.includes('robin_mascot.js')) scripts.push('<script src="/frontend/robin_mascot.js"></script>')
+      if (!html.includes('robin_auth.js')) scripts.push(`<script src="/frontend/robin_auth.js?v=${assetVersion}"></script>`)
+      if (!html.includes('robin_mascot.js')) scripts.push(`<script src="/frontend/robin_mascot.js?v=${assetVersion}"></script>`)
+      if (!html.includes('robin_brand_apply.js')) scripts.push(`<script src="/frontend/robin_brand_apply.js?v=${assetVersion}"></script>`)
+      if (req.params.file === 'robin_site.html' && !html.includes('landing_copy_fix.js')) scripts.push(`<script src="/frontend/landing_copy_fix.js?v=${assetVersion}"></script>`)
       if (scripts.length) html = html.replace('</head>', `${scripts.join('')}</head>`)
+      res.setHeader('Cache-Control', 'no-store')
       res.type('html').send(html)
     } catch (e) {
       next(e)
     }
   })
 
-  app.use('/frontend', express.static(frontendDir))
+  app.use('/frontend', express.static(frontendDir, { maxAge: 0, etag: false }))
 
   app.get('/health', (_, res) => res.json({ ok: true, service: 'robin-api' }))
 
