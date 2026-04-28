@@ -172,9 +172,56 @@ export async function gdeltSearch(query: string): Promise<string | null> {
   } catch { return null }
 }
 
-// ── Tomorrow.io weather ───────────────────────────────────────────────────────
+// ── Open-Meteo geocoding + weather (no key required) ─────────────────────────
+async function openMeteoWeather(location: string, units = 'metric'): Promise<string | null> {
+  try {
+    // Geocode location name to lat/lon
+    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`, { signal: AbortSignal.timeout(6000) })
+    if (!geoRes.ok) return null
+    const geoData = await geoRes.json() as { results?: { name: string; country: string; latitude: number; longitude: number }[] }
+    const place = geoData.results?.[0]
+    if (!place) return null
+
+    const tempUnit = units === 'metric' ? 'celsius' : 'fahrenheit'
+    const windUnit = units === 'metric' ? 'kmh' : 'mph'
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max,uv_index_max&temperature_unit=${tempUnit}&windspeed_unit=${windUnit}&timezone=auto&forecast_days=5`
+    const res  = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    if (!res.ok) return null
+    const data = await res.json() as {
+      daily?: {
+        time: string[]
+        weathercode: number[]
+        temperature_2m_max: number[]
+        temperature_2m_min: number[]
+        precipitation_probability_max: number[]
+        windspeed_10m_max: number[]
+        uv_index_max: number[]
+      }
+    }
+    const d = data.daily
+    if (!d) return null
+
+    const weatherCode: Record<number, string> = {
+      0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Cloudy',
+      45: 'Fog', 48: 'Fog', 51: 'Drizzle', 53: 'Drizzle', 55: 'Drizzle',
+      61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
+      71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow',
+      80: 'Showers', 81: 'Showers', 82: 'Heavy Showers',
+      95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm',
+    }
+    const tU = units === 'metric' ? '°C' : '°F'
+    const lines = d.time.map((t, i) => {
+      const date = new Date(t).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+      const condition = weatherCode[d.weathercode[i]] || 'Unknown'
+      return `${date}: ${condition}, ${Math.round(d.temperature_2m_max[i])}/${Math.round(d.temperature_2m_min[i])}${tU}, rain ${d.precipitation_probability_max[i]}%, wind ${Math.round(d.windspeed_10m_max[i])}${windUnit}, UV ${d.uv_index_max[i]}`
+    })
+    return `Weather for ${place.name}, ${place.country} (Open-Meteo):\n${lines.join('\n')}`
+  } catch { return null }
+}
+
+// ── Tomorrow.io weather (falls back to Open-Meteo) ────────────────────────────
 export async function getWeather(location: string, units = 'metric'): Promise<string | null> {
-  if (!env.tomorrowKey) return null
+  if (!env.tomorrowKey) return openMeteoWeather(location, units)
   try {
     const url = `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(location)}&timesteps=1d&units=${units}&apikey=${env.tomorrowKey}`
     const res  = await fetch(url, { signal: AbortSignal.timeout(8000) })
@@ -214,8 +261,8 @@ export async function getWeather(location: string, units = 'metric'): Promise<st
       const condition = weatherCode[v.weatherCodeMax] || 'Unknown'
       return `${date}: ${condition}, ${Math.round(v.temperatureMax)}/${Math.round(v.temperatureMin)}${tempUnit}, rain ${Math.round(v.precipitationProbabilityAvg)}%, wind ${Math.round(v.windSpeedAvg)}km/h, UV ${v.uvIndexMax}`
     })
-    return `Weather for ${name}:\n${lines.join('\n')}`
-  } catch { return null }
+    return `Weather for ${name} (Tomorrow.io):\n${lines.join('\n')}`
+  } catch { return openMeteoWeather(location, units) }
 }
 
 async function braveSearch(query: string): Promise<string | null> {
