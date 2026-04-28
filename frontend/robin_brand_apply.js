@@ -24,7 +24,7 @@
 
   function applyBrand() {
     document.querySelectorAll('#fox,.sb-fox,.ffox,.a-tb-fox,.si-logo img,.app-nav-brand img').forEach(replaceImage)
-    document.querySelectorAll('.brand,.sb-brand,.fbrand,.a-tb-brand,.app-nav-brand').forEach(ensureLogo)
+    document.querySelectorAll('.sb-brand,.fbrand,.a-tb-brand,.app-nav-brand').forEach(ensureLogo)
     window.RobinMascot?.replaceFoxEmoji?.()
   }
 
