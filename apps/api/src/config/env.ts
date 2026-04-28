@@ -29,6 +29,8 @@ export const env = {
   nhsApiKey:          process.env.NHS_API_KEY ?? '',
   tflAppKey:          process.env.TFL_APP_KEY ?? '',
   bodsApiKey:         process.env.BODS_API_KEY ?? '',
+  githubToken:        process.env.GITHUB_TOKEN ?? '',
+  stackAppKey:        process.env.STACKOVERFLOW_KEY ?? '',
 }
 
 export function assertRequired() {

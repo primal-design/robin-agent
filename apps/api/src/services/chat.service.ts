@@ -3,7 +3,7 @@ import { env } from '../config/env.js'
 import { loadSession, saveSession, db, type Session } from '../db/client.js'
 import { buildUserContext, handleApproval } from '../brain/brain.js'
 import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brain/prompts.js'
-import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch, getWeather } from '../brain/planner.js'
+import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch, getWeather, githubSearch, stackOverflowSearch, stackOverflowAnswers } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 import { lookupPostcode, nearbyPostcodes, nhsServices, tflBusArrivals, tflStopSearch, bodsRouteSearch, ukLocalServices, tflLineInfo, tflJourney, tflLineStatus } from '../lib/uk.js'
 
@@ -237,6 +237,22 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     return { type: 'tool_result' as const, tool_use_id: id, content: result || 'Could not fetch service status.' }
   }
 
+  if (name === 'github_search') {
+    const type = (input.type as 'repositories' | 'code' | 'issues') || 'repositories'
+    const results = await githubSearch(String(input.query), type)
+    return { type: 'tool_result' as const, tool_use_id: id, content: results || 'No GitHub results found.' }
+  }
+
+  if (name === 'stackoverflow_search') {
+    const results = await stackOverflowSearch(String(input.query))
+    return { type: 'tool_result' as const, tool_use_id: id, content: results || 'No Stack Overflow results found.' }
+  }
+
+  if (name === 'stackoverflow_answers') {
+    const results = await stackOverflowAnswers(Number(input.questionId))
+    return { type: 'tool_result' as const, tool_use_id: id, content: results || 'No answers found.' }
+  }
+
   if (name === 'get_weather') {
     const results = await getWeather(String(input.location), input.units ? String(input.units) : 'metric')
     if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.tomorrowKey ? 'Could not fetch weather for that location.' : 'Weather API not configured. Add TOMORROW_API_KEY to Render.' }
@@ -340,6 +356,9 @@ export async function chatService(userId: string, userMessage: string): Promise<
       { name: 'find_email',         description: 'Find professional email addresses for a company domain using Hunter.io', input_schema: { type: 'object' as const, properties: { domain: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' } }, required: ['domain'] } },
       { name: 'news_search',        description: 'Search latest news articles on any topic using NewsAPI', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
       { name: 'gdelt_search',       description: 'Search GDELT global news events database for worldwide coverage of any topic', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+      { name: 'github_search',        description: 'Search GitHub for repositories, code, or issues on any programming topic', input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, type: { type: 'string', enum: ['repositories', 'code', 'issues'] } }, required: ['query'] } },
+      { name: 'stackoverflow_search', description: 'Search Stack Overflow for programming questions and solutions', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+      { name: 'stackoverflow_answers', description: 'Get the top voted answers for a specific Stack Overflow question by ID', input_schema: { type: 'object' as const, properties: { questionId: { type: 'number' } }, required: ['questionId'] } },
       { name: 'get_weather',         description: 'Get accurate 5-day weather forecast for any city or location', input_schema: { type: 'object' as const, properties: { location: { type: 'string' }, units: { type: 'string', enum: ['metric', 'imperial'] } }, required: ['location'] } },
       { name: 'uk_postcode',         description: 'Look up a UK postcode — returns area, district, ward, council, region and coordinates', input_schema: { type: 'object' as const, properties: { postcode: { type: 'string' } }, required: ['postcode'] } },
       { name: 'uk_nearby_postcodes', description: 'Find postcodes near a given UK postcode within a radius', input_schema: { type: 'object' as const, properties: { postcode: { type: 'string' }, radius: { type: 'number' } }, required: ['postcode'] } },

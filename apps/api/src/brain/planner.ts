@@ -265,6 +265,99 @@ export async function getWeather(location: string, units = 'metric'): Promise<st
   } catch { return openMeteoWeather(location, units) }
 }
 
+// ── GitHub search ─────────────────────────────────────────────────────────────
+export async function githubSearch(query: string, type: 'repositories' | 'code' | 'issues' = 'repositories'): Promise<string | null> {
+  try {
+    const headers: Record<string, string> = {
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    }
+    if (env.githubToken) headers['Authorization'] = `Bearer ${env.githubToken}`
+
+    const url = `https://api.github.com/search/${type}?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=8`
+    const res  = await fetch(url, { headers, signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = await res.json() as { items: Record<string, unknown>[] }
+    if (!data.items?.length) return null
+
+    if (type === 'repositories') {
+      const items = data.items as { full_name: string; description: string; stargazers_count: number; language: string; html_url: string }[]
+      return `GitHub repos for "${query}":\n` + items.map(r =>
+        `• ${r.full_name} ⭐${r.stargazers_count} [${r.language || 'N/A'}]\n  ${r.description?.slice(0, 100) || 'No description'}\n  ${r.html_url}`
+      ).join('\n\n')
+    }
+
+    if (type === 'code') {
+      const items = data.items as { name: string; path: string; repository: { full_name: string }; html_url: string }[]
+      return `GitHub code results for "${query}":\n` + items.map(r =>
+        `• ${r.repository.full_name} → ${r.path}\n  ${r.html_url}`
+      ).join('\n\n')
+    }
+
+    if (type === 'issues') {
+      const items = data.items as { title: string; state: string; body: string; html_url: string; repository_url: string }[]
+      return `GitHub issues for "${query}":\n` + items.map(r =>
+        `• [${r.state}] ${r.title}\n  ${r.body?.slice(0, 100) || ''}\n  ${r.html_url}`
+      ).join('\n\n')
+    }
+
+    return null
+  } catch { return null }
+}
+
+// ── Stack Overflow search ─────────────────────────────────────────────────────
+export async function stackOverflowSearch(query: string): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      order: 'desc',
+      sort: 'votes',
+      intitle: query,
+      site: 'stackoverflow',
+      pagesize: '8',
+      filter: 'withbody',
+      ...(env.stackAppKey ? { key: env.stackAppKey } : {}),
+    })
+    const res  = await fetch(`https://api.stackexchange.com/2.3/questions?${params}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = await res.json() as {
+      items: {
+        title: string
+        score: number
+        answer_count: number
+        is_answered: boolean
+        link: string
+        tags: string[]
+      }[]
+    }
+    if (!data.items?.length) return null
+    return `Stack Overflow results for "${query}":\n` + data.items.map(q =>
+      `• ${q.is_answered ? '✅' : '❓'} ${q.title} (↑${q.score} | ${q.answer_count} answers)\n  Tags: ${q.tags.slice(0, 4).join(', ')}\n  ${q.link}`
+    ).join('\n\n')
+  } catch { return null }
+}
+
+// ── Stack Overflow get answer body ────────────────────────────────────────────
+export async function stackOverflowAnswers(questionId: number): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      order: 'desc',
+      sort: 'votes',
+      site: 'stackoverflow',
+      filter: 'withbody',
+      pagesize: '3',
+      ...(env.stackAppKey ? { key: env.stackAppKey } : {}),
+    })
+    const res  = await fetch(`https://api.stackexchange.com/2.3/questions/${questionId}/answers?${params}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = await res.json() as { items: { score: number; is_accepted: boolean; body: string }[] }
+    if (!data.items?.length) return null
+    return data.items.slice(0, 2).map(a => {
+      const text = a.body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 500)
+      return `${a.is_accepted ? '✅ Accepted answer' : `Answer (↑${a.score})`}:\n${text}`
+    }).join('\n\n---\n\n')
+  } catch { return null }
+}
+
 async function braveSearch(query: string): Promise<string | null> {
   if (!env.braveKey) return null
   try {
