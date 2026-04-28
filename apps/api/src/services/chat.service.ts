@@ -72,7 +72,9 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     memory.tasks_done   = (memory.tasks_done || 0) + 1
     memory.total_earned = (memory.total_earned || 0) + (Number(input.amount_earned) || 0)
     memory.streak       = (memory.streak || 0) + 1
-    const hit100 = memory.total_earned >= 100 && (memory.total_earned - (Number(input.amount_earned) || 0)) < 100
+    const totalEarned = Number(memory.total_earned) || 0
+    const amountEarned = Number(input.amount_earned) || 0
+    const hit100 = totalEarned >= 100 && (totalEarned - amountEarned) < 100
     return { type: 'tool_result' as const, tool_use_id: id, content: hit100 ? `MILESTONE: First £100 hit! Streak: ${memory.streak}. Total: £${memory.total_earned}. Write the win post.` : `Task logged. Streak: ${memory.streak} days. Total: £${memory.total_earned}.` }
   }
 
