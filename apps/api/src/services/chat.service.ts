@@ -3,7 +3,7 @@ import { env } from '../config/env.js'
 import { loadSession, saveSession, db, type Session } from '../db/client.js'
 import { buildUserContext, handleApproval } from '../brain/brain.js'
 import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brain/prompts.js'
-import { doResearch } from '../brain/planner.js'
+import { doResearch, doTrendAnalysis, redditSearch } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 
 let _ai: Anthropic | null = null
@@ -136,6 +136,17 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     const findings = await doResearch(String(input.type), String(input.query), String(input.context || ''))
     return { type: 'tool_result' as const, tool_use_id: id, content: findings }
   }
+
+  if (name === 'trend_analysis') {
+    const findings = await doTrendAnalysis(String(input.topic), String(input.context || ''))
+    return { type: 'tool_result' as const, tool_use_id: id, content: findings }
+  }
+
+  if (name === 'reddit_search') {
+    const results = await redditSearch(String(input.query), String(input.subreddit || ''))
+    if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: 'No Reddit results found.' }
+    return { type: 'tool_result' as const, tool_use_id: id, content: results }
+  }
   if (name === 'log_task_done') {
     memory.tasks_done   = (memory.tasks_done || 0) + 1
     memory.total_earned = (memory.total_earned || 0) + (Number(input.amount_earned) || 0)
@@ -226,6 +237,8 @@ export async function chatService(userId: string, userMessage: string): Promise<
       { name: 'generate_plan',    description: 'Build a 21-day action plan',                  input_schema: { type: 'object' as const, properties: { goal: { type: 'string' }, niche: { type: 'string' }, timePerDay: { type: 'number' } }, required: ['goal', 'niche', 'timePerDay'] } },
       { name: 'draft_content',    description: 'Draft outreach or posts for user approval',   input_schema: { type: 'object' as const, properties: { type: { type: 'string' }, recipient: { type: 'string' }, content: { type: 'string' } }, required: ['type', 'content'] } },
       { name: 'research',         description: 'Research a person, market, topic, or trend',  input_schema: { type: 'object' as const, properties: { type: { type: 'string' }, query: { type: 'string' }, context: { type: 'string' } }, required: ['type', 'query'] } },
+      { name: 'trend_analysis',   description: 'Analyse what people are searching, posting, and struggling with on a topic — uses Reddit + web data for real behaviour insights', input_schema: { type: 'object' as const, properties: { topic: { type: 'string' }, context: { type: 'string' } }, required: ['topic'] } },
+      { name: 'reddit_search',    description: 'Search Reddit for real conversations about a topic or in a specific subreddit', input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, subreddit: { type: 'string' } }, required: ['query'] } },
       { name: 'log_task_done',    description: 'Log a completed task, update streak',          input_schema: { type: 'object' as const, properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
       { name: 'find_leads',       description: 'Find local business leads via Google Maps',   input_schema: { type: 'object' as const, properties: { niche: { type: 'string' }, location: { type: 'string' } }, required: ['niche', 'location'] } },
       { name: 'read_emails',      description: 'Read emails from the user Gmail inbox',        input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, maxResults: { type: 'number' }, unreadOnly: { type: 'boolean' } }, required: [] } },
