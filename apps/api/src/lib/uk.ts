@@ -161,7 +161,7 @@ export async function tflLineInfo(lineId: string): Promise<string | null> {
 // ── TfL journey planner ───────────────────────────────────────────────────────
 export async function tflJourney(from: string, to: string): Promise<string | null> {
   try {
-    const params = new URLSearchParams({ mode: 'bus', ...(env.tflAppKey ? { app_key: env.tflAppKey } : {}) })
+    const params = new URLSearchParams({ mode: 'bus,walking', ...(env.tflAppKey ? { app_key: env.tflAppKey } : {}) })
     const url    = `https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}?${params}`
     const res    = await fetch(url, { signal: AbortSignal.timeout(10000) })
     if (!res.ok) return null
