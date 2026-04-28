@@ -23,9 +23,11 @@ export function createApp() {
 
     try {
       let html = fs.readFileSync(filePath, 'utf-8')
-      if (!html.includes('robin_auth.js')) {
-        html = html.replace('</head>', '<script src="/frontend/robin_auth.js"></script></head>')
-      }
+      const scripts: string[] = []
+      if (!html.includes('robin_auth.js')) scripts.push('<script src="/frontend/robin_auth.js"></script>')
+      if (req.params.file === 'robin_site.html' && !html.includes('landing_copy_fix.js')) scripts.push('<script src="/frontend/landing_copy_fix.js"></script>')
+      if (!html.includes('robin_mascot.js')) scripts.push('<script src="/frontend/robin_mascot.js"></script>')
+      if (scripts.length) html = html.replace('</head>', `${scripts.join('')}</head>`)
       res.type('html').send(html)
     } catch (e) {
       next(e)
