@@ -3,7 +3,7 @@ import { env } from '../config/env.js'
 import { loadSession, saveSession, db, type Session } from '../db/client.js'
 import { buildUserContext, handleApproval } from '../brain/brain.js'
 import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brain/prompts.js'
-import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch } from '../brain/planner.js'
+import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 
 let _ai: Anthropic | null = null
@@ -153,6 +153,36 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: 'No HackerNews results found.' }
     return { type: 'tool_result' as const, tool_use_id: id, content: results }
   }
+
+  if (name === 'youtube_search') {
+    const results = await youtubeSearch(String(input.query), Number(input.maxResults) || 8)
+    if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.youtubeKey ? 'No YouTube results found.' : 'YouTube API not configured.' }
+    return { type: 'tool_result' as const, tool_use_id: id, content: results }
+  }
+
+  if (name === 'find_person') {
+    const results = await apolloSearch(String(input.name), input.domain ? String(input.domain) : undefined)
+    if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.apolloKey ? 'No results found on Apollo.' : 'Apollo API not configured.' }
+    return { type: 'tool_result' as const, tool_use_id: id, content: results }
+  }
+
+  if (name === 'find_email') {
+    const results = await hunterEmailFind(String(input.domain), input.firstName ? String(input.firstName) : undefined, input.lastName ? String(input.lastName) : undefined)
+    if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.hunterKey ? 'No email found.' : 'Hunter.io API not configured.' }
+    return { type: 'tool_result' as const, tool_use_id: id, content: results }
+  }
+
+  if (name === 'news_search') {
+    const results = await newsSearch(String(input.query))
+    if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.newsApiKey ? 'No news found.' : 'NewsAPI not configured.' }
+    return { type: 'tool_result' as const, tool_use_id: id, content: results }
+  }
+
+  if (name === 'gdelt_search') {
+    const results = await gdeltSearch(String(input.query))
+    if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: 'No GDELT results found.' }
+    return { type: 'tool_result' as const, tool_use_id: id, content: results }
+  }
   if (name === 'log_task_done') {
     memory.tasks_done   = (memory.tasks_done || 0) + 1
     memory.total_earned = (memory.total_earned || 0) + (Number(input.amount_earned) || 0)
@@ -246,6 +276,11 @@ export async function chatService(userId: string, userMessage: string): Promise<
       { name: 'trend_analysis',   description: 'Analyse what people are searching, posting, and struggling with on a topic — uses Reddit + web data for real behaviour insights', input_schema: { type: 'object' as const, properties: { topic: { type: 'string' }, context: { type: 'string' } }, required: ['topic'] } },
       { name: 'reddit_search',      description: 'Search Reddit for real conversations about a topic or in a specific subreddit', input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, subreddit: { type: 'string' } }, required: ['query'] } },
       { name: 'hackernews_search',  description: 'Search HackerNews for tech and startup discussions, trends, and signals', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+      { name: 'youtube_search',     description: 'Search YouTube for videos on a topic — shows what content people watch and search for', input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, maxResults: { type: 'number' } }, required: ['query'] } },
+      { name: 'find_person',        description: 'Find a person\'s professional profile, job title, company and email using Apollo.io', input_schema: { type: 'object' as const, properties: { name: { type: 'string' }, domain: { type: 'string' } }, required: ['name'] } },
+      { name: 'find_email',         description: 'Find professional email addresses for a company domain using Hunter.io', input_schema: { type: 'object' as const, properties: { domain: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' } }, required: ['domain'] } },
+      { name: 'news_search',        description: 'Search latest news articles on any topic using NewsAPI', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+      { name: 'gdelt_search',       description: 'Search GDELT global news events database for worldwide coverage of any topic', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
       { name: 'log_task_done',    description: 'Log a completed task, update streak',          input_schema: { type: 'object' as const, properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
       { name: 'find_leads',       description: 'Find local business leads via Google Maps',   input_schema: { type: 'object' as const, properties: { niche: { type: 'string' }, location: { type: 'string' } }, required: ['niche', 'location'] } },
       { name: 'read_emails',      description: 'Read emails from the user Gmail inbox',        input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, maxResults: { type: 'number' }, unreadOnly: { type: 'boolean' } }, required: [] } },

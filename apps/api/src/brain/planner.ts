@@ -72,7 +72,15 @@ export async function doTrendAnalysis(topic: string, context = ''): Promise<stri
     }
   }
 
-  if (!raw.includes('REDDIT') && !raw.includes('WEB')) {
+  // NewsAPI: latest news coverage
+  const newsResults = await newsSearch(topic)
+  if (newsResults) raw += `NEWS (latest coverage):\n${newsResults}\n\n`
+
+  // GDELT: global event coverage
+  const gdeltResults = await gdeltSearch(topic)
+  if (gdeltResults) raw += `GDELT (global news events):\n${gdeltResults}\n\n`
+
+  if (!raw.includes('REDDIT') && !raw.includes('WEB') && !raw.includes('NEWS')) {
     raw += '(No external data — using Claude knowledge only)\n\n'
   }
 
@@ -81,6 +89,87 @@ export async function doTrendAnalysis(topic: string, context = ''): Promise<stri
     messages: [{ role: 'user', content: `Analyse real search and social behaviour around: "${topic}".\n${context ? `Context: ${context}\n` : ''}Data:\n${raw}\nIdentify:\n1. What are people struggling with?\n2. What questions keep coming up?\n3. What do they actually want (not what they say they want)?\n4. Any gaps or unmet needs?\n5. Actionable opportunity in one sentence.\n\nBe direct. Use bullet points. Max 6 insights.` }]
   })
   return s.content[0].type === 'text' ? s.content[0].text : ''
+}
+
+// ── YouTube Data API ──────────────────────────────────────────────────────────
+export async function youtubeSearch(query: string, maxResults = 8): Promise<string | null> {
+  if (!env.youtubeKey) return null
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&maxResults=${maxResults}&order=viewCount&type=video&key=${env.youtubeKey}`
+    const res  = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    if (!res.ok) return null
+    const data = await res.json() as { items: { snippet: { title: string; description: string; channelTitle: string } }[] }
+    if (!data.items?.length) return null
+    return data.items.map(i =>
+      `• ${i.snippet.title} — ${i.snippet.channelTitle}\n  ${i.snippet.description?.slice(0, 100) || ''}`
+    ).join('\n')
+  } catch { return null }
+}
+
+// ── Apollo.io lead search ─────────────────────────────────────────────────────
+export async function apolloSearch(name: string, domain?: string): Promise<string | null> {
+  if (!env.apolloKey) return null
+  try {
+    const body: Record<string, unknown> = { api_key: env.apolloKey, q_person_name: name, page: 1, per_page: 5 }
+    if (domain) body.q_organization_domains = [domain]
+    const res  = await fetch('https://api.apollo.io/v1/people/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return null
+    const data = await res.json() as { people: { name: string; title: string; organization?: { name: string }; email?: string; linkedin_url?: string }[] }
+    if (!data.people?.length) return null
+    return data.people.map(p =>
+      `• ${p.name} — ${p.title} at ${p.organization?.name || 'Unknown'}\n  Email: ${p.email || 'not available'} | LinkedIn: ${p.linkedin_url || 'n/a'}`
+    ).join('\n')
+  } catch { return null }
+}
+
+// ── Hunter.io email finder ────────────────────────────────────────────────────
+export async function hunterEmailFind(domain: string, firstName?: string, lastName?: string): Promise<string | null> {
+  if (!env.hunterKey) return null
+  try {
+    let url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${env.hunterKey}&limit=5`
+    if (firstName && lastName) url = `https://api.hunter.io/v2/email-finder?domain=${encodeURIComponent(domain)}&first_name=${encodeURIComponent(firstName)}&last_name=${encodeURIComponent(lastName)}&api_key=${env.hunterKey}`
+    const res  = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    if (!res.ok) return null
+    const data = await res.json() as { data: { email?: string; emails?: { value: string; type: string; confidence: number }[]; organization?: string } }
+    if (data.data.email) return `• ${data.data.email} (${data.data.organization || domain})`
+    const emails = data.data.emails || []
+    if (!emails.length) return null
+    return emails.map(e => `• ${e.value} (${e.type}, ${e.confidence}% confidence)`).join('\n')
+  } catch { return null }
+}
+
+// ── NewsAPI ───────────────────────────────────────────────────────────────────
+export async function newsSearch(query: string, language = 'en'): Promise<string | null> {
+  if (!env.newsApiKey) return null
+  try {
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&language=${language}&sortBy=publishedAt&pageSize=8&apiKey=${env.newsApiKey}`
+    const res  = await fetch(url, { signal: AbortSignal.timeout(6000) })
+    if (!res.ok) return null
+    const data = await res.json() as { articles: { title: string; description: string; source: { name: string }; publishedAt: string }[] }
+    if (!data.articles?.length) return null
+    return data.articles.map(a =>
+      `• [${a.source.name}] ${a.title}\n  ${a.description?.slice(0, 100) || ''} (${a.publishedAt?.slice(0, 10)})`
+    ).join('\n')
+  } catch { return null }
+}
+
+// ── GDELT (no key required) ───────────────────────────────────────────────────
+export async function gdeltSearch(query: string): Promise<string | null> {
+  try {
+    const url = `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(query)}&mode=artlist&maxrecords=10&format=json`
+    const res  = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = await res.json() as { articles?: { title: string; url: string; domain: string; seendate: string }[] }
+    if (!data.articles?.length) return null
+    return data.articles.slice(0, 8).map(a =>
+      `• [${a.domain}] ${a.title}\n  ${a.url} (${a.seendate?.slice(0, 8)})`
+    ).join('\n')
+  } catch { return null }
 }
 
 async function braveSearch(query: string): Promise<string | null> {

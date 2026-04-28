@@ -21,6 +21,10 @@ export const env = {
   gmailRedirectUri:   process.env.GMAIL_REDIRECT_URI ?? 'https://robin-agent.onrender.com/email/callback',
   jwtSecret:          process.env.JWT_SECRET ?? 'dev-secret-change-me',
   adminToken:         process.env.ADMIN_TOKEN ?? '',
+  youtubeKey:         process.env.YOUTUBE_API_KEY ?? '',
+  apolloKey:          process.env.APOLLO_API_KEY ?? '',
+  hunterKey:          process.env.HUNTER_API_KEY ?? '',
+  newsApiKey:         process.env.NEWS_API_KEY ?? '',
 }
 
 export function assertRequired() {
