@@ -1,13 +1,10 @@
 {
   "name": "robin-agent",
   "version": "1.0.0",
-  "description": "",
+  "description": "Robin agent app",
   "main": "index.js",
   "scripts": {
-    "start": "cd apps/api && npx tsx src/index.ts",
-    "start:legacy": "node backend/server.js",
-    "imessage": "node imessage.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "cd apps/api && npx tsx src/index.ts"
   },
   "keywords": [],
   "author": "",
