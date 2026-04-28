@@ -1,0 +1,163 @@
+import { env } from '../config/env.js'
+
+// ── Postcode lookup (postcodes.io — no key) ───────────────────────────────────
+export async function lookupPostcode(postcode: string): Promise<string | null> {
+  try {
+    const clean = postcode.replace(/\s+/g, '').toUpperCase()
+    const res   = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(clean)}`, { signal: AbortSignal.timeout(6000) })
+    if (!res.ok) return null
+    const data  = await res.json() as {
+      status: number
+      result?: {
+        postcode: string
+        district: string
+        ward: string
+        county: string | null
+        country: string
+        region: string
+        parliamentary_constituency: string
+        admin_district: string
+        latitude: number
+        longitude: number
+      }
+    }
+    if (data.status !== 200 || !data.result) return `Postcode ${postcode} not found.`
+    const r = data.result
+    return [
+      `Postcode: ${r.postcode}`,
+      `Area: ${r.admin_district}${r.county ? `, ${r.county}` : ''}`,
+      `Region: ${r.region}`,
+      `Ward: ${r.ward}`,
+      `Constituency: ${r.parliamentary_constituency}`,
+      `Country: ${r.country}`,
+      `Coordinates: ${r.latitude}, ${r.longitude}`,
+    ].join('\n')
+  } catch { return null }
+}
+
+// ── Nearby postcodes ──────────────────────────────────────────────────────────
+export async function nearbyPostcodes(postcode: string, radius = 1000): Promise<string | null> {
+  try {
+    const clean = postcode.replace(/\s+/g, '').toUpperCase()
+    const res   = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(clean)}/nearest?limit=5&radius=${radius}`, { signal: AbortSignal.timeout(6000) })
+    if (!res.ok) return null
+    const data  = await res.json() as { status: number; result?: { postcode: string; district: string; distance: number }[] }
+    if (!data.result?.length) return null
+    return `Nearby postcodes to ${postcode}:\n` + data.result.map(r => `• ${r.postcode} — ${r.district} (${Math.round(r.distance)}m)`).join('\n')
+  } catch { return null }
+}
+
+// ── NHS services (hospitals, GPs, pharmacies) ─────────────────────────────────
+export async function nhsServices(postcode: string, type: 'hospitals' | 'gps' | 'pharmacies' = 'hospitals'): Promise<string | null> {
+  try {
+    // First get lat/lon from postcode
+    const clean  = postcode.replace(/\s+/g, '').toUpperCase()
+    const geoRes = await fetch(`https://api.postcodes.io/postcodes/${encodeURIComponent(clean)}`, { signal: AbortSignal.timeout(6000) })
+    if (!geoRes.ok) return null
+    const geoData = await geoRes.json() as { result?: { latitude: number; longitude: number } }
+    if (!geoData.result) return null
+    const { latitude, longitude } = geoData.result
+
+    const typeMap: Record<string, string> = {
+      hospitals:  'HOS',
+      gps:        'GP',
+      pharmacies: 'PHA',
+    }
+    const orgType = typeMap[type] || 'HOS'
+
+    const headers: Record<string, string> = { 'Accept': 'application/json' }
+    if (env.nhsApiKey) headers['subscription-key'] = env.nhsApiKey
+
+    const url = `https://api.nhs.uk/service-search/search?api-version=2&$filter=OrganisationTypeID eq '${orgType}'&$orderby=distance&$top=8&latitude=${latitude}&longitude=${longitude}&distance=10`
+    const res  = await fetch(url, { headers, signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data  = await res.json() as {
+      value?: {
+        OrganisationName: string
+        Address1: string
+        City: string
+        Postcode: string
+        Phone: string
+        Distance: number
+      }[]
+    }
+    if (!data.value?.length) return `No ${type} found near ${postcode}.`
+
+    const label = type.charAt(0).toUpperCase() + type.slice(1)
+    return `${label} near ${postcode}:\n` + data.value.map(s =>
+      `• ${s.OrganisationName}\n  ${s.Address1}, ${s.City}, ${s.Postcode}\n  📞 ${s.Phone || 'N/A'} | ${s.Distance?.toFixed(1) || '?'}mi away`
+    ).join('\n\n')
+  } catch { return null }
+}
+
+// ── TfL bus arrivals (London only) ────────────────────────────────────────────
+export async function tflBusArrivals(stopCode: string): Promise<string | null> {
+  try {
+    const params = env.tflAppKey ? `?app_key=${env.tflAppKey}` : ''
+    const res    = await fetch(`https://api.tfl.gov.uk/StopPoint/${encodeURIComponent(stopCode)}/Arrivals${params}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data   = await res.json() as { lineName: string; destinationName: string; timeToStation: number; vehicleId: string }[]
+    if (!Array.isArray(data) || !data.length) return `No arrivals found for stop ${stopCode}.`
+    const sorted = data.sort((a, b) => a.timeToStation - b.timeToStation).slice(0, 8)
+    return `Bus arrivals at stop ${stopCode}:\n` + sorted.map(a => {
+      const mins = Math.round(a.timeToStation / 60)
+      return `• ${a.lineName} → ${a.destinationName}: ${mins === 0 ? 'Due' : `${mins} min`}`
+    }).join('\n')
+  } catch { return null }
+}
+
+// ── TfL stop search by name/postcode ─────────────────────────────────────────
+export async function tflStopSearch(query: string): Promise<string | null> {
+  try {
+    const params = env.tflAppKey ? `&app_key=${env.tflAppKey}` : ''
+    const res    = await fetch(`https://api.tfl.gov.uk/StopPoint/Search/${encodeURIComponent(query)}?modes=bus${params}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data   = await res.json() as { matches?: { id: string; name: string; towards: string }[] }
+    if (!data.matches?.length) return `No bus stops found for "${query}".`
+    return `Bus stops matching "${query}":\n` + data.matches.slice(0, 6).map(s =>
+      `• ${s.name} (Stop ID: ${s.id})${s.towards ? ` → towards ${s.towards}` : ''}`
+    ).join('\n')
+  } catch { return null }
+}
+
+// ── BODS national bus routes ──────────────────────────────────────────────────
+export async function bodsRouteSearch(query: string): Promise<string | null> {
+  try {
+    const headers: Record<string, string> = {}
+    if (env.bodsApiKey) headers['Authorization'] = `Token ${env.bodsApiKey}`
+    const res  = await fetch(`https://data.bus-data.dft.gov.uk/api/v1/dataset/?search=${encodeURIComponent(query)}&status=published&limit=8`, {
+      headers, signal: AbortSignal.timeout(8000)
+    })
+    if (!res.ok) return null
+    const data = await res.json() as {
+      results?: {
+        name: string
+        description: string
+        operatorName: string
+        noc: string
+      }[]
+    }
+    if (!data.results?.length) return `No bus routes found for "${query}".`
+    return `Bus routes matching "${query}":\n` + data.results.map(r =>
+      `• ${r.name} — ${r.operatorName}\n  ${r.description || ''}`
+    ).join('\n\n')
+  } catch { return null }
+}
+
+// ── Combined UK local services lookup ────────────────────────────────────────
+export async function ukLocalServices(postcode: string): Promise<string> {
+  const [postcodeInfo, hospitals, gps, pharmacies] = await Promise.all([
+    lookupPostcode(postcode),
+    nhsServices(postcode, 'hospitals'),
+    nhsServices(postcode, 'gps'),
+    nhsServices(postcode, 'pharmacies'),
+  ])
+
+  const parts: string[] = []
+  if (postcodeInfo) parts.push(`LOCATION:\n${postcodeInfo}`)
+  if (hospitals)    parts.push(hospitals)
+  if (gps)          parts.push(gps)
+  if (pharmacies)   parts.push(pharmacies)
+
+  return parts.length ? parts.join('\n\n') : `Could not find services near ${postcode}.`
+}

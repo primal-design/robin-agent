@@ -26,6 +26,9 @@ export const env = {
   hunterKey:          process.env.HUNTER_API_KEY ?? '',
   newsApiKey:         process.env.NEWS_API_KEY ?? '',
   tomorrowKey:        process.env.TOMORROW_API_KEY ?? '',
+  nhsApiKey:          process.env.NHS_API_KEY ?? '',
+  tflAppKey:          process.env.TFL_APP_KEY ?? '',
+  bodsApiKey:         process.env.BODS_API_KEY ?? '',
 }
 
 export function assertRequired() {

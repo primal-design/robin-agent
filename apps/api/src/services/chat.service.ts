@@ -5,6 +5,7 @@ import { buildUserContext, handleApproval } from '../brain/brain.js'
 import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brain/prompts.js'
 import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch, getWeather } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
+import { lookupPostcode, nearbyPostcodes, nhsServices, tflBusArrivals, tflStopSearch, bodsRouteSearch, ukLocalServices } from '../lib/uk.js'
 
 let _ai: Anthropic | null = null
 function ai() { return _ai || (_ai = new Anthropic({ apiKey: env.anthropicKey })) }
@@ -184,6 +185,43 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     return { type: 'tool_result' as const, tool_use_id: id, content: results }
   }
 
+  // ── UK local services ────────────────────────────────────────────────────
+  if (name === 'uk_postcode') {
+    const result = await lookupPostcode(String(input.postcode))
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'Postcode not found.' }
+  }
+
+  if (name === 'uk_nearby_postcodes') {
+    const result = await nearbyPostcodes(String(input.postcode), Number(input.radius) || 1000)
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'No nearby postcodes found.' }
+  }
+
+  if (name === 'uk_nhs') {
+    const type = (input.type as 'hospitals' | 'gps' | 'pharmacies') || 'hospitals'
+    const result = await nhsServices(String(input.postcode), type)
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || `No ${type} found near that postcode.` }
+  }
+
+  if (name === 'uk_local_services') {
+    const result = await ukLocalServices(String(input.postcode))
+    return { type: 'tool_result' as const, tool_use_id: id, content: result }
+  }
+
+  if (name === 'tfl_bus_arrivals') {
+    const result = await tflBusArrivals(String(input.stopId))
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'No bus arrivals found. Make sure to use a valid TfL stop ID.' }
+  }
+
+  if (name === 'tfl_stop_search') {
+    const result = await tflStopSearch(String(input.query))
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'No bus stops found.' }
+  }
+
+  if (name === 'uk_bus_routes') {
+    const result = await bodsRouteSearch(String(input.query))
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'No bus routes found.' }
+  }
+
   if (name === 'get_weather') {
     const results = await getWeather(String(input.location), input.units ? String(input.units) : 'metric')
     if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.tomorrowKey ? 'Could not fetch weather for that location.' : 'Weather API not configured. Add TOMORROW_API_KEY to Render.' }
@@ -287,7 +325,14 @@ export async function chatService(userId: string, userMessage: string): Promise<
       { name: 'find_email',         description: 'Find professional email addresses for a company domain using Hunter.io', input_schema: { type: 'object' as const, properties: { domain: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' } }, required: ['domain'] } },
       { name: 'news_search',        description: 'Search latest news articles on any topic using NewsAPI', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
       { name: 'gdelt_search',       description: 'Search GDELT global news events database for worldwide coverage of any topic', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
-      { name: 'get_weather',        description: 'Get accurate 5-day weather forecast for any city or location', input_schema: { type: 'object' as const, properties: { location: { type: 'string' }, units: { type: 'string', enum: ['metric', 'imperial'] } }, required: ['location'] } },
+      { name: 'get_weather',         description: 'Get accurate 5-day weather forecast for any city or location', input_schema: { type: 'object' as const, properties: { location: { type: 'string' }, units: { type: 'string', enum: ['metric', 'imperial'] } }, required: ['location'] } },
+      { name: 'uk_postcode',         description: 'Look up a UK postcode — returns area, district, ward, council, region and coordinates', input_schema: { type: 'object' as const, properties: { postcode: { type: 'string' } }, required: ['postcode'] } },
+      { name: 'uk_nearby_postcodes', description: 'Find postcodes near a given UK postcode within a radius', input_schema: { type: 'object' as const, properties: { postcode: { type: 'string' }, radius: { type: 'number' } }, required: ['postcode'] } },
+      { name: 'uk_nhs',              description: 'Find NHS hospitals, GPs, or pharmacies near a UK postcode', input_schema: { type: 'object' as const, properties: { postcode: { type: 'string' }, type: { type: 'string', enum: ['hospitals', 'gps', 'pharmacies'] } }, required: ['postcode'] } },
+      { name: 'uk_local_services',   description: 'Get a full overview of local services (hospitals, GPs, pharmacies) near a UK postcode', input_schema: { type: 'object' as const, properties: { postcode: { type: 'string' } }, required: ['postcode'] } },
+      { name: 'tfl_stop_search',     description: 'Search for London TfL bus stops by name or area', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+      { name: 'tfl_bus_arrivals',    description: 'Get real-time bus arrivals for a London TfL bus stop ID', input_schema: { type: 'object' as const, properties: { stopId: { type: 'string' } }, required: ['stopId'] } },
+      { name: 'uk_bus_routes',       description: 'Search national UK bus routes and operators using Bus Open Data Service', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
       { name: 'log_task_done',    description: 'Log a completed task, update streak',          input_schema: { type: 'object' as const, properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
       { name: 'find_leads',       description: 'Find local business leads via Google Maps',   input_schema: { type: 'object' as const, properties: { niche: { type: 'string' }, location: { type: 'string' } }, required: ['niche', 'location'] } },
       { name: 'read_emails',      description: 'Read emails from the user Gmail inbox',        input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, maxResults: { type: 'number' }, unreadOnly: { type: 'boolean' } }, required: [] } },
