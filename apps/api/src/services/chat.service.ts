@@ -5,7 +5,7 @@ import { buildUserContext, handleApproval } from '../brain/brain.js'
 import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brain/prompts.js'
 import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch, getWeather } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
-import { lookupPostcode, nearbyPostcodes, nhsServices, tflBusArrivals, tflStopSearch, bodsRouteSearch, ukLocalServices } from '../lib/uk.js'
+import { lookupPostcode, nearbyPostcodes, nhsServices, tflBusArrivals, tflStopSearch, bodsRouteSearch, ukLocalServices, tflLineInfo, tflJourney, tflLineStatus } from '../lib/uk.js'
 
 let _ai: Anthropic | null = null
 function ai() { return _ai || (_ai = new Anthropic({ apiKey: env.anthropicKey })) }
@@ -222,6 +222,21 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     return { type: 'tool_result' as const, tool_use_id: id, content: result || 'No bus routes found.' }
   }
 
+  if (name === 'tfl_line_info') {
+    const result = await tflLineInfo(String(input.lineId))
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'Bus line not found.' }
+  }
+
+  if (name === 'tfl_journey') {
+    const result = await tflJourney(String(input.from), String(input.to))
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'Could not plan that journey.' }
+  }
+
+  if (name === 'tfl_status') {
+    const result = await tflLineStatus(input.mode ? String(input.mode) : 'bus')
+    return { type: 'tool_result' as const, tool_use_id: id, content: result || 'Could not fetch service status.' }
+  }
+
   if (name === 'get_weather') {
     const results = await getWeather(String(input.location), input.units ? String(input.units) : 'metric')
     if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.tomorrowKey ? 'Could not fetch weather for that location.' : 'Weather API not configured. Add TOMORROW_API_KEY to Render.' }
@@ -333,6 +348,9 @@ export async function chatService(userId: string, userMessage: string): Promise<
       { name: 'tfl_stop_search',     description: 'Search for London TfL bus stops by name or area', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
       { name: 'tfl_bus_arrivals',    description: 'Get real-time bus arrivals for a London TfL bus stop ID', input_schema: { type: 'object' as const, properties: { stopId: { type: 'string' } }, required: ['stopId'] } },
       { name: 'uk_bus_routes',       description: 'Search national UK bus routes and operators using Bus Open Data Service', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+      { name: 'tfl_line_info',       description: 'Get route details for a specific London bus line number', input_schema: { type: 'object' as const, properties: { lineId: { type: 'string' } }, required: ['lineId'] } },
+      { name: 'tfl_journey',         description: 'Plan a bus journey between two London locations, stops or postcodes', input_schema: { type: 'object' as const, properties: { from: { type: 'string' }, to: { type: 'string' } }, required: ['from', 'to'] } },
+      { name: 'tfl_status',          description: 'Get current London bus service status and disruptions', input_schema: { type: 'object' as const, properties: { mode: { type: 'string' } }, required: [] } },
       { name: 'log_task_done',    description: 'Log a completed task, update streak',          input_schema: { type: 'object' as const, properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
       { name: 'find_leads',       description: 'Find local business leads via Google Maps',   input_schema: { type: 'object' as const, properties: { niche: { type: 'string' }, location: { type: 'string' } }, required: ['niche', 'location'] } },
       { name: 'read_emails',      description: 'Read emails from the user Gmail inbox',        input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, maxResults: { type: 'number' }, unreadOnly: { type: 'boolean' } }, required: [] } },

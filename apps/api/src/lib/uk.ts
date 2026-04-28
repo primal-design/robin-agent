@@ -144,6 +144,57 @@ export async function bodsRouteSearch(query: string): Promise<string | null> {
   } catch { return null }
 }
 
+// ── TfL Line info ─────────────────────────────────────────────────────────────
+export async function tflLineInfo(lineId: string): Promise<string | null> {
+  try {
+    const params = env.tflAppKey ? `?app_key=${env.tflAppKey}` : ''
+    const res    = await fetch(`https://api.tfl.gov.uk/Line/${encodeURIComponent(lineId)}/Route${params}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data   = await res.json() as { id: string; name: string; routeSections: { name: string; originator: string; destination: string }[] }[]
+    if (!Array.isArray(data) || !data.length) return `No route found for bus ${lineId}.`
+    const line = data[0]
+    const sections = (line.routeSections || []).slice(0, 6).map(s => `  • ${s.originator} → ${s.destination}`).join('\n')
+    return `Bus ${line.id} (${line.name}):\n${sections || 'No route sections available.'}`
+  } catch { return null }
+}
+
+// ── TfL journey planner ───────────────────────────────────────────────────────
+export async function tflJourney(from: string, to: string): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({ mode: 'bus', ...(env.tflAppKey ? { app_key: env.tflAppKey } : {}) })
+    const url    = `https://api.tfl.gov.uk/Journey/JourneyResults/${encodeURIComponent(from)}/to/${encodeURIComponent(to)}?${params}`
+    const res    = await fetch(url, { signal: AbortSignal.timeout(10000) })
+    if (!res.ok) return null
+    const data   = await res.json() as {
+      journeys?: {
+        duration: number
+        legs: { instruction: { summary: string }; duration: number; mode: { name: string } }[]
+      }[]
+    }
+    if (!data.journeys?.length) return `No bus journey found from ${from} to ${to}.`
+    const j = data.journeys[0]
+    const legs = j.legs.map(l => `  • ${l.instruction?.summary} (${l.duration} min, ${l.mode?.name})`).join('\n')
+    return `Journey from ${from} to ${to}:\nTotal: ${j.duration} mins\n${legs}`
+  } catch { return null }
+}
+
+// ── TfL line status (disruptions) ────────────────────────────────────────────
+export async function tflLineStatus(mode = 'bus'): Promise<string | null> {
+  try {
+    const params = env.tflAppKey ? `?app_key=${env.tflAppKey}` : ''
+    const res    = await fetch(`https://api.tfl.gov.uk/Line/Mode/${mode}/Status${params}`, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data   = await res.json() as { id: string; lineStatuses: { statusSeverityDescription: string; reason?: string }[] }[]
+    if (!Array.isArray(data)) return null
+    const disrupted = data.filter(l => l.lineStatuses?.[0]?.statusSeverityDescription !== 'Good Service')
+    if (!disrupted.length) return 'All bus services are running normally.'
+    return `Bus disruptions:\n` + disrupted.slice(0, 10).map(l => {
+      const status = l.lineStatuses[0]
+      return `• Bus ${l.id}: ${status.statusSeverityDescription}${status.reason ? `\n  ${status.reason.slice(0, 120)}` : ''}`
+    }).join('\n\n')
+  } catch { return null }
+}
+
 // ── Combined UK local services lookup ────────────────────────────────────────
 export async function ukLocalServices(postcode: string): Promise<string> {
   const [postcodeInfo, hospitals, gps, pharmacies] = await Promise.all([
