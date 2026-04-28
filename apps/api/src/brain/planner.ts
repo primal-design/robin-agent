@@ -30,6 +30,21 @@ export async function redditSearch(query: string, subreddit = ''): Promise<strin
   } catch { return null }
 }
 
+// ── HackerNews search (no key required) ──────────────────────────────────────
+export async function hackerNewsSearch(query: string): Promise<string | null> {
+  try {
+    const res  = await fetch(`https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(query)}&tags=story&hitsPerPage=10`, {
+      signal: AbortSignal.timeout(6000)
+    })
+    if (!res.ok) return null
+    const data = await res.json() as { hits: { title: string; points: number; num_comments: number; url: string; objectID: string }[] }
+    if (!data.hits?.length) return null
+    return data.hits.slice(0, 8).map(h =>
+      `• ${h.title} (↑${h.points} | ${h.num_comments} comments)\n  ${h.url || `https://news.ycombinator.com/item?id=${h.objectID}`}`
+    ).join('\n')
+  } catch { return null }
+}
+
 // ── Trend analysis: Reddit + Brave combined ───────────────────────────────────
 export async function doTrendAnalysis(topic: string, context = ''): Promise<string> {
   let raw = `Topic: ${topic}\n\n`
@@ -37,6 +52,10 @@ export async function doTrendAnalysis(topic: string, context = ''): Promise<stri
   // Reddit: what real people are discussing
   const redditResults = await redditSearch(topic)
   if (redditResults) raw += `REDDIT (real conversations):\n${redditResults}\n\n`
+
+  // HackerNews: tech/startup signal
+  const hnResults = await hackerNewsSearch(topic)
+  if (hnResults) raw += `HACKERNEWS (tech/startup signal):\n${hnResults}\n\n`
 
   // Brave: what's being written/published
   if (env.braveKey) {
