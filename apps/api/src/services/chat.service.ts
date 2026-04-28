@@ -3,7 +3,7 @@ import { env } from '../config/env.js'
 import { loadSession, saveSession, db, type Session } from '../db/client.js'
 import { buildUserContext, handleApproval } from '../brain/brain.js'
 import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brain/prompts.js'
-import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch } from '../brain/planner.js'
+import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch, getWeather } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 
 let _ai: Anthropic | null = null
@@ -183,6 +183,12 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
     if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: 'No GDELT results found.' }
     return { type: 'tool_result' as const, tool_use_id: id, content: results }
   }
+
+  if (name === 'get_weather') {
+    const results = await getWeather(String(input.location), input.units ? String(input.units) : 'metric')
+    if (!results) return { type: 'tool_result' as const, tool_use_id: id, content: env.tomorrowKey ? 'Could not fetch weather for that location.' : 'Weather API not configured. Add TOMORROW_API_KEY to Render.' }
+    return { type: 'tool_result' as const, tool_use_id: id, content: results }
+  }
   if (name === 'log_task_done') {
     memory.tasks_done   = (memory.tasks_done || 0) + 1
     memory.total_earned = (memory.total_earned || 0) + (Number(input.amount_earned) || 0)
@@ -281,6 +287,7 @@ export async function chatService(userId: string, userMessage: string): Promise<
       { name: 'find_email',         description: 'Find professional email addresses for a company domain using Hunter.io', input_schema: { type: 'object' as const, properties: { domain: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' } }, required: ['domain'] } },
       { name: 'news_search',        description: 'Search latest news articles on any topic using NewsAPI', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
       { name: 'gdelt_search',       description: 'Search GDELT global news events database for worldwide coverage of any topic', input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] } },
+      { name: 'get_weather',        description: 'Get accurate 5-day weather forecast for any city or location', input_schema: { type: 'object' as const, properties: { location: { type: 'string' }, units: { type: 'string', enum: ['metric', 'imperial'] } }, required: ['location'] } },
       { name: 'log_task_done',    description: 'Log a completed task, update streak',          input_schema: { type: 'object' as const, properties: { task_description: { type: 'string' }, amount_earned: { type: 'number' } }, required: ['task_description'] } },
       { name: 'find_leads',       description: 'Find local business leads via Google Maps',   input_schema: { type: 'object' as const, properties: { niche: { type: 'string' }, location: { type: 'string' } }, required: ['niche', 'location'] } },
       { name: 'read_emails',      description: 'Read emails from the user Gmail inbox',        input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, maxResults: { type: 'number' }, unreadOnly: { type: 'boolean' } }, required: [] } },

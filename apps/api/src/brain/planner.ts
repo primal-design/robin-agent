@@ -172,6 +172,52 @@ export async function gdeltSearch(query: string): Promise<string | null> {
   } catch { return null }
 }
 
+// ── Tomorrow.io weather ───────────────────────────────────────────────────────
+export async function getWeather(location: string, units = 'metric'): Promise<string | null> {
+  if (!env.tomorrowKey) return null
+  try {
+    const url = `https://api.tomorrow.io/v4/weather/forecast?location=${encodeURIComponent(location)}&timesteps=1d&units=${units}&apikey=${env.tomorrowKey}`
+    const res  = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!res.ok) return null
+    const data = await res.json() as {
+      timelines?: {
+        daily?: {
+          time: string
+          values: {
+            temperatureMax: number
+            temperatureMin: number
+            precipitationProbabilityAvg: number
+            windSpeedAvg: number
+            weatherCodeMax: number
+            humidityAvg: number
+            uvIndexMax: number
+          }
+        }[]
+      }
+      location?: { name: string }
+    }
+    const days = data.timelines?.daily?.slice(0, 5) || []
+    if (!days.length) return null
+
+    const weatherCode: Record<number, string> = {
+      1000: 'Clear', 1100: 'Mostly Clear', 1101: 'Partly Cloudy', 1102: 'Mostly Cloudy',
+      1001: 'Cloudy', 2000: 'Fog', 4000: 'Drizzle', 4001: 'Rain', 4200: 'Light Rain',
+      4201: 'Heavy Rain', 5000: 'Snow', 5001: 'Flurries', 6000: 'Freezing Drizzle',
+      8000: 'Thunderstorm',
+    }
+
+    const tempUnit = units === 'metric' ? '°C' : '°F'
+    const name = data.location?.name || location
+    const lines = days.map(d => {
+      const v = d.values
+      const date = new Date(d.time).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+      const condition = weatherCode[v.weatherCodeMax] || 'Unknown'
+      return `${date}: ${condition}, ${Math.round(v.temperatureMax)}/${Math.round(v.temperatureMin)}${tempUnit}, rain ${Math.round(v.precipitationProbabilityAvg)}%, wind ${Math.round(v.windSpeedAvg)}km/h, UV ${v.uvIndexMax}`
+    })
+    return `Weather for ${name}:\n${lines.join('\n')}`
+  } catch { return null }
+}
+
 async function braveSearch(query: string): Promise<string | null> {
   if (!env.braveKey) return null
   try {
