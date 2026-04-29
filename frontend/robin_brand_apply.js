@@ -31,5 +31,20 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyBrand)
   else applyBrand()
 
-  new MutationObserver(() => applyBrand()).observe(document.documentElement, { childList: true, subtree: true })
+  // Throttled observer — only re-run if a relevant brand node was actually added
+  let _t = null
+  new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType !== 1) continue
+        // Only trigger if the added node contains or is a known brand selector
+        if (node.matches && (node.matches('.sb-brand,.fbrand,.a-tb-brand,.app-nav-brand,.si-logo,#fox,.ffox,.a-tb-fox,.sb-fox') ||
+            node.querySelector?.('.sb-brand,.fbrand,.a-tb-brand,.app-nav-brand,.si-logo,#fox'))) {
+          clearTimeout(_t)
+          _t = setTimeout(applyBrand, 80)
+          return
+        }
+      }
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true })
 })()
