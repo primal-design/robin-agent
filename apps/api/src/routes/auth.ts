@@ -189,6 +189,78 @@ router.post('/auth/refresh', async (req, res) => {
   res.json({ ok: true, ...createSession(session.phone) })
 })
 
+// ── Google OAuth ─────────────────────────────────────────────────────────────
+router.get('/auth/google', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID
+  if (!clientId) return res.status(500).send('Google OAuth not configured.')
+  const base = appBaseUrl(req)
+  const params = new URLSearchParams({
+    client_id:     clientId,
+    redirect_uri:  `${base}/auth/google/callback`,
+    response_type: 'code',
+    scope:         'openid email profile',
+    access_type:   'offline',
+    prompt:        'select_account',
+  })
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+})
+
+router.get('/auth/google/callback', async (req, res) => {
+  const code = String(req.query.code || '')
+  if (!code) return res.redirect('/frontend/robin_site.html?error=google_denied')
+
+  const clientId     = process.env.GOOGLE_CLIENT_ID     || ''
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ''
+  const base         = appBaseUrl(req)
+
+  try {
+    // Exchange code for tokens
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id:     clientId,
+        client_secret: clientSecret,
+        redirect_uri:  `${base}/auth/google/callback`,
+        grant_type:    'authorization_code',
+      })
+    })
+    const tokenData = await tokenRes.json() as any
+    if (!tokenData.id_token) return res.redirect('/frontend/robin_site.html?error=google_token_failed')
+
+    // Decode id_token (JWT — no verify needed for our purposes, Google already validated)
+    const payload = JSON.parse(Buffer.from(tokenData.id_token.split('.')[1], 'base64url').toString())
+    const email   = String(payload.email || '').toLowerCase().trim()
+    const name    = String(payload.name  || payload.given_name || '').trim()
+    if (!email) return res.redirect('/frontend/robin_site.html?error=google_no_email')
+
+    const { db } = await import('../db/client.js')
+
+    // Look up user by email in waitlist
+    const check = await db.query(`SELECT phone, name, role, status FROM waitlist WHERE LOWER(email)=$1 LIMIT 1`, [email])
+
+    if (!check.rows.length || check.rows[0].status !== 'accepted') {
+      // Not accepted yet — redirect to request access with email pre-filled
+      return res.redirect(`/frontend/robin_site.html?error=not_accepted&email=${encodeURIComponent(email)}`)
+    }
+
+    const user  = check.rows[0]
+    // Use phone as identity (existing token system); fall back to email hash if no phone
+    const phone = user.phone || `email:${email}`
+
+    // Update name from Google if not set
+    if (!user.name && name) await db.query(`UPDATE waitlist SET name=$1 WHERE LOWER(email)=$2`, [name, email])
+
+    const session = createSession(phone)
+    const nextUrl = `/frontend/robin_dashboard.html?token=${encodeURIComponent(session.token)}&refresh=${encodeURIComponent(session.refresh_token)}&name=${encodeURIComponent(user.name || name)}`
+    res.redirect(nextUrl)
+  } catch (err) {
+    console.error('[google-auth]', err)
+    res.redirect('/frontend/robin_site.html?error=google_failed')
+  }
+})
+
 router.post('/auth/dev-login', async (req, res, next) => {
   try {
     if (process.env.NODE_ENV === 'production' || process.env.DEV_LOGIN_BYPASS !== 'true') return res.status(404).json({ error: 'not_found' })
