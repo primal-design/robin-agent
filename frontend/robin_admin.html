@@ -94,15 +94,15 @@
     <thead>
       <tr>
         <th>Name</th>
-        <th>Phone</th>
-        <th>Request ID</th>
+        <th>Phone / Email</th>
+        <th>Why Robin?</th>
         <th>Submitted</th>
         <th>Status</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody id="waitlist-body">
-      <tr><td colspan="6" class="loading">Loading...</td></tr>
+      <tr><td colspan="7" class="loading">Loading...</td></tr>
     </tbody>
   </table>
 </main>
@@ -110,26 +110,38 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const ADMIN_PASSWORD = 'robin-admin-2026'
+var adminSecret = ''
 var currentFilter = 'all'
 var allRows = []
 
 function adminLogin() {
   var pw = document.getElementById('admin-pw').value
-  if (pw === ADMIN_PASSWORD) {
-    document.getElementById('login-wall').style.display = 'none'
-    loadWaitlist()
-  } else {
+  fetch('/admin/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  }).then(function(r){ return r.json() }).then(function(data) {
+    if (data.ok) {
+      adminSecret = pw
+      document.getElementById('login-wall').style.display = 'none'
+      loadWaitlist()
+    } else {
+      var e = document.getElementById('login-err')
+      e.style.display = 'block'
+      setTimeout(function(){ e.style.display='none' }, 2000)
+    }
+  }).catch(function() {
     var e = document.getElementById('login-err')
+    e.textContent = 'Server error. Try again.'
     e.style.display = 'block'
-    setTimeout(function(){ e.style.display='none' }, 2000)
-  }
+    setTimeout(function(){ e.style.display='none'; e.textContent='Incorrect password.' }, 2000)
+  })
 }
 
 function api(method, path, body) {
   return fetch(path, {
     method: method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Secret': adminSecret },
     body: body ? JSON.stringify(body) : undefined
   }).then(function(r){ return r.json() })
 }
@@ -162,7 +174,7 @@ function renderTable() {
   var rows = currentFilter === 'all' ? allRows : allRows.filter(r => r.status === currentFilter)
   var tb = document.getElementById('waitlist-body')
   if (rows.length === 0) {
-    tb.innerHTML = '<tr><td colspan="6" class="empty">No entries.</td></tr>'
+    tb.innerHTML = '<tr><td colspan="7" class="empty">No entries.</td></tr>'
     return
   }
   tb.innerHTML = rows.map(function(r) {
@@ -177,10 +189,12 @@ function renderTable() {
     } else {
       actions = '<button class="btn-accept" onclick="updateStatus(\'' + r.phone + '\',\'accepted\')">Reinstate</button>'
     }
+    var contact = r.phone ? '<span style="font-family:monospace;font-size:12px">' + r.phone + '</span>' : ''
+    if (r.email) contact += (contact ? '<br>' : '') + '<span style="font-size:11px;color:var(--ink2)">' + r.email + '</span>'
     return '<tr>' +
-      '<td><strong>' + r.name + '</strong></td>' +
-      '<td style="font-family:monospace;font-size:12px">' + r.phone + '</td>' +
-      '<td style="font-family:monospace;font-size:12px;color:var(--ink2)">' + r.request_id + '</td>' +
+      '<td><strong>' + (r.name || '—') + '</strong></td>' +
+      '<td>' + (contact || '—') + '</td>' +
+      '<td style="font-size:12px;color:var(--ink2)">' + (r.role || '—') + '</td>' +
       '<td style="color:var(--ink2)">' + date + '</td>' +
       '<td>' + badge + '</td>' +
       '<td>' + actions + '</td>' +

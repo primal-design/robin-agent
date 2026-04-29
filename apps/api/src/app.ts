@@ -6,6 +6,7 @@ import whatsappRouter from './routes/whatsapp.js'
 import chatRouter     from './routes/chat.js'
 import gmailRouter    from './routes/gmail.js'
 import authRouter     from './routes/auth.js'
+import adminRouter    from './routes/admin.js'
 import fs from 'fs'
 
 export function createApp() {
@@ -16,7 +17,7 @@ export function createApp() {
   app.use((_, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
 
   const frontendDir = resolve(__dirname, '../../../frontend')
-  const assetVersion = '20260429a'
+  const assetVersion = '20260429b'
 
   app.get('/frontend/:file', (req, res, next) => {
     const filePath = resolve(frontendDir, req.params.file)
@@ -42,6 +43,7 @@ export function createApp() {
   app.get('/health', (_, res) => res.json({ ok: true, service: 'robin-api' }))
 
   app.use('/',         authRouter)
+  app.use('/',         adminRouter)
   app.use('/whatsapp', whatsappRouter)
   app.use('/',         gmailRouter)
   app.use('/',         chatRouter)
