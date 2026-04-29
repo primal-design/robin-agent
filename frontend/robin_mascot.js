@@ -29,8 +29,14 @@
   }
 
   window.RobinMascot = { src: ROBIN_MASCOT_SRC, makeMascot, replaceFoxEmoji }
-  replaceFoxEmoji()
-  new MutationObserver(mutations => {
-    for (const m of mutations) m.addedNodes.forEach(n => replaceFoxEmoji(n.nodeType === 1 ? n : n.parentElement))
-  }).observe(document.body, { childList: true, subtree: true })
+
+  function initMascot() {
+    replaceFoxEmoji()
+    new MutationObserver(mutations => {
+      for (const m of mutations) m.addedNodes.forEach(n => replaceFoxEmoji(n.nodeType === 1 ? n : n.parentElement))
+    }).observe(document.body, { childList: true, subtree: true })
+  }
+
+  if (document.body) initMascot()
+  else document.addEventListener('DOMContentLoaded', initMascot)
 })()

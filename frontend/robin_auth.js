@@ -108,6 +108,11 @@
     return res
   }
 
-  handleMagicLink()
-  if (localStorage.getItem(TOKEN)) addLogout()
+  function init() {
+    handleMagicLink()
+    if (localStorage.getItem(TOKEN)) addLogout()
+  }
+
+  if (document.body) init()
+  else document.addEventListener('DOMContentLoaded', init)
 })()
