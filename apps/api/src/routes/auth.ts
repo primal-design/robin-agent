@@ -219,6 +219,8 @@ router.get('/auth/google/callback', async (req, res) => {
 
   try {
     // Exchange code for tokens
+    const redirectUri = googleRedirectUri(req)
+    console.log('[google-auth] redirect_uri:', redirectUri)
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -226,11 +228,20 @@ router.get('/auth/google/callback', async (req, res) => {
         code,
         client_id:     clientId,
         client_secret: clientSecret,
-        redirect_uri:  googleRedirectUri(req),
+        redirect_uri:  redirectUri,
         grant_type:    'authorization_code',
       })
     })
-    const tokenData = await tokenRes.json() as any
+    const rawBody = await tokenRes.text()
+    let tokenData: any
+    try { tokenData = JSON.parse(rawBody) } catch {
+      console.error('[google-auth] token response not JSON:', rawBody.slice(0, 200))
+      return res.redirect('/frontend/robin_site.html?error=google_token_failed')
+    }
+    if (tokenData.error) {
+      console.error('[google-auth] token error:', tokenData.error, tokenData.error_description)
+      return res.redirect('/frontend/robin_site.html?error=google_token_failed')
+    }
     if (!tokenData.id_token) return res.redirect('/frontend/robin_site.html?error=google_token_failed')
 
     // Decode id_token (JWT — no verify needed for our purposes, Google already validated)
