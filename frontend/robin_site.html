@@ -1032,7 +1032,11 @@ function siGoogleSignIn() {
     siOpen()
     setTimeout(function() {
       var el = document.getElementById('si-error')
-      if (el) { el.textContent = msgs[err]; el.style.display = 'block'; }
+      if (el) {
+        var detail = params.get('detail')
+        el.textContent = msgs[err] + (detail ? ' (' + detail + ')' : '')
+        el.style.display = 'block'
+      }
       // If not accepted, also open request access
       if (err === 'not_accepted') {
         var email = params.get('email') || ''

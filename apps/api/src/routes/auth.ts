@@ -190,6 +190,18 @@ router.post('/auth/refresh', async (req, res) => {
 })
 
 // ── Google OAuth ─────────────────────────────────────────────────────────────
+
+// Diagnostic endpoint — visit /auth/google/check to see the live config
+router.get('/auth/google/check', (req, res) => {
+  res.json({
+    client_id_set:     !!process.env.GOOGLE_CLIENT_ID,
+    client_secret_set: !!process.env.GOOGLE_CLIENT_SECRET,
+    redirect_uri:      `${process.env.PUBLIC_APP_URL || `https://${req.get('host')}`}/auth/google/callback`,
+    public_app_url:    process.env.PUBLIC_APP_URL || '(not set — using host header)',
+    host_header:       req.get('host'),
+  })
+})
+
 function googleRedirectUri(req: any) {
   // Always use PUBLIC_APP_URL if set, otherwise fall back to request — but force https on Render
   const base = process.env.PUBLIC_APP_URL || `https://${req.get('host')}`
@@ -271,8 +283,9 @@ router.get('/auth/google/callback', async (req, res) => {
     const nextUrl = `/frontend/robin_dashboard.html?token=${encodeURIComponent(session.token)}&refresh=${encodeURIComponent(session.refresh_token)}&name=${encodeURIComponent(user.name || name)}`
     res.redirect(nextUrl)
   } catch (err) {
-    console.error('[google-auth]', err)
-    res.redirect('/frontend/robin_site.html?error=google_failed')
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[google-auth] unhandled:', msg)
+    res.redirect(`/frontend/robin_site.html?error=google_failed&detail=${encodeURIComponent(msg.slice(0, 120))}`)
   }
 })
 
