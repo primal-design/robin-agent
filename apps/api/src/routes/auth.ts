@@ -190,13 +190,18 @@ router.post('/auth/refresh', async (req, res) => {
 })
 
 // ── Google OAuth ─────────────────────────────────────────────────────────────
+function googleRedirectUri(req: any) {
+  // Always use PUBLIC_APP_URL if set, otherwise fall back to request — but force https on Render
+  const base = process.env.PUBLIC_APP_URL || `https://${req.get('host')}`
+  return `${base}/auth/google/callback`
+}
+
 router.get('/auth/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID
   if (!clientId) return res.status(500).send('Google OAuth not configured.')
-  const base = appBaseUrl(req)
   const params = new URLSearchParams({
     client_id:     clientId,
-    redirect_uri:  `${base}/auth/google/callback`,
+    redirect_uri:  googleRedirectUri(req),
     response_type: 'code',
     scope:         'openid email profile',
     access_type:   'offline',
@@ -211,7 +216,6 @@ router.get('/auth/google/callback', async (req, res) => {
 
   const clientId     = process.env.GOOGLE_CLIENT_ID     || ''
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ''
-  const base         = appBaseUrl(req)
 
   try {
     // Exchange code for tokens
@@ -222,7 +226,7 @@ router.get('/auth/google/callback', async (req, res) => {
         code,
         client_id:     clientId,
         client_secret: clientSecret,
-        redirect_uri:  `${base}/auth/google/callback`,
+        redirect_uri:  googleRedirectUri(req),
         grant_type:    'authorization_code',
       })
     })
