@@ -53,7 +53,7 @@ h1 em{font-style:italic;color:var(--gold2)}
 .ps-head{padding:4px 18px 12px;border-bottom:.5px solid var(--rule);text-align:center}
 .ps-sub{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:2px}
 .ps-name{font-family:"Cormorant Garamond",serif;font-size:16px}
-.ps-msgs{padding:16px 12px;display:flex;flex-direction:column;gap:8px;min-height:290px}
+.ps-msgs{padding:16px 12px;display:flex;flex-direction:column;gap:8px;min-height:340px;max-height:340px;overflow-y:auto;scroll-behavior:smooth}
 .pm{padding:9px 12px;border-radius:14px;font-size:12.5px;line-height:1.45;max-width:84%}
 .pm.i{background:#F2F2F2;align-self:flex-start;border-bottom-left-radius:3px}
 .pm.o{background:#1A1816;color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
@@ -616,43 +616,51 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
 /* ── Phone mockup animation ── */
 var phoneScenes = [
   {
-    cap: 'Ready before you asked.',
-    time: '9:00',
+    cap: 'Just message it.',
+    time: '9:41',
     messages: [
-      { side: 'i', text: 'Morning. Three things need you.', delay: 0 },
-      { side: 'i', text: 'James — proposal reply.\nInvoice £4,200 — 14 days overdue.\nQ3 meeting unscheduled.\n\nReply 1, 2, or 3.', delay: 600 },
-      { side: 'o', text: '1', delay: 1400 },
-      { side: 'a', al: 'Draft ready', aw: 'James · proposal', al2: 'Ready.', ad: '"Hi James — revised proposal by end of day. Tuesday\'s pricing feedback incorporated."', delay: 2000 }
+      { side: 'o', text: 'hi', delay: 0 },
+      { side: 'i', text: 'Hey. What do you need?', delay: 800 },
+      { side: 'o', text: 'can you check my emails', delay: 1800 },
+      { side: 'i', text: 'On it.', delay: 2600 },
+      { side: 'i', text: '3 unread.\n\nJames — replied to your proposal ✓\nSarah — invoice still unpaid\nMark — wants to reschedule Thursday', delay: 3200 },
+      { side: 'o', text: 'draft a reply to sarah', delay: 4400 },
+      { side: 'a', al: 'Draft ready', aw: 'Sarah · invoice', al2: 'Ready to send.', ad: '"Hi Sarah — just a quick note on invoice #1042 from last week. Let me know if anything is needed from my side."', delay: 5200 }
     ]
   },
   {
-    cap: 'Nothing left hanging.',
-    time: '11:22',
+    cap: 'One word. Done.',
+    time: '11:03',
     messages: [
-      { side: 'i', text: 'Sarah\'s invoice is 14 days overdue.', delay: 0 },
-      { side: 'i', text: 'I\'ve drafted a polite follow-up.\n\nShall I send it?', delay: 700 },
-      { side: 'o', text: 'Send it.', delay: 1500 },
-      { side: 'a', al: 'Sent', aw: 'Invoice follow-up · Sarah', al2: 'Done.', ad: '"Hi Sarah — just following up on invoice #1042 from 14 days ago. Let me know if there\'s anything needed from my side."', delay: 2100 }
+      { side: 'o', text: 'whats happening today', delay: 0 },
+      { side: 'i', text: '2 meetings. 1 overdue follow-up.', delay: 900 },
+      { side: 'i', text: '10am — Mark (budget call)\n3pm — Team standup\n\nTom hasn\'t replied in 5 days.', delay: 1600 },
+      { side: 'o', text: 'nudge tom', delay: 2800 },
+      { side: 'i', text: 'Sent.', delay: 3600 },
+      { side: 'i', text: '"Hey Tom — just circling back. Still good for a call this week?"', delay: 4100 }
     ]
   },
   {
-    cap: 'Briefs written. You just show up.',
+    cap: 'It remembers so you don\'t have to.',
     time: '8:55',
     messages: [
-      { side: 'i', text: 'You\'re meeting Mark at 10am.', delay: 0 },
-      { side: 'i', text: 'Budget approved last week. He\'s evaluating 3 vendors — you\'re second.\n\nSuggested opener: reference their Q2 post on speed-to-market.', delay: 800 },
-      { side: 'o', text: 'Perfect.', delay: 1700 },
-      { side: 'i', text: 'Good luck. I\'ll log the outcome after.', delay: 2300 }
+      { side: 'o', text: 'meeting with mark in an hour', delay: 0 },
+      { side: 'i', text: 'Got it. Here\'s the brief:', delay: 900 },
+      { side: 'i', text: 'Budget: approved last week\nHe\'s comparing 3 vendors — you\'re second\n\nOpener: mention their Q2 post on speed-to-market', delay: 1600 },
+      { side: 'o', text: 'perfect', delay: 3000 },
+      { side: 'i', text: 'Good luck. I\'ll log the outcome after.', delay: 3700 }
     ]
   },
   {
-    cap: 'Open loops closed automatically.',
-    time: '4:12',
+    cap: 'Your inbox. Handled.',
+    time: '2:18',
     messages: [
-      { side: 'i', text: 'You asked me to follow up with Tom last week.', delay: 0 },
-      { side: 'i', text: 'He hasn\'t replied. Want me to send a nudge, or close the loop?', delay: 700 },
-      { side: 'o', text: 'Send a nudge.', delay: 1500 },
-      { side: 'a', al: 'Sent', aw: 'Nudge · Tom', al2: 'Done.', ad: '"Hey Tom — just circling back on our last chat. Happy to jump on a quick call this week if useful."', delay: 2100 }
+      { side: 'o', text: 'I have some emails can u check them for me', delay: 0 },
+      { side: 'i', text: '5 unread. 2 need a reply.', delay: 900 },
+      { side: 'i', text: 'James — proposal feedback (waiting on you)\nLisa — invoice approved, asking next steps', delay: 1600 },
+      { side: 'o', text: 'reply to both', delay: 2800 },
+      { side: 'i', text: 'Drafting both now…', delay: 3500 },
+      { side: 'a', al: 'Drafts ready', aw: 'James + Lisa', al2: '2 replies.', ad: 'Review them or reply "send both" to send immediately.', delay: 4300 }
     ]
   }
 ];
@@ -696,7 +704,7 @@ function phoneRunScene(scene) {
       });
     }, m.delay);
   });
-  var lastDelay = scene.messages[scene.messages.length - 1].delay + 3200;
+  var lastDelay = scene.messages[scene.messages.length - 1].delay + 4500;
   phoneAnimTimeout = setTimeout(function() {
     msgs.style.opacity = '0';
     msgs.style.transition = 'opacity .5s';
