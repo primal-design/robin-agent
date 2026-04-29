@@ -257,9 +257,12 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
 .si-link:hover{color:var(--ink)}
 .si-no-access{margin-top:28px;font-size:13px;color:var(--ink3);font-weight:300}
 .si-no-access span{color:var(--gold2);cursor:pointer}
-.si-chan{padding:8px 16px;border:.5px solid var(--rule);background:#fff;color:var(--ink2);font-size:12px;font-family:"Inter",sans-serif;font-weight:300;cursor:pointer;transition:all .25s;border-radius:20px}
-.si-chan:hover{border-color:var(--gold);color:var(--gold2)}
-.si-chan.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.si-fallback{margin-top:24px;padding-top:20px;border-top:.5px solid var(--rule)}
+.si-fallback-label{font-size:12px;color:var(--ink3);letter-spacing:.08em;margin-bottom:12px;font-weight:300}
+.si-fallback-opts{display:flex;flex-direction:column;gap:0}
+.si-fallback-btn{background:none;border:none;text-align:left;padding:9px 0;font-size:13px;color:var(--ink2);cursor:pointer;font-family:"Inter",sans-serif;font-weight:300;border-bottom:.5px solid var(--rule);transition:color .2s}
+.si-fallback-btn:last-child{border-bottom:none}
+.si-fallback-btn:hover{color:var(--ink)}
 .si-loader{display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 0}
 .si-spin{width:28px;height:28px;border:1.5px solid var(--rule);border-top-color:var(--gold2);border-radius:50%;animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -566,21 +569,10 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
       <div class="si-step on" id="si-step-0">
         <div class="si-eyebrow">Sign in</div>
         <h2 class="si-title serif">Your number. <em>That's it.</em></h2>
-        <p class="si-hint">We'll send a one-time code to verify it's you.</p>
+        <p class="si-hint">Enter your number. We'll send a code via WhatsApp.</p>
         <input id="si-tel" class="si-inp" type="tel" placeholder="+44 7700 900 123" autocomplete="tel"/>
-        <p id="si-error" style="font-size:13px;color:#c0392b;margin:8px 0 0;display:none;font-weight:400"></p>
-        <!-- Channel selector -->
-        <div style="margin-top:20px">
-          <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);margin-bottom:12px">Send code via</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="si-chan active" id="chan-whatsapp" onclick="siSetChannel('whatsapp')">WhatsApp</button>
-            <button class="si-chan" id="chan-sms" onclick="siSetChannel('sms')">SMS</button>
-            <button class="si-chan" id="chan-telegram" onclick="siSetChannel('telegram')">Telegram</button>
-            <button class="si-chan" id="chan-email" onclick="siSetChannel('email')">Email</button>
-          </div>
-          <p id="si-chan-note" style="font-size:12px;color:var(--ink3);margin-top:8px;font-style:italic">Sent to your WhatsApp</p>
-        </div>
-        <div class="si-actions" style="margin-top:28px">
+        <p id="si-error" style="font-size:13px;color:#c0392b;margin:10px 0 0;display:none;font-weight:400"></p>
+        <div class="si-actions">
           <button class="si-link" onclick="siClose()">Cancel</button>
           <button id="si-btn-0" class="si-btn" disabled onclick="siStep1()">Send code →</button>
         </div>
@@ -589,14 +581,18 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
       <div class="si-step" id="si-step-1">
         <div class="si-eyebrow">Verify</div>
         <h2 class="si-title serif">Enter the <em>6-digit code.</em></h2>
-        <p class="si-hint" id="si-sent-hint">Check your messages.</p>
+        <p class="si-hint" id="si-sent-hint">Sent via WhatsApp.</p>
         <input id="si-otp" class="si-inp si-code" type="number" placeholder="000000"/>
-        <p id="si-resend-hint" style="font-size:13px;color:var(--ink3);margin-top:16px;font-weight:300">Didn't get it? Try via
-          <span onclick="siResend('sms')" style="color:var(--gold2);cursor:pointer;text-decoration:underline">SMS</span> ·
-          <span onclick="siResend('email')" style="color:var(--gold2);cursor:pointer;text-decoration:underline">Email</span> ·
-          <span onclick="siResend('telegram')" style="color:var(--gold2);cursor:pointer;text-decoration:underline">Telegram</span>
-        </p>
-        <div class="si-actions" style="margin-top:28px">
+        <!-- Fallback channels — only shown if user needs them -->
+        <div class="si-fallback" id="si-fallback">
+          <p class="si-fallback-label">Didn't get it?</p>
+          <div class="si-fallback-opts">
+            <button class="si-fallback-btn" onclick="siResend('sms')">Send via SMS</button>
+            <button class="si-fallback-btn" onclick="siResend('email')">Send to email</button>
+            <button class="si-fallback-btn" onclick="siResend('telegram')">Send via Telegram</button>
+          </div>
+        </div>
+        <div class="si-actions">
           <button class="si-link" onclick="siShowStep(0)">← Different number</button>
           <button id="si-btn-1" class="si-btn" disabled onclick="siStep2()">Verify →</button>
         </div>
@@ -999,33 +995,27 @@ function siSetup() {
   }
 }
 
-var siChannel = 'whatsapp';
-var siChannelNotes = { whatsapp: 'Sent to your WhatsApp', sms: 'Sent as SMS to your number', telegram: 'Sent via Telegram (message @RobinAssistantBot first)', email: 'Sent to your email on file' };
-
-function siSetChannel(ch) {
-  siChannel = ch;
-  ['whatsapp','sms','telegram','email'].forEach(function(c) {
-    var el = document.getElementById('chan-' + c);
-    if (el) el.className = 'si-chan' + (c === ch ? ' active' : '');
-  });
-  var note = document.getElementById('si-chan-note');
-  if (note) note.textContent = siChannelNotes[ch] || '';
-}
-
 function siResend(ch) {
   var phone = localStorage.getItem('robin_signin_phone') || '';
   if (!phone) { siShowStep(0); return; }
-  siToast('Sending via ' + ch + '…');
+  var labels = { sms: 'SMS', email: 'email', telegram: 'Telegram' };
+  var label = labels[ch] || ch;
+  // Disable all fallback buttons while sending
+  var btns = document.querySelectorAll('.si-fallback-btn');
+  btns.forEach(function(b) { b.disabled = true; b.style.opacity = '.4'; });
   api('POST', '/auth/send-code', { phone: phone, channel: ch }).then(function(data) {
-    var label = ch.charAt(0).toUpperCase() + ch.slice(1);
+    btns.forEach(function(b) { b.disabled = false; b.style.opacity = '1'; });
     if (data && data.ok) {
-      siToast('Code sent via ' + label + '.');
       var h = document.getElementById('si-sent-hint');
-      if (h) h.textContent = 'Code sent via ' + label + '. Check ' + (ch === 'email' ? data.email || 'your email' : 'your ' + label) + '.';
+      if (h) h.textContent = 'Code sent via ' + label + (ch === 'email' && data.email ? ' to ' + data.email : '') + '.';
+      siToast('Code sent via ' + label + '.');
     } else {
-      siToast('Could not send via ' + label + '. ' + (data && data.message ? data.message : ''));
+      siToast(data && data.message ? data.message : 'Could not send via ' + label + '.');
     }
-  }).catch(function() { siToast('Something went wrong — try again.'); });
+  }).catch(function() {
+    btns.forEach(function(b) { b.disabled = false; b.style.opacity = '1'; });
+    siToast('Something went wrong — try again.');
+  });
 }
 
 function siStep1() {
@@ -1034,7 +1024,7 @@ function siStep1() {
   var phone = tel.value.trim();
   var b0 = document.getElementById('si-btn-0'); if (b0) b0.disabled = true;
   localStorage.setItem('robin_signin_phone', phone);
-  api('POST', '/auth/send-code', { phone: phone, channel: siChannel }).then(function(data) {
+  api('POST', '/auth/send-code', { phone: phone, channel: 'whatsapp' }).then(function(data) {
     if (data && data.error === 'not_accepted') {
       var err = document.getElementById('si-error');
       if (err) { err.textContent = "This number doesn't have access yet."; err.style.display = 'block'; }
@@ -1043,10 +1033,10 @@ function siStep1() {
     }
     var err = document.getElementById('si-error');
     if (err) err.style.display = 'none';
-    var delivery = (data && data.delivery) || siChannel;
+    var delivery = (data && data.delivery) || 'whatsapp';
     var deliveryLabel = { whatsapp: 'WhatsApp', sms: 'SMS', email: 'email', telegram: 'Telegram' }[delivery] || delivery;
     var h = document.getElementById('si-sent-hint');
-    if (h) h.textContent = 'Code sent to ' + phone + ' via ' + deliveryLabel + '.';
+    if (h) h.textContent = 'Code sent via ' + deliveryLabel + '.';
     siShowStep(1);
     var otp = document.getElementById('si-otp');
     if (otp) { otp.value=''; setTimeout(function(){ otp.focus(); }, 150); }
