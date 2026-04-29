@@ -6,6 +6,8 @@
   function replaceImage(el) {
     const src = mascotSrc()
     if (!src || !el) return
+    // Don't overwrite an img that already has a valid inline src (base64 or blob)
+    if (el.src && (el.src.startsWith('data:') || el.src.startsWith('blob:'))) return
     el.src = src
     el.alt = 'Robin'
     el.style.objectFit = 'contain'

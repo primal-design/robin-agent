@@ -17,7 +17,7 @@ export function createApp() {
   app.use((_, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
 
   const frontendDir = resolve(__dirname, '../../../frontend')
-  const assetVersion = '20260429c'
+  const assetVersion = '20260429d'
 
   app.get('/frontend/:file', (req, res, next) => {
     const filePath = resolve(frontendDir, req.params.file)
@@ -28,7 +28,9 @@ export function createApp() {
       const scripts: string[] = []
       if (!html.includes('robin_auth.js')) scripts.push(`<script src="/frontend/robin_auth.js?v=${assetVersion}"></script>`)
       if (!html.includes('robin_mascot.js')) scripts.push(`<script src="/frontend/robin_mascot.js?v=${assetVersion}"></script>`)
-      if (!html.includes('robin_brand_apply.js')) scripts.push(`<script src="/frontend/robin_brand_apply.js?v=${assetVersion}"></script>`)
+      // Only inject brand_apply on pages that don't manage their own brand icons
+      const skipBrand = ['robin_dashboard.html', 'robin_chat.html'].includes(req.params.file)
+      if (!skipBrand && !html.includes('robin_brand_apply.js')) scripts.push(`<script src="/frontend/robin_brand_apply.js?v=${assetVersion}"></script>`)
       if (req.params.file === 'robin_site.html' && !html.includes('landing_copy_fix.js')) scripts.push(`<script src="/frontend/landing_copy_fix.js?v=${assetVersion}"></script>`)
       if (scripts.length) html = html.replace('</head>', `${scripts.join('')}</head>`)
       res.setHeader('Cache-Control', 'no-store')
