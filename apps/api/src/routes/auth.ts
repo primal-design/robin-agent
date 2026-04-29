@@ -62,6 +62,25 @@ async function sendWhatsAppCode(phone: string, code: string) {
   await client.messages.create({ from: process.env.TWILIO_WHATSAPP_FROM, to: `whatsapp:${phone}`, body: `Your Robin sign-in code is: ${code}. Expires in 10 minutes.` })
 }
 
+async function sendSMSCode(phone: string, code: string) {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_SMS_FROM) throw new Error('Twilio SMS is not configured')
+  const twilio = (await import('twilio')).default
+  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  await client.messages.create({ from: process.env.TWILIO_SMS_FROM, to: phone, body: `Your Robin sign-in code is: ${code}. Expires in 10 minutes.` })
+}
+
+async function sendTelegramCode(phone: string, code: string) {
+  // Telegram requires a chat_id — we look it up from a stored mapping or inform the user to message the bot first
+  const chatId = process.env[`TELEGRAM_CHAT_${phone.replace(/[^0-9]/g, '')}`]
+  if (!process.env.TELEGRAM_BOT_TOKEN || !chatId) throw new Error('Telegram not set up for this number. Message @RobinAssistantBot on Telegram first.')
+  const res = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text: `Your Robin sign-in code is: ${code}. Expires in 10 minutes.` })
+  })
+  if (!res.ok) throw new Error(`Telegram delivery failed: ${res.status}`)
+}
+
 async function sendEmail(email: string, subject: string, text: string) {
   if (!process.env.RESEND_API_KEY) throw new Error('Email is not configured. Set RESEND_API_KEY and AUTH_EMAIL_FROM.')
   const response = await fetch('https://api.resend.com/emails', {
@@ -96,13 +115,31 @@ router.post('/auth/send-code', async (req, res, next) => {
     await db.query(`DELETE FROM auth_codes WHERE phone=$1`, [phone])
     await db.query(`INSERT INTO auth_codes (phone, code) VALUES ($1, $2)`, [phone, code])
 
+    const channel: string = req.body.channel || 'whatsapp'
     const failures: string[] = []
-    try { await sendWhatsAppCode(phone, code); return res.json({ ok: true, delivery: 'whatsapp' }) } catch (e) { failures.push(e instanceof Error ? e.message : String(e)) }
-    if (email) {
-      try { await sendEmailCode(email, code); return res.json({ ok: true, delivery: 'email', email }) } catch (e) { failures.push(e instanceof Error ? e.message : String(e)) }
+
+    // Try requested channel first
+    if (channel === 'sms') {
+      try { await sendSMSCode(phone, code); return res.json({ ok: true, delivery: 'sms' }) } catch (e) { failures.push(`sms: ${e instanceof Error ? e.message : String(e)}`) }
+    } else if (channel === 'telegram') {
+      try { await sendTelegramCode(phone, code); return res.json({ ok: true, delivery: 'telegram' }) } catch (e) { failures.push(`telegram: ${e instanceof Error ? e.message : String(e)}`) }
+    } else if (channel === 'email') {
+      if (email) {
+        try { await sendEmailCode(email, code); return res.json({ ok: true, delivery: 'email', email }) } catch (e) { failures.push(`email: ${e instanceof Error ? e.message : String(e)}`) }
+      } else {
+        return res.status(400).json({ error: 'email_required', message: 'No email on file. Add your email to use this option.' })
+      }
+    } else {
+      // Default: WhatsApp, fall back to SMS, then email
+      try { await sendWhatsAppCode(phone, code); return res.json({ ok: true, delivery: 'whatsapp' }) } catch (e) { failures.push(`whatsapp: ${e instanceof Error ? e.message : String(e)}`) }
+      try { await sendSMSCode(phone, code); return res.json({ ok: true, delivery: 'sms' }) } catch (e) { failures.push(`sms: ${e instanceof Error ? e.message : String(e)}`) }
+      if (email) {
+        try { await sendEmailCode(email, code); return res.json({ ok: true, delivery: 'email', email }) } catch (e) { failures.push(`email: ${e instanceof Error ? e.message : String(e)}`) }
+      }
     }
+
     console.warn(`[auth] OTP delivery failed for ${phone}. Code: ${code}. ${failures.join(' | ')}`)
-    return res.status(502).json({ error: 'code_delivery_failed', message: email ? 'Could not send your code by WhatsApp or email.' : 'Could not send your code by WhatsApp, and no email is saved for fallback.', failures, ...(process.env.NODE_ENV !== 'production' ? { debug_code: code } : {}) })
+    return res.status(502).json({ error: 'code_delivery_failed', message: 'Could not send your code. Try a different channel.', failures, ...(process.env.NODE_ENV !== 'production' ? { debug_code: code } : {}) })
   } catch (err) { next(err) }
 })
 
