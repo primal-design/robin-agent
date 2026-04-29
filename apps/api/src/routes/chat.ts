@@ -113,8 +113,8 @@ router.post('/signup', async (req, res, next) => {
       submitted = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })
       isNew = true
       await db.query(
-        `INSERT INTO waitlist (request_id, name, phone, role, cracks, note)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
+        `INSERT INTO waitlist (request_id, name, phone, role, cracks, note, status)
+         VALUES ($1,$2,$3,$4,$5,$6,'accepted')`,
         [requestId, name, normalizedPhone, role||null, cracks||null, note||null]
       )
     }
@@ -128,7 +128,7 @@ router.post('/signup', async (req, res, next) => {
       await client.messages.create({
         from: process.env.TWILIO_WHATSAPP_FROM,
         to:   `whatsapp:${normalizedPhone}`,
-        body: `Hi ${name} 👋 I'm Robin.\n\nYour access request has been received.\n\nRequest ID: ${requestId}\n\nI'll be in touch once your request is reviewed.`
+        body: `Hi ${name} 👋 Welcome to Robin — you're in!\n\nSign in here: ${process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'}/frontend/robin_site.html\n\nRequest ID: ${requestId}`
       })
     } catch (e) {
       console.warn('[signup] WhatsApp notify failed:', (e as Error).message)
