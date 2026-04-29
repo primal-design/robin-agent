@@ -6,6 +6,7 @@ import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brai
 import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch, getWeather, githubSearch, stackOverflowSearch, stackOverflowAnswers } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 import { lookupPostcode, nearbyPostcodes, nhsServices, tflBusArrivals, tflStopSearch, bodsRouteSearch, ukLocalServices, tflLineInfo, tflJourney, tflLineStatus } from '../lib/uk.js'
+import { appendDailyLog, appendParaNote, getParaSummary, planParaWrite } from '../memory/para.js'
 
 let _ai: Anthropic | null = null
 function ai() { return _ai || (_ai = new Anthropic({ apiKey: env.anthropicKey })) }
@@ -323,8 +324,10 @@ export async function chatService(userId: string, userMessage: string): Promise<
   const rejectCtx  = rejectionContext(memory.rejection_round || 0)
   const urlContext = userMessage ? await fetchUrlContext(userMessage) : ''
   const toneMode   = detectToneMode(signals, memory.rejection_round || 0)
-  const callback   = `${humanCallback(memory)}\n\nLONG-TERM RELATIONSHIP MEMORY:\n${relationshipCallback(memory)}`
+  const callback    = `${humanCallback(memory)}\n\nLONG-TERM RELATIONSHIP MEMORY:\n${relationshipCallback(memory)}`
   const onboarding = !memory.onboarding_completed && memory.messages.filter((m: any) => m.role === 'assistant').length < 4
+
+  if (userMessage) appendDailyLog(userId, 'user', userMessage).catch(() => {})
 
   const approvalSignals = ['yes', 'do it', 'go ahead', 'send it', 'go for it', 'approved', 'yep', 'yeah do it']
   const isApproval = userMessage && approvalSignals.some(s => userMessage.toLowerCase().includes(s))
@@ -336,7 +339,9 @@ export async function chatService(userId: string, userMessage: string): Promise<
     return result.followup
   }
 
-  const systemPrompt = buildSystemPrompt({ ctx, signals, rejectCtx, skillContext: `HUMAN CALLBACKS:\n${callback}`, urlContext, toneMode, onboarding })
+  const paraSummary  = await getParaSummary(userId)
+  const skillContext = `HUMAN CALLBACKS:\n${callback}${paraSummary ? `\n\nPARA MEMORY:\n${paraSummary}` : ''}`
+  const systemPrompt = buildSystemPrompt({ ctx, signals, rejectCtx, skillContext, urlContext, toneMode, onboarding })
   const msgCount     = memory.messages.filter((m: { role: string }) => m.role === 'assistant').length
   const model        = msgCount < 3 ? 'claude-sonnet-4-6' : 'claude-haiku-4-5-20251001'
 
@@ -396,5 +401,16 @@ export async function chatService(userId: string, userMessage: string): Promise<
   memory.messages.push({ role: 'assistant', content: reply })
   if (onboarding && memory.messages.filter((m: any) => m.role === 'assistant').length >= 3) memory.onboarding_completed = true
   await saveSession(userId, memory)
+
+  // PARA memory writeback — fire-and-forget
+  if (userMessage && reply) {
+    appendDailyLog(userId, 'robin', reply).catch(() => {})
+    planParaWrite(userMessage, reply, paraSummary).then(plan => {
+      if (plan.should_write && plan.para_type && plan.title && plan.section && plan.note) {
+        appendParaNote(userId, plan.para_type, plan.title, plan.section, plan.note).catch(() => {})
+      }
+    }).catch(() => {})
+  }
+
   return reply
 }
