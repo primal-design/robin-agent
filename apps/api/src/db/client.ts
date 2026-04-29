@@ -3,8 +3,18 @@ import { env } from '../config/env.js'
 
 const { Pool } = pg
 
+// Append sslmode=verify-full to silence pg v8 SSL deprecation warning
+function dbUrl(raw: string) {
+  if (!raw) return raw
+  try {
+    const u = new URL(raw)
+    u.searchParams.set('sslmode', 'verify-full')
+    return u.toString()
+  } catch { return raw }
+}
+
 export const db = new Pool({
-  connectionString: env.databaseUrl,
+  connectionString: dbUrl(env.databaseUrl),
   ssl: env.databaseUrl.includes('neon.tech') ? { rejectUnauthorized: false } : false,
   max: 10,
 })
