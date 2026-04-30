@@ -7,6 +7,12 @@ import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSea
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 import { lookupPostcode, nearbyPostcodes, nhsServices, tflBusArrivals, tflStopSearch, bodsRouteSearch, ukLocalServices, tflLineInfo, tflJourney, tflLineStatus } from '../lib/uk.js'
 import { appendDailyLog, appendParaNote, getParaSummary, planParaWrite } from '../memory/para.js'
+import {
+  getProfile, setProfile, seedProfileFromSignup,
+  onboardingQuestion, applyOnboardingAnswer,
+  buildProfileContext, inferFromMessage,
+  detectGdprRequest, formatProfileForUser,
+} from '../memory/profile.js'
 
 let _ai: Anthropic | null = null
 function ai() { return _ai || (_ai = new Anthropic({ apiKey: env.anthropicKey })) }
@@ -91,11 +97,49 @@ function humanCallback(memory: Session): string {
   return bits.length ? bits.join('\n') : 'No strong memory callback yet. Build one by noticing what matters.'
 }
 
-function firstRunReply(memory: Session): string | null {
+function handleOnboarding(memory: Session, userMessage: string): string | null {
+  const profile = getProfile(memory)
+
+  // Already done
+  if (profile.onboarding_completed) return null
+
+  const step = profile.onboarding_step ?? 0
   const assistantCount = memory.messages.filter((m: any) => m.role === 'assistant').length
-  const userCount = memory.messages.filter((m: any) => m.role === 'user').length
-  if (assistantCount > 0 || userCount > 1) return null
-  return `Hey — I’m Robin.\n\nI’ll keep this simple.\n\nWhat’s one thing that’s been slowing you down lately?`
+
+  // Very first message ever — introduce Robin and ask Q1
+  if (assistantCount === 0) {
+    const name = profile.name ? ` ${profile.name.split(' ')[0]}` : ''
+    const q1 = onboardingQuestion(1, profile)
+    const reply = `Hey${name} — I'm Robin.\n\nI'm not a fixed assistant. You shape what I become.\n\n${q1}`
+    setProfile(memory, { ...profile, onboarding_step: 1 })
+    return reply
+  }
+
+  // Q1 answered → ask Q2
+  if (step === 1 && userMessage) {
+    const updated = applyOnboardingAnswer(profile, 1, userMessage)
+    setProfile(memory, { ...updated, onboarding_step: 2 })
+    const q2 = onboardingQuestion(2, updated)
+    return q2
+  }
+
+  // Q2 answered → ask Q3
+  if (step === 2 && userMessage) {
+    const updated = applyOnboardingAnswer(profile, 2, userMessage)
+    setProfile(memory, { ...updated, onboarding_step: 3 })
+    const q3 = onboardingQuestion(3, updated)
+    return q3
+  }
+
+  // Q3 answered → onboarding done, hand off to full AI
+  if (step === 3 && userMessage) {
+    const updated = applyOnboardingAnswer(profile, 3, userMessage)
+    setProfile(memory, { ...updated, onboarding_completed: true })
+    const firstName = (updated.name || '').split(' ')[0] || 'you'
+    return `Got it. I'll remember all of that.\n\nI'm ready when you are — what do you want to work on first?`
+  }
+
+  return null
 }
 
 async function fetchUrlContext(message: string): Promise<string> {
@@ -304,16 +348,46 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
   return { type: 'tool_result' as const, tool_use_id: id, content: 'Unknown tool.' }
 }
 
-export async function chatService(userId: string, userMessage: string): Promise<string> {
+export async function chatService(userId: string, userMessage: string, meta?: { name?: string, signupReason?: string }): Promise<string> {
   const memory = await loadSession(userId)
   memory.userId = userId
+
+  // Seed profile from signup data on very first message
+  if (meta?.name || meta?.signupReason) {
+    seedProfileFromSignup(memory, meta.name || '', meta.signupReason)
+  }
+
   if (userMessage) memory.messages.push({ role: 'user', content: userMessage })
 
-  const opener = firstRunReply(memory)
-  if (opener) {
-    memory.messages.push({ role: 'assistant', content: opener })
+  // ── GDPR commands ────────────────────────────────────────────────────────
+  if (userMessage) {
+    const gdpr = detectGdprRequest(userMessage)
+    if (gdpr === 'view') {
+      const reply = formatProfileForUser(getProfile(memory))
+      memory.messages.push({ role: 'assistant', content: reply })
+      await saveSession(userId, memory)
+      return reply
+    }
+    if (gdpr === 'delete') {
+      const fresh = { messages: [], facts: [], streak: 0, tasks_done: 0, total_earned: 0, rejection_round: 0 }
+      await saveSession(userId, fresh as any)
+      const reply = `Done. I've deleted everything — your profile, conversation history, all of it.\n\nYou can start fresh whenever you're ready.`
+      return reply
+    }
+  }
+
+  // ── Onboarding flow ──────────────────────────────────────────────────────
+  const onboardingReply = handleOnboarding(memory, userMessage)
+  if (onboardingReply) {
+    memory.messages.push({ role: 'assistant', content: onboardingReply })
     await saveSession(userId, memory)
-    return opener
+    return onboardingReply
+  }
+
+  // ── Passive profile inference ────────────────────────────────────────────
+  if (userMessage) {
+    const profile = getProfile(memory)
+    setProfile(memory, inferFromMessage(profile, userMessage))
   }
 
   const recentText = memory.messages.slice(-10).filter(m => m.role === 'user').map(m => typeof m.content === 'string' ? m.content : '').join(' ').toLowerCase()
@@ -324,8 +398,9 @@ export async function chatService(userId: string, userMessage: string): Promise<
   const rejectCtx  = rejectionContext(memory.rejection_round || 0)
   const urlContext = userMessage ? await fetchUrlContext(userMessage) : ''
   const toneMode   = detectToneMode(signals, memory.rejection_round || 0)
-  const callback    = `${humanCallback(memory)}\n\nLONG-TERM RELATIONSHIP MEMORY:\n${relationshipCallback(memory)}`
-  const onboarding = !memory.onboarding_completed && memory.messages.filter((m: any) => m.role === 'assistant').length < 4
+  const profileCtx  = buildProfileContext(getProfile(memory))
+  const callback    = `${profileCtx ? `${profileCtx}\n\n` : ''}${humanCallback(memory)}\n\nLONG-TERM RELATIONSHIP MEMORY:\n${relationshipCallback(memory)}`
+  const onboarding = false // handled above
 
   if (userMessage) appendDailyLog(userId, 'user', userMessage).catch(() => {})
 
@@ -399,7 +474,6 @@ export async function chatService(userId: string, userMessage: string): Promise<
 
   const reply = response.content[0].type === 'text' ? response.content[0].text : ''
   memory.messages.push({ role: 'assistant', content: reply })
-  if (onboarding && memory.messages.filter((m: any) => m.role === 'assistant').length >= 3) memory.onboarding_completed = true
   await saveSession(userId, memory)
 
   // PARA memory writeback — fire-and-forget

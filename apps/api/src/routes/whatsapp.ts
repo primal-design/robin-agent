@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import twilio from 'twilio'
 import { chatService } from '../services/chat.service.js'
-import { findOrCreateUser } from '../db/client.js'
+import { findOrCreateUser, db } from '../db/client.js'
 
 const router = Router()
 
@@ -17,7 +17,12 @@ router.post('/incoming', async (req, res) => {
 
     const phoneE164 = from.replace('whatsapp:', '')
     const userId    = await findOrCreateUser(phoneE164)
-    const reply     = await chatService(userId, body)
+
+    // Pass waitlist signup data so Robin can seed the user profile on first message
+    const waitlist  = await db.query(`SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`, [phoneE164])
+    const meta      = waitlist.rows[0] ? { name: waitlist.rows[0].name, signupReason: waitlist.rows[0].role } : undefined
+
+    const reply     = await chatService(userId, body, meta)
 
     const twiml = new twilio.twiml.MessagingResponse()
     twiml.message(reply)
