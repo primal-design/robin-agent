@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130" fill="none" stroke="#1A1816" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Left ear -->
+  <path d="M18,82 L45,18 L62,55"/>
+  <!-- Right ear -->
+  <path d="M58,55 L78,12 L98,62"/>
+  <!-- Chin / jaw curve -->
+  <path d="M98,62 Q108,95 88,112 Q68,125 52,108 Q40,96 44,82"/>
+</svg>

@@ -17,7 +17,7 @@ export function createApp() {
   app.use((_, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
 
   const frontendDir = resolve(__dirname, '../../../frontend')
-  const assetVersion = '20260429f'
+  const assetVersion = '20260430a'
 
   app.get('/frontend/:file', (req, res, next) => {
     const filePath = resolve(frontendDir, req.params.file)
