@@ -3,6 +3,7 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 import whatsappRouter from './routes/whatsapp.js'
+import telegramRouter from './routes/telegram.js'
 import chatRouter     from './routes/chat.js'
 import gmailRouter    from './routes/gmail.js'
 import authRouter     from './routes/auth.js'
@@ -47,6 +48,7 @@ export function createApp() {
   app.use('/',         authRouter)
   app.use('/',         adminRouter)
   app.use('/whatsapp', whatsappRouter)
+  app.use('/telegram', telegramRouter)
   app.use('/',         gmailRouter)
   app.use('/',         chatRouter)
 

@@ -16,6 +16,7 @@ export const env = {
   twilioAccountSid:   process.env.TWILIO_ACCOUNT_SID ?? '',
   twilioAuthToken:    process.env.TWILIO_AUTH_TOKEN ?? '',
   twilioWhatsappFrom: process.env.TWILIO_WHATSAPP_FROM ?? 'whatsapp:+14155238886',
+  telegramBotToken:   process.env.TELEGRAM_BOT_TOKEN ?? '',
   gmailClientId:      process.env.GMAIL_CLIENT_ID ?? '',
   gmailClientSecret:  process.env.GMAIL_CLIENT_SECRET ?? '',
   gmailRedirectUri:   process.env.GMAIL_REDIRECT_URI ?? 'https://fen-agent.onrender.com/email/callback',
