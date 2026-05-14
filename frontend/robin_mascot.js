@@ -4,8 +4,8 @@
   function makeMascot() {
     const img = document.createElement('img')
     img.src = ROBIN_MASCOT_SRC
-    img.alt = 'Robin'
-    img.title = 'Robin'
+    img.alt = 'FEN'
+    img.title = 'FEN'
     img.style.cssText = 'width:1.35em;height:1.35em;vertical-align:-0.28em;margin:0 0.1em;display:inline-block;object-fit:contain;'
     return img
   }
@@ -28,7 +28,7 @@
     }
   }
 
-  window.RobinMascot = { src: ROBIN_MASCOT_SRC, makeMascot, replaceFoxEmoji }
+  window.FENMascot = { src: ROBIN_MASCOT_SRC, makeMascot, replaceFoxEmoji }
 
   function initMascot() {
     replaceFoxEmoji()

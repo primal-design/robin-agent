@@ -35,7 +35,7 @@
 
     const firstInbound = document.querySelector('.pm.i')
     const firstOutbound = document.querySelector('.pm.o')
-    if (firstInbound) firstInbound.textContent = 'Hey Robin, draft a reply to James about the proposal.'
+    if (firstInbound) firstInbound.textContent = 'Hey FEN, draft a reply to James about the proposal.'
     if (firstOutbound) firstOutbound.textContent = 'Done. Want me to send or tweak?'
 
     const alertCard = document.querySelector('.pm.a')
@@ -54,7 +54,7 @@
     // Keep the existing visual layout, fonts, colours, CTAs, and phone frame.
     // Only swap content and platform wording.
     setText('.eyebrow', 'IN YOUR POCKET · ON WHATSAPP')
-    setHTML('h1', 'Robin isn’t built yet.<br><em>You build it.</em>')
+    setHTML('h1', 'FEN isn’t built yet.<br><em>You build it.</em>')
     setText('.hero-sub', 'In your pocket. With your word. It lives in WhatsApp. Just message it. Shape it into what you need — for yourself or your clients.')
     setText('.hero-outcome', 'Start now. If not now — you won’t.')
 
@@ -65,10 +65,10 @@
       ['In your pocket · On your command', 'IN YOUR POCKET · ON WHATSAPP'],
       ['IN YOUR POCKET · WITH YOUR WORD', 'IN YOUR POCKET · ON WHATSAPP'],
       ['In your pocket · With your word', 'IN YOUR POCKET · ON WHATSAPP'],
-      ['Others answer.', 'Robin isn’t built yet.'],
-      ['Others act on their own.', 'Robin isn’t built yet.'],
-      ['Robin acts.', 'You build it.'],
-      ['Robin acts with your word.', 'You build it.'],
+      ['Others answer.', 'FEN isn’t built yet.'],
+      ['Others act on their own.', 'FEN isn’t built yet.'],
+      ['FEN acts.', 'You build it.'],
+      ['FEN acts with your word.', 'You build it.'],
       ['A quiet chief of staff in your messages. Tracks what matters. Prepares every reply. Closes what you forget.', 'In your pocket. With your word. It lives in WhatsApp. Just message it. Shape it into what you need — for yourself or your clients.'],
       ['A quiet hand in your messages. Tracks what matters. Prepares replies before you send. Surfaces what you forget.', 'In your pocket. With your word. It lives in WhatsApp. Just message it. Shape it into what you need — for yourself or your clients.'],
       ['Every message handled. Every follow-up done. Nothing left hanging.', 'Start now. If not now — you won’t.'],

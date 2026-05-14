@@ -18,7 +18,7 @@ router.post('/incoming', async (req, res) => {
     const phoneE164 = from.replace('whatsapp:', '')
     const userId    = await findOrCreateUser(phoneE164)
 
-    // Pass waitlist signup data so Robin can seed the user profile on first message
+    // Pass waitlist signup data so FEN can seed the user profile on first message
     const waitlist  = await db.query(`SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`, [phoneE164])
     const meta      = waitlist.rows[0] ? { name: waitlist.rows[0].name, signupReason: waitlist.rows[0].role } : undefined
 
@@ -30,7 +30,7 @@ router.post('/incoming', async (req, res) => {
   } catch (err) {
     console.error('[WhatsApp]', err)
     const twiml = new twilio.twiml.MessagingResponse()
-    twiml.message("Robin's having a moment — try again in a sec 🦊")
+    twiml.message("FEN's having a moment — try again in a sec 🦊")
     res.set('Content-Type', 'text/xml').send(twiml.toString())
   }
 })

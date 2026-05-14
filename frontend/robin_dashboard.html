@@ -4,7 +4,7 @@
 <meta name="grammarly-disable-badge" content="true"/>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Robin — Dashboard</title>
+<title>FEN — Dashboard</title>
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500&family=DM+Mono:wght@400&display=swap");
 :root{
@@ -193,25 +193,25 @@ nav.sb-nav{padding:12px 0;flex:1}
 <body>
 
 <div class="app-nav" id="app-nav">
-  <a class="app-nav-brand" href="robin_dashboard.html">
-    <img src="data:image/png;base64,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" alt="Robin" style="height:22px;width:auto;flex-shrink:0;"/>
-    <span>Robin</span>
+  <a class="app-nav-brand" href="fen_dashboard.html">
+    <img src="data:image/png;base64,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" alt="FEN" style="height:22px;width:auto;flex-shrink:0;"/>
+    <span>FEN</span>
   </a>
   <div class="app-nav-tabs">
-    <a class="app-nav-tab" id="nav-today" href="robin_dashboard.html">
+    <a class="app-nav-tab" id="nav-today" href="fen_dashboard.html">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M6 2v4M10 2v4"/></svg>
       Today
       <span class="app-nav-badge" id="badge-today" style="display:none">0</span>
     </a>
-    <a class="app-nav-tab" id="nav-chat" href="robin_chat.html">
+    <a class="app-nav-tab" id="nav-chat" href="fen_chat.html">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12v9H9l-3 3V11H2z"/></svg>
       Chat
     </a>
-    <a class="app-nav-tab" id="nav-memory" href="robin_dashboard.html" onclick="localStorage.setItem('rvw','memory')">
+    <a class="app-nav-tab" id="nav-memory" href="fen_dashboard.html" onclick="localStorage.setItem('rvw','memory')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v2.75l1.75 1.75"/></svg>
       Memory
     </a>
-    <a class="app-nav-tab" id="nav-settings" href="robin_dashboard.html" onclick="localStorage.setItem('rvw','settings')">
+    <a class="app-nav-tab" id="nav-settings" href="fen_dashboard.html" onclick="localStorage.setItem('rvw','settings')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/></svg>
       Settings
     </a>
@@ -227,8 +227,8 @@ nav.sb-nav{padding:12px 0;flex:1}
 <div class="sidebar">
   <div class="sb-top">
     <div class="sb-brand">
-      <img src="data:image/png;base64,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" alt="Robin" style="height:28px;width:auto;flex-shrink:0;"/>
-      <span class="sb-name serif">Robin</span>
+      <img src="data:image/png;base64,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" alt="FEN" style="height:28px;width:auto;flex-shrink:0;"/>
+      <span class="sb-name serif">FEN</span>
     </div>
     <div class="sb-user">
       <div class="sb-user-name" id="sb-uname">Your account</div>
@@ -238,9 +238,9 @@ nav.sb-nav{padding:12px 0;flex:1}
   </div>
   <nav class="sb-nav">
     <div class="sb-section">Today</div>
-    <div class="sb-link" onclick="window.location.href='robin_chat.html'">
+    <div class="sb-link" onclick="window.location.href='fen_chat.html'">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2h12v9H9l-3 3V11H2z"/></svg>
-      Chat with Robin
+      Chat with FEN
     </div>
     <div class="sb-link on" onclick="showView('today')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12"/><path d="M6 2v4"/><path d="M10 2v4"/></svg>
@@ -253,7 +253,7 @@ nav.sb-nav{padding:12px 0;flex:1}
       <span class="sb-badge" id="badge-approvals" style="display:none">0</span>
     </div>
 
-    <div class="sb-section">My Robin</div>
+    <div class="sb-section">My FEN</div>
     <div class="sb-link" onclick="showView('memory')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v2.75l1.75 1.75"/></svg>
       Memory
@@ -287,7 +287,7 @@ nav.sb-nav{padding:12px 0;flex:1}
   <div class="view-top">
     <div>
       <h1 class="view-title serif">Good morning, <em id="greet-name">there.</em></h1>
-      <div class="view-sub">Here's what Robin surfaced for you today. <a href="robin_chat.html" style="color:var(--gold2);text-decoration:none;font-size:12px">→ Open chat</a></div>
+      <div class="view-sub">Here's what FEN surfaced for you today. <a href="fen_chat.html" style="color:var(--gold2);text-decoration:none;font-size:12px">→ Open chat</a></div>
     </div>
     <div class="view-date" id="today-date"></div>
   </div>
@@ -304,7 +304,7 @@ nav.sb-nav{padding:12px 0;flex:1}
   <div class="digest-banner" id="digest-banner">
     <div class="db-icon">🌅</div>
     <div class="db-body">
-      <h3>Robin's morning brief</h3>
+      <h3>FEN's morning brief</h3>
       <p id="digest-text">Loading…</p>
       <div class="db-time" id="digest-time"></div>
     </div>
@@ -316,7 +316,7 @@ nav.sb-nav{padding:12px 0;flex:1}
     <div id="actions-list"></div>
     <div class="empty-state" id="actions-empty" style="display:none">
       <h3>Nothing waiting.</h3>
-      <p>Robin has no pending actions for you right now.</p>
+      <p>FEN has no pending actions for you right now.</p>
     </div>
   </div>
 
@@ -324,16 +324,16 @@ nav.sb-nav{padding:12px 0;flex:1}
   <!-- Gmail connect banner -->
   <div id="gmail-banner" style="display:none;background:#FFF8E7;border:1px solid #F0D080;border-radius:8px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px">
     <div>
-      <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px">Connect Gmail so Robin can read and send emails</div>
-      <div style="font-size:12px;color:var(--ink2)">Robin needs access to your inbox to handle emails on your behalf.</div>
+      <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px">Connect Gmail so FEN can read and send emails</div>
+      <div style="font-size:12px;color:var(--ink2)">FEN needs access to your inbox to handle emails on your behalf.</div>
     </div>
     <button onclick="connectGmail()" style="white-space:nowrap;background:var(--ink);color:#fff;border:none;padding:10px 18px;border-radius:4px;font-size:12px;cursor:pointer;letter-spacing:.04em">Connect Gmail →</button>
   </div>
 
   <div id="onboarding-card" style="display:none;background:#fff;border:1px solid var(--rule);border-radius:10px;padding:32px;margin-top:8px">
     <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold2);margin-bottom:16px">Getting started</div>
-    <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:300;margin-bottom:10px">What should Robin <em style="color:var(--gold2)">start with?</em></h3>
-    <p style="font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:24px">Tell Robin what you're working on — a project, a problem, a goal. Robin will figure out what needs doing and come back with a plan.</p>
+    <h3 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:24px;font-weight:300;margin-bottom:10px">What should FEN <em style="color:var(--gold2)">start with?</em></h3>
+    <p style="font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:24px">Tell FEN what you're working on — a project, a problem, a goal. FEN will figure out what needs doing and come back with a plan.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
       <button class="ob-chip" onclick="startWith('I need to find new clients for my business')">Find new clients</button>
       <button class="ob-chip" onclick="startWith('I have emails and follow-ups I have been putting off')">Clear my inbox</button>
@@ -341,7 +341,7 @@ nav.sb-nav{padding:12px 0;flex:1}
       <button class="ob-chip" onclick="startWith('Show me what you can do')">Show me what you do</button>
     </div>
     <div style="display:flex;gap:10px">
-      <input id="ob-input" type="text" placeholder="Or tell Robin directly..." style="flex:1;padding:12px 16px;border:1px solid var(--rule);border-radius:4px;font-size:13px;outline:none;font-family:inherit"/>
+      <input id="ob-input" type="text" placeholder="Or tell FEN directly..." style="flex:1;padding:12px 16px;border:1px solid var(--rule);border-radius:4px;font-size:13px;outline:none;font-family:inherit"/>
       <button onclick="startWithInput()" style="background:var(--ink);color:#fff;border:none;padding:12px 20px;border-radius:4px;font-size:13px;cursor:pointer;letter-spacing:.04em">Go →</button>
     </div>
   </div>
@@ -358,29 +358,29 @@ nav.sb-nav{padding:12px 0;flex:1}
 <!-- APPROVALS VIEW -->
 <div class="view" id="view-actions">
   <div class="view-top">
-    <div><h1 class="view-title serif">Approvals</h1><div class="view-sub">Everything Robin has prepared and is waiting for your word.</div></div>
+    <div><h1 class="view-title serif">Approvals</h1><div class="view-sub">Everything FEN has prepared and is waiting for your word.</div></div>
   </div>
-  <div class="card"><div class="card-label">2 pending</div><div class="card-body">Robin never acts on these until you tap Approve. Ignore them and they expire in 72 hours — no action taken.</div></div>
+  <div class="card"><div class="card-label">2 pending</div><div class="card-body">FEN never acts on these until you tap Approve. Ignore them and they expire in 72 hours — no action taken.</div></div>
   <div id="approvals-list">
     <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-family:'DM Mono',monospace;margin-bottom:12px">Pending your decision</div>
     <!-- Same action cards as today, minus the brief -->
   </div>
   <div class="empty-state" id="approvals-empty" style="display:none">
     <h3>All clear.</h3>
-    <p>Nothing waiting for your word right now. Robin is watching.</p>
+    <p>Nothing waiting for your word right now. FEN is watching.</p>
   </div>
 </div>
 
 <!-- MEMORY VIEW -->
 <div class="view" id="view-memory">
   <div class="view-top">
-    <div><h1 class="view-title serif">What Robin <em>knows about you.</em></h1><div class="view-sub">Everything Robin has learned. Edit or delete any fact at any time.</div></div>
+    <div><h1 class="view-title serif">What FEN <em>knows about you.</em></h1><div class="view-sub">Everything FEN has learned. Edit or delete any fact at any time.</div></div>
     <div class="view-date"><span id="mem-count">0</span> facts</div>
   </div>
 
   <div class="mem-section">
     <div class="mem-section-title">Identity</div>
-    <div id="mem-empty-message" class="card-body" style="padding:8px 0 0;color:var(--ink3)">Robin hasn't saved any profile details yet.</div>
+    <div id="mem-empty-message" class="card-body" style="padding:8px 0 0;color:var(--ink3)">FEN hasn't saved any profile details yet.</div>
   </div>
 
   <div style="margin-top:24px;padding-top:24px;border-top:.5px solid var(--rule);display:flex;gap:12px">
@@ -392,7 +392,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 <!-- HISTORY VIEW -->
 <div class="view" id="view-history">
   <div class="view-top">
-    <div><h1 class="view-title serif">Action history</h1><div class="view-sub">Everything Robin has done — approved, denied, or auto-handled.</div></div>
+    <div><h1 class="view-title serif">Action history</h1><div class="view-sub">Everything FEN has done — approved, denied, or auto-handled.</div></div>
   </div>
   <div class="card"><div class="card-label">This week</div><div class="card-body" style="font-size:13px">23 actions · 19 approved · 2 denied · 2 auto</div></div>
   <div style="margin-top:20px">
@@ -408,7 +408,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 <!-- SETTINGS / PERMISSIONS VIEW -->
 <div class="view" id="view-settings">
   <div class="view-top">
-    <div><h1 class="view-title serif">Permissions</h1><div class="view-sub">What Robin can access. Revoke anything instantly.</div></div>
+    <div><h1 class="view-title serif">Permissions</h1><div class="view-sub">What FEN can access. Revoke anything instantly.</div></div>
   </div>
 
   <div class="settings-section">
@@ -427,7 +427,7 @@ nav.sb-nav{padding:12px 0;flex:1}
     </div>
     <div class="perm-row">
       <div class="perm-icon" style="background:#F0F0F0">💬</div>
-      <div class="perm-info"><div class="perm-name">iMessage / SMS</div><div class="perm-desc">The channel Robin uses to reach you</div></div>
+      <div class="perm-info"><div class="perm-name">iMessage / SMS</div><div class="perm-desc">The channel FEN uses to reach you</div></div>
       <div class="perm-status on"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>Active</div>
       <button class="toggle on" onclick="togglePerm(this)" title="SMS"></button>
     </div>
@@ -439,7 +439,7 @@ nav.sb-nav{padding:12px 0;flex:1}
     </div>
     <div class="perm-row">
       <div class="perm-icon" style="background:#F0FFF4">🧠</div>
-      <div class="perm-info"><div class="perm-name">Memory</div><div class="perm-desc">Robin learns your preferences over time — stored locally</div></div>
+      <div class="perm-info"><div class="perm-name">Memory</div><div class="perm-desc">FEN learns your preferences over time — stored locally</div></div>
       <div class="perm-status on"><span style="width:5px;height:5px;border-radius:50%;background:var(--green);display:inline-block"></span>Enabled</div>
       <button class="toggle on" onclick="togglePerm(this)" title="Memory"></button>
     </div>
@@ -447,7 +447,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 
   <div class="danger-zone">
     <div class="dz-title">Delete all my data</div>
-    <div class="dz-desc">Permanently removes all memory, conversation history, permissions, and your Robin account. This cannot be undone. You'll need to request access again to return.</div>
+    <div class="dz-desc">Permanently removes all memory, conversation history, permissions, and your FEN account. This cannot be undone. You'll need to request access again to return.</div>
     <button class="dz-btn" onclick="confirmDelete()">Delete everything →</button>
   </div>
 </div>
@@ -455,7 +455,7 @@ nav.sb-nav{padding:12px 0;flex:1}
 <!-- PREFERENCES VIEW -->
 <div class="view" id="view-preferences">
   <div class="view-top">
-    <div><h1 class="view-title serif">Preferences</h1><div class="view-sub">How Robin should behave with you specifically.</div></div>
+    <div><h1 class="view-title serif">Preferences</h1><div class="view-sub">How FEN should behave with you specifically.</div></div>
   </div>
   <div class="settings-section">
     <div class="ss-title serif">Daily <em>digest</em></div>
@@ -483,16 +483,16 @@ nav.sb-nav{padding:12px 0;flex:1}
 <script>
 /* ── API helper ── */
 function api(method, path, body) {
-  var token = localStorage.getItem('robin_token');
+  var token = localStorage.getItem('fen_token');
   var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
   if (token) opts.headers['Authorization'] = 'Bearer ' + token;
   if (body)  opts.body = JSON.stringify(body);
   return fetch(path, opts).then(function(r) {
     if (r.status === 401) {
-      localStorage.removeItem('robin_token');
-      localStorage.removeItem('robin_user_name');
-      localStorage.removeItem('robin_user_role');
-      window.location.href = 'robin_site.html';
+      localStorage.removeItem('fen_token');
+      localStorage.removeItem('fen_user_name');
+      localStorage.removeItem('fen_user_role');
+      window.location.href = 'fen_site.html';
       return null;
     }
     return r.json();
@@ -543,7 +543,7 @@ function laterAction(actionId) {
 }
 
 function loadActions() {
-  var token = localStorage.getItem('robin_token') || 'web-default';
+  var token = localStorage.getItem('fen_token') || 'web-default';
   var sid   = token.startsWith('sid_') ? token.slice(4) : token;
   api('GET', '/actions/' + (sid || 'web-default')).then(function(data) {
     if (!data || !data.actions || !data.actions.length) return;
@@ -598,7 +598,7 @@ function updateBadges() {
 function deleteMem(btn) {
   var row = btn.closest('.mem-item');
   var key = row.querySelector('.mem-key').textContent;
-  if (confirm('Delete "' + key + '" from Robin\'s memory?')) {
+  if (confirm('Delete "' + key + '" from FEN\'s memory?')) {
     row.style.opacity = '0'; row.style.transition = 'opacity .3s';
     setTimeout(function() { row.remove(); updateMemCount(); }, 300);
   }
@@ -646,8 +646,8 @@ function setName(name) {
     var value = entry[1];
     if (el) el.textContent = value;
   });
-  if (clean) localStorage.setItem('robin_user_name', clean);
-  else localStorage.removeItem('robin_user_name');
+  if (clean) localStorage.setItem('fen_user_name', clean);
+  else localStorage.removeItem('fen_user_name');
   var signoff = document.getElementById('pref-signoff');
   if (signoff) signoff.textContent = clean ? (clean + ' (no sign-off)') : 'Your name (no sign-off)';
 }
@@ -655,29 +655,29 @@ function setRole(role) {
   var clean = (role || '').trim();
   var roleEl = document.getElementById('sb-urole');
   if (roleEl) roleEl.textContent = clean || 'Sign in to load your profile';
-  if (clean) localStorage.setItem('robin_user_role', clean);
-  else localStorage.removeItem('robin_user_role');
+  if (clean) localStorage.setItem('fen_user_role', clean);
+  else localStorage.removeItem('fen_user_role');
 }
 function applyProfile(profile) {
   profile = profile || {};
-  setName(profile.name || localStorage.getItem('robin_user_name') || '');
-  setRole(profile.role || localStorage.getItem('robin_user_role') || '');
+  setName(profile.name || localStorage.getItem('fen_user_name') || '');
+  setRole(profile.role || localStorage.getItem('fen_user_role') || '');
   renderProfileMemory({
-    name: profile.name || localStorage.getItem('robin_user_name') || '',
-    role: profile.role || localStorage.getItem('robin_user_role') || '',
+    name: profile.name || localStorage.getItem('fen_user_name') || '',
+    role: profile.role || localStorage.getItem('fen_user_role') || '',
   });
 }
 function exportMemory() {
-  var token = localStorage.getItem('robin_token') || 'web-default';
+  var token = localStorage.getItem('fen_token') || 'web-default';
   var sid   = token.startsWith('sid_') ? token.slice(4) : token;
   api('GET', '/my-data/' + (sid || 'web-default')).then(function(data) {
     if (!data) return;
     var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'robin_memory.json'; a.click();
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'fen_memory.json'; a.click();
   });
 }
 function clearMemory() {
-  if (confirm('Clear all memory? Robin will forget everything it knows about you.')) {
+  if (confirm('Clear all memory? FEN will forget everything it knows about you.')) {
     api('DELETE', '/clear-memory').then(function() {
       document.querySelectorAll('.mem-item').forEach(function(item) { item.remove(); });
       updateMemCount();
@@ -689,7 +689,7 @@ function clearMemory() {
 function toggleGmail(btn) {
   var isOn = btn.classList.contains('on');
   if (isOn) {
-    if (confirm('Revoke Gmail access? Robin will no longer read or draft emails.')) {
+    if (confirm('Revoke Gmail access? FEN will no longer read or draft emails.')) {
       api('DELETE', '/email/disconnect').then(function() {
         btn.classList.remove('on'); btn.classList.add('off');
         var s = document.getElementById('gmail-status');
@@ -698,7 +698,7 @@ function toggleGmail(btn) {
     }
   } else {
     // Redirect to Gmail OAuth
-    var token = localStorage.getItem('robin_token') || 'web-default';
+    var token = localStorage.getItem('fen_token') || 'web-default';
     window.location.href = '/email/auth?sessionId=' + encodeURIComponent(token);
   }
 }
@@ -734,12 +734,12 @@ api('GET', '/email/status').then(function(data) {
 
 /* ═══ DELETE ═══ */
 function confirmDelete() {
-  if (confirm('This will permanently delete all your Robin data. Are you sure?')) {
+  if (confirm('This will permanently delete all your FEN data. Are you sure?')) {
     if (confirm('Last confirmation — this cannot be undone. Delete everything?')) {
       api('DELETE', '/delete-account').then(function() {
         localStorage.clear();
         document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Cormorant Garamond,serif;font-style:italic;font-size:24px;color:#3D3B37">All data deleted. Goodbye.</div>';
-        setTimeout(function() { window.location.href = 'robin_site.html'; }, 3000);
+        setTimeout(function() { window.location.href = 'fen_site.html'; }, 3000);
       });
     }
   }
@@ -747,10 +747,10 @@ function confirmDelete() {
 
 /* ═══ SIGN OUT ═══ */
 function signOut() {
-  localStorage.removeItem('robin_token');
-  localStorage.removeItem('robin_user_name');
-  localStorage.removeItem('robin_user_role');
-  window.location.href = 'robin_site.html';
+  localStorage.removeItem('fen_token');
+  localStorage.removeItem('fen_user_name');
+  localStorage.removeItem('fen_user_role');
+  window.location.href = 'fen_site.html';
 }
 
 (function() {
@@ -760,8 +760,8 @@ function signOut() {
   else { document.getElementById('nav-today').classList.add('active'); }
 
   applyProfile({
-    name: localStorage.getItem('robin_user_name') || '',
-    role: localStorage.getItem('robin_user_role') || '',
+    name: localStorage.getItem('fen_user_name') || '',
+    role: localStorage.getItem('fen_user_role') || '',
   });
 
   api('GET', '/profile').then(function(data) {
@@ -791,8 +791,8 @@ function signOut() {
 
 // ── ONBOARDING ──
 function checkFirstVisit() {
-  var name = localStorage.getItem('robin_user_name') || 'there'
-  var seen = localStorage.getItem('robin_dashboard_seen')
+  var name = localStorage.getItem('fen_user_name') || 'there'
+  var seen = localStorage.getItem('fen_dashboard_seen')
   // Show onboarding if first visit
   if (!seen) {
     var ob = document.getElementById('onboarding-card')
@@ -808,12 +808,12 @@ function checkFirstVisit() {
   els.forEach(function(id){ var e=document.getElementById(id); if(e) e.textContent='0' })
   // Update morning brief
   var dt = document.getElementById('digest-text')
-  if (dt && !seen) dt.textContent = "Robin is ready. Tell me what you're working on below."
+  if (dt && !seen) dt.textContent = "FEN is ready. Tell me what you're working on below."
   else if (dt) dt.textContent = 'All clear today — nothing needs your attention right now.'
 }
 
 function connectGmail() {
-  var token = localStorage.getItem('robin_token') || 'web-default'
+  var token = localStorage.getItem('fen_token') || 'web-default'
   window.location.href = '/email/auth?sessionId=' + encodeURIComponent(token)
 }
 
@@ -825,9 +825,9 @@ function checkGmailStatus() {
 }
 
 function startWith(msg) {
-  localStorage.setItem('robin_dashboard_seen', '1')
-  localStorage.setItem('robin_onboarding_msg', msg)
-  window.location.href = 'robin_chat.html'
+  localStorage.setItem('fen_dashboard_seen', '1')
+  localStorage.setItem('fen_onboarding_msg', msg)
+  window.location.href = 'fen_chat.html'
 }
 
 function startWithInput() {

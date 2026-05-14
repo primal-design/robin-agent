@@ -163,15 +163,15 @@ async function sendWhatsApp(phone: string, body: string) {
 
 async function sendEmail(email: string, subject: string, body: string) {
   if (!process.env.RESEND_API_KEY) throw new Error('Email nudges need RESEND_API_KEY')
-  const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
+  const appUrl = process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: process.env.AUTH_EMAIL_FROM || 'Robin <no-reply@robin-agent.app>',
+      from: process.env.AUTH_EMAIL_FROM || 'FEN <no-reply@fen-agent.app>',
       to: email,
       subject,
-      text: `${body}\n\nContinue with Robin: ${appUrl}/frontend/robin_dashboard.html`
+      text: `${body}\n\nContinue with FEN: ${appUrl}/frontend/fen_dashboard.html`
     })
   })
   if (!response.ok) throw new Error(`Resend failed: ${response.status}`)
@@ -226,7 +226,7 @@ router.post('/internal/nudges/run', async (req, res, next) => {
       if (!dryRun) {
         try {
           if (channel === 'whatsapp') await sendWhatsApp(row.phone_e164, decision.body)
-          if (channel === 'email') await sendEmail(row.email, decision.subject || 'Robin', decision.body)
+          if (channel === 'email') await sendEmail(row.email, decision.subject || 'FEN', decision.body)
           sent = true
         } catch (e) {
           error = e instanceof Error ? e.message : String(e)

@@ -16,9 +16,9 @@ export interface UserProfile {
 
   // Inferred passively from conversation — only user-shared data
   topics?:        string[] // recurring subjects they bring up
-  style_notes?:   string[] // communication preferences Robin noticed
+  style_notes?:   string[] // communication preferences FEN noticed
   wins?:          string[] // things they've completed or celebrated
-  avoid?:         string[] // things they asked Robin not to do
+  avoid?:         string[] // things they asked FEN not to do
 
   // Housekeeping
   onboarding_step?:      number   // 0 = not started, 1-3 = in progress, 4 = done
@@ -64,12 +64,12 @@ export function onboardingQuestion(step: number, profile: UserProfile): string {
       return `What kind of projects are you working on — and what slows you down most?`
     }
     if (reason.includes('productivity') || reason.includes('work')) {
-      return `What's one thing you keep putting off that Robin could take off your plate?`
+      return `What's one thing you keep putting off that FEN could take off your plate?`
     }
     if (reason.includes('learn')) {
       return `What are you trying to learn or get better at right now?`
     }
-    return `What's one thing you want Robin to help you with most?`
+    return `What's one thing you want FEN to help you with most?`
   }
 
   if (step === 2) {
@@ -111,7 +111,7 @@ export function buildProfileContext(profile: UserProfile): string {
   if (profile.topics?.length)      lines.push(`Recurring topics: ${profile.topics.slice(-5).join(', ')}`)
   if (profile.style_notes?.length) lines.push(`Communication style notes: ${profile.style_notes.slice(-3).join('; ')}`)
   if (profile.wins?.length)        lines.push(`Recent wins: ${profile.wins.slice(-2).join('; ')}`)
-  if (profile.avoid?.length)       lines.push(`User has asked Robin NOT to: ${profile.avoid.join('; ')}`)
+  if (profile.avoid?.length)       lines.push(`User has asked FEN NOT to: ${profile.avoid.join('; ')}`)
 
   return lines.join('\n')
 }

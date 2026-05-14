@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { env } from '../config/env.js'
 import { loadSession, saveSession, db, type Session } from '../db/client.js'
 import { buildUserContext, handleApproval } from '../brain/brain.js'
-import { buildSystemPrompt, rejectionContext, type RobinToneMode } from '../brain/prompts.js'
+import { buildSystemPrompt, rejectionContext, type FENToneMode } from '../brain/prompts.js'
 import { doResearch, doTrendAnalysis, redditSearch, hackerNewsSearch, youtubeSearch, apolloSearch, hunterEmailFind, newsSearch, gdeltSearch, getWeather, githubSearch, stackOverflowSearch, stackOverflowAnswers } from '../brain/planner.js'
 import { listEmails, getEmailBody, sendEmail } from '../lib/gmail.js'
 import { lookupPostcode, nearbyPostcodes, nhsServices, tflBusArrivals, tflStopSearch, bodsRouteSearch, ukLocalServices, tflLineInfo, tflJourney, tflLineStatus } from '../lib/uk.js'
@@ -29,7 +29,7 @@ function detectSignals(recentText: string) {
   }
 }
 
-function detectToneMode(signals: Record<string, boolean>, rejectionRound = 0): RobinToneMode {
+function detectToneMode(signals: Record<string, boolean>, rejectionRound = 0): FENToneMode {
   if (rejectionRound >= 2) return 'push'
   if (signals.money_stress || signals.frustration || signals.doubt) return 'support'
   if (signals.task_avoidance) return 'push'
@@ -58,9 +58,9 @@ function updateRelationshipMemory(memory: Session, userMessage: string, signals:
   if (signals.frustration) addUnique('friction_points', 'Frustration rises when progress feels unclear or slow.')
   if (signals.doubt) addUnique('friction_points', 'Self-doubt shows up around whether the offer is good enough or whether people will pay.')
   if (signals.ambition) addUnique('working_style', 'User responds to direct momentum and concrete next steps.')
-  if (/draft|write|message|email|send/i.test(userMessage)) addUnique('working_style', 'User benefits when Robin drafts usable text instead of explaining theory.')
+  if (/draft|write|message|email|send/i.test(userMessage)) addUnique('working_style', 'User benefits when FEN drafts usable text instead of explaining theory.')
   if (/done|finished|sent|completed|made|earned|closed/i.test(text)) addUnique('wins', `Recent win: ${userMessage.slice(0, 140)}`)
-  if (/too much|overwhelmed|busy/i.test(text)) addUnique('voice_notes', 'When overwhelmed, keep Robin very short and reduce pressure.')
+  if (/too much|overwhelmed|busy/i.test(text)) addUnique('voice_notes', 'When overwhelmed, keep FEN very short and reduce pressure.')
   if (/be direct|straight|no fluff/i.test(text)) addUnique('voice_notes', 'User explicitly prefers direct, no-fluff guidance.')
 
   relationship.last_updated = new Date().toISOString()
@@ -106,11 +106,11 @@ function handleOnboarding(memory: Session, userMessage: string): string | null {
   const step = profile.onboarding_step ?? 0
   const assistantCount = memory.messages.filter((m: any) => m.role === 'assistant').length
 
-  // Very first message ever — introduce Robin and ask Q1
+  // Very first message ever — introduce FEN and ask Q1
   if (assistantCount === 0) {
     const name = profile.name ? ` ${profile.name.split(' ')[0]}` : ''
     const q1 = onboardingQuestion(1, profile)
-    const reply = `Hey${name} — I'm Robin.\n\nI'm not a fixed assistant. You shape what I become.\n\n${q1}`
+    const reply = `Hey${name} — I'm FEN.\n\nI'm not a fixed assistant. You shape what I become.\n\n${q1}`
     setProfile(memory, { ...profile, onboarding_step: 1 })
     return reply
   }
@@ -328,7 +328,7 @@ async function handleTool(name: string, input: Record<string, unknown>, id: stri
   }
   if (name === 'read_emails' || name === 'get_email_body' || name === 'send_email') {
     const tokRow = await db.query(`SELECT access_token, refresh_token, expiry_date FROM gmail_tokens WHERE user_id=$1`, [memory.userId])
-    if (!tokRow.rows.length) return { type: 'tool_result' as const, tool_use_id: id, content: `Gmail not connected. Ask the user to connect Gmail by visiting: https://robin-agent.onrender.com/email/connect?phone=THEIR_PHONE` }
+    if (!tokRow.rows.length) return { type: 'tool_result' as const, tool_use_id: id, content: `Gmail not connected. Ask the user to connect Gmail by visiting: https://fen-agent.onrender.com/email/connect?phone=THEIR_PHONE` }
     const tokens = { access_token: tokRow.rows[0].access_token, refresh_token: tokRow.rows[0].refresh_token, expiry_date: tokRow.rows[0].expiry_date }
     if (name === 'read_emails') {
       const emails = await listEmails(tokens, { query: input.query as string, maxResults: input.maxResults as number || 10, unreadOnly: input.unreadOnly as boolean })
@@ -478,7 +478,7 @@ export async function chatService(userId: string, userMessage: string, meta?: { 
 
   // PARA memory writeback — fire-and-forget
   if (userMessage && reply) {
-    appendDailyLog(userId, 'robin', reply).catch(() => {})
+    appendDailyLog(userId, 'fen', reply).catch(() => {})
     planParaWrite(userMessage, reply, paraSummary).then(plan => {
       if (plan.should_write && plan.para_type && plan.title && plan.section && plan.note) {
         appendParaNote(userId, plan.para_type, plan.title, plan.section, plan.note).catch(() => {})

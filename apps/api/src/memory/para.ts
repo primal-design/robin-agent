@@ -1,7 +1,7 @@
 import { db } from '../db/client.js'
 
 export type ParaType    = 'project' | 'area' | 'resource' | 'archive'
-export type ParaSection = 'what_happened' | 'robin_notes' | 'open_threads' | 'decisions'
+export type ParaSection = 'what_happened' | 'fen_notes' | 'open_threads' | 'decisions'
 
 export interface ParaNote {
   id:         string
@@ -42,7 +42,7 @@ export async function ensureParaTables(): Promise<void> {
 }
 
 // ── Daily log ─────────────────────────────────────────────────────────────────
-export async function appendDailyLog(userId: string, role: 'user' | 'robin', content: string): Promise<void> {
+export async function appendDailyLog(userId: string, role: 'user' | 'fen', content: string): Promise<void> {
   try {
     await db.query(
       `INSERT INTO daily_logs (user_id, role, content) VALUES ($1, $2, $3)`,
@@ -131,7 +131,7 @@ export interface ParaPlan {
 
 export async function planParaWrite(
   userMessage: string,
-  robinReply:  string,
+  fenReply:  string,
   existingSummary: string
 ): Promise<ParaPlan> {
   // Simple heuristic planner — no extra API call needed
@@ -156,7 +156,7 @@ export async function planParaWrite(
   const section: ParaSection =
     isDecision   ? 'decisions'     :
     isOpenThread ? 'open_threads'  :
-    isWin        ? 'what_happened' : 'robin_notes'
+    isWin        ? 'what_happened' : 'fen_notes'
 
   // Extract a short title from the message
   const title = userMessage.slice(0, 60).replace(/[^a-zA-Z0-9\s£]/g, '').trim() || 'General'
@@ -167,6 +167,6 @@ export async function planParaWrite(
     title,
     section,
     should_write: true,
-    note: `${userMessage.slice(0, 200)} → ${robinReply.slice(0, 200)}`,
+    note: `${userMessage.slice(0, 200)} → ${fenReply.slice(0, 200)}`,
   }
 }

@@ -88,7 +88,7 @@ export async function autonomousDecision(session: Session, profile?: unknown) {
   const ctx = buildUserContext(session, profile)
   const res = await ai().messages.create({
     model: 'claude-sonnet-4-6', max_tokens: 400,
-    system: `You are Robin — a side hustle mentor making a proactive decision about a user WITHOUT being asked.
+    system: `You are FEN — a side hustle mentor making a proactive decision about a user WITHOUT being asked.
 Choose exactly ONE action:
 A) MORNING_PUSH B) STREAK_WARNING C) STUCK_RESCUE D) WIN_CELEBRATE E) LEAD_NUDGE F) WEEK_REVIEW G) NOTHING
 Rules: Pick the most relevant. Write SHORT message (2 sentences max). End with 🦊. If NOTHING: {"action":"NOTHING"}

@@ -100,7 +100,7 @@ function gmailErrorMessage(err: unknown) {
     return 'Google rejected the client credentials. Check GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET in Render.'
   }
   if (full.includes('redirect_uri_mismatch')) {
-    return 'The Google redirect URI does not match. Both Render and Google Console should use https://robin-agent.onrender.com/email/callback.'
+    return 'The Google redirect URI does not match. Both Render and Google Console should use https://fen-agent.onrender.com/email/callback.'
   }
   if (full.includes('invalid_grant')) {
     return 'This Google sign-in code is expired or already used. Start the Gmail connect flow again from the dashboard.'
@@ -148,7 +148,7 @@ router.get('/email/callback', async (req, res) => {
     try {
       profile = await getEmailProfile(tokens)
     } catch (err) {
-      throw withStep('Google granted access but Robin could not read the Gmail profile', err)
+      throw withStep('Google granted access but FEN could not read the Gmail profile', err)
     }
 
     try {
@@ -161,11 +161,11 @@ router.get('/email/callback', async (req, res) => {
         [userId, tokens.access_token, tokens.refresh_token, tokens.expiry_date, profile.email]
       )
     } catch (err) {
-      throw withStep('Google granted access but Robin could not save the Gmail connection', err)
+      throw withStep('Google granted access but FEN could not save the Gmail connection', err)
     }
 
     // Redirect to dashboard with success
-    res.redirect('/frontend/robin_dashboard.html?gmail=connected')
+    res.redirect('/frontend/fen_dashboard.html?gmail=connected')
   } catch (e) {
     console.error('[Gmail callback]', e)
     const message = gmailErrorMessage(e)
@@ -187,9 +187,9 @@ router.get('/email/callback', async (req, res) => {
   <body>
     <main>
       <h1>Gmail connection failed</h1>
-      <p>Robin received the Google callback, but the final connection step failed.</p>
+      <p>FEN received the Google callback, but the final connection step failed.</p>
       <code>${escapeHtml(message)}</code>
-      <p><a href="/frontend/robin_dashboard.html">Return to dashboard</a></p>
+      <p><a href="/frontend/fen_dashboard.html">Return to dashboard</a></p>
     </main>
   </body>
 </html>`)

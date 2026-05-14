@@ -12,7 +12,7 @@ function normalizePhone(phone: string) {
 }
 
 function authSecret() {
-  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-robin-auth-secret'
+  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-fen-auth-secret'
 }
 
 function signPayload(payload: string) {
@@ -128,7 +128,7 @@ router.post('/signup', async (req, res, next) => {
       await client.messages.create({
         from: process.env.TWILIO_WHATSAPP_FROM,
         to:   `whatsapp:${normalizedPhone}`,
-        body: `Hi ${name} 👋 Welcome to Robin — you're in!\n\nSign in here: ${process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'}/frontend/robin_site.html\n\nRequest ID: ${requestId}`
+        body: `Hi ${name} 👋 Welcome to FEN — you're in!\n\nSign in here: ${process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'}/frontend/fen_site.html\n\nRequest ID: ${requestId}`
       })
     } catch (e) {
       console.warn('[signup] WhatsApp notify failed:', (e as Error).message)
@@ -195,7 +195,7 @@ router.post('/auth/send-code', async (req, res, next) => {
       await client.messages.create({
         from: process.env.TWILIO_WHATSAPP_FROM,
         to:   `whatsapp:${phone}`,
-        body: `Your Robin sign-in code is: *${code}*\n\nExpires in 10 minutes. Do not share this code.`
+        body: `Your FEN sign-in code is: *${code}*\n\nExpires in 10 minutes. Do not share this code.`
       })
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown Twilio error'
@@ -275,7 +275,7 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
         await client.messages.create({
           from: process.env.TWILIO_WHATSAPP_FROM,
           to:   `whatsapp:${phone}`,
-          body: `Hi ${name} 👋 You're in.\n\nRobin is ready for you. Sign in here:\nhttps://robin-agent.onrender.com/frontend/robin_site.html\n\nReply to this message anytime to talk to Robin directly.`
+          body: `Hi ${name} 👋 You're in.\n\nFEN is ready for you. Sign in here:\nhttps://fen-agent.onrender.com/frontend/fen_site.html\n\nReply to this message anytime to talk to FEN directly.`
         })
       } catch(e) {
         console.warn('[admin] WhatsApp notify failed:', (e as Error).message)
@@ -294,7 +294,7 @@ router.post('/admin/waitlist/notify', async (req, res, next) => {
     await client.messages.create({
       from: process.env.TWILIO_WHATSAPP_FROM,
       to:   `whatsapp:${phone}`,
-      body: `Hi ${name} 👋 You're in.\n\nRobin is ready for you. Sign in here:\nhttps://robin-agent.onrender.com/frontend/robin_site.html`
+      body: `Hi ${name} 👋 You're in.\n\nFEN is ready for you. Sign in here:\nhttps://fen-agent.onrender.com/frontend/fen_site.html`
     })
     res.json({ ok: true })
   } catch (err) { next(err) }

@@ -17,7 +17,7 @@ export async function redditSearch(query: string, subreddit = ''): Promise<strin
   try {
     const base = subreddit ? `https://www.reddit.com/r/${subreddit}/search.json` : 'https://www.reddit.com/search.json'
     const url  = `${base}?q=${encodeURIComponent(query)}&sort=top&t=month&limit=10&restrict_sr=${subreddit ? 'true' : 'false'}`
-    const res  = await fetch(url, { headers: { 'User-Agent': 'Robin/1.0 research-bot' }, signal: AbortSignal.timeout(6000) })
+    const res  = await fetch(url, { headers: { 'User-Agent': 'FEN/1.0 research-bot' }, signal: AbortSignal.timeout(6000) })
     if (!res.ok) return null
     const data = await res.json() as { data?: { children: { data: { title: string; selftext: string; score: number; num_comments: number; subreddit: string } }[] } }
     const posts = data.data?.children || []

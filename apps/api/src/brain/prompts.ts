@@ -12,7 +12,7 @@ const ZERO_SKILL_ENTRY = [
   { title: 'Commercial cleaning', target: '£2,000-6,000/month', model: '£150-400/job. 3 jobs/week solo = £2k+/month.', first_step: 'Post on Gumtree and local Facebook groups.' },
 ]
 
-export type RobinToneMode = 'normal' | 'focus' | 'support' | 'push'
+export type FENToneMode = 'normal' | 'focus' | 'support' | 'push'
 
 export function formatBusinessModels(ctx: { niche?: string | null; facts?: string[] }) {
   const hasSkill = ctx?.niche || ctx?.facts?.some(f => /skill|job|work/i.test(f))
@@ -27,7 +27,7 @@ export function rejectionContext(round: number): string {
   return 'User has pushed back multiple times. Be compassionate but very direct. Name what is holding them back.'
 }
 
-function toneInstructions(mode: RobinToneMode) {
+function toneInstructions(mode: FENToneMode) {
   if (mode === 'support') return 'SUPPORT MODE:\n- Slow down. Lower pressure.\n- Keep it short.\n- One small step only.\n- No challenge, just stabilise.'
   if (mode === 'focus') return 'FOCUS MODE:\n- Cut everything unnecessary.\n- Name the one open loop.\n- Force a single next step.\n- No explanation.'
   if (mode === 'push') return 'PUSH MODE:\n- Direct. Minimal.\n- Say what is actually happening.\n- No softening. No over-explaining.\n- End with a clear action.'
@@ -40,7 +40,7 @@ interface PromptOptions {
   rejectCtx: string
   skillContext: string
   urlContext: string
-  toneMode?: RobinToneMode
+  toneMode?: FENToneMode
   onboarding?: boolean
 }
 
@@ -62,7 +62,7 @@ export function buildSystemPrompt({ ctx, signals, rejectCtx, skillContext, urlCo
   const signalList = Object.entries(signals).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'
 
   return [
-    'You are Robin.',
+    'You are FEN.',
     '',
     'ROLE:',
     'You are a personal AI assistant. You help users get things done — whether that is building a business, writing code, debugging software, researching ideas, finding local services, or understanding trends.',

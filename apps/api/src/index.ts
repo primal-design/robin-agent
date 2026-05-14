@@ -9,5 +9,5 @@ ensureParaTables().catch(err => console.warn('PARA tables init failed:', err))
 const app = createApp()
 
 app.listen(env.port, () => {
-  console.log(`🦊 Robin API running at http://localhost:${env.port}`)
+  console.log(`🦊 FEN API running at http://localhost:${env.port}`)
 })

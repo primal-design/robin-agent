@@ -1,13 +1,13 @@
 (() => {
-  const TOKEN = 'robin_token'
-  const REFRESH = 'robin_refresh'
+  const TOKEN = 'fen_token'
+  const REFRESH = 'fen_refresh'
   const originalFetch = window.fetch.bind(window)
 
   function setStatus(msg) {
-    let el = document.getElementById('robin-status')
+    let el = document.getElementById('fen-status')
     if (!el) {
       el = document.createElement('div')
-      el.id = 'robin-status'
+      el.id = 'fen-status'
       el.style = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:8px;z-index:9999;font-size:14px'
       document.body.appendChild(el)
     }
@@ -23,7 +23,7 @@
   function clearSession() {
     localStorage.removeItem(TOKEN)
     localStorage.removeItem(REFRESH)
-    document.getElementById('robin-logout')?.remove()
+    document.getElementById('fen-logout')?.remove()
   }
 
   async function refreshSession() {
@@ -41,14 +41,14 @@
   }
 
   function addLogout() {
-    if (document.getElementById('robin-logout')) return
+    if (document.getElementById('fen-logout')) return
     const btn = document.createElement('button')
-    btn.id = 'robin-logout'
+    btn.id = 'fen-logout'
     btn.innerText = 'Logout'
     btn.style = 'position:fixed;top:10px;right:10px;z-index:9999'
     btn.onclick = () => {
       clearSession()
-      location.href = '/frontend/robin_site.html'
+      location.href = '/frontend/fen_site.html'
     }
     document.body.appendChild(btn)
   }
@@ -60,7 +60,7 @@
     if (token) {
       localStorage.setItem(TOKEN, token)
       if (refresh) localStorage.setItem(REFRESH, refresh)
-      history.replaceState({}, '', '/frontend/robin_dashboard.html')
+      history.replaceState({}, '', '/frontend/fen_dashboard.html')
       setStatus('Logged in ✨')
     }
   }

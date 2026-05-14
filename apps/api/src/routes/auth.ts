@@ -17,7 +17,7 @@ function normalizeEmail(email: string) {
 }
 
 function authSecret() {
-  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-robin-auth-secret'
+  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-fen-auth-secret'
 }
 
 function signPayload(payload: string) {
@@ -59,24 +59,24 @@ async function sendWhatsAppCode(phone: string, code: string) {
   if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_WHATSAPP_FROM) throw new Error('Twilio WhatsApp is not configured')
   const twilio = (await import('twilio')).default
   const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  await client.messages.create({ from: process.env.TWILIO_WHATSAPP_FROM, to: `whatsapp:${phone}`, body: `Your Robin sign-in code is: ${code}. Expires in 10 minutes.` })
+  await client.messages.create({ from: process.env.TWILIO_WHATSAPP_FROM, to: `whatsapp:${phone}`, body: `Your FEN sign-in code is: ${code}. Expires in 10 minutes.` })
 }
 
 async function sendSMSCode(phone: string, code: string) {
   if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_SMS_FROM) throw new Error('Twilio SMS is not configured')
   const twilio = (await import('twilio')).default
   const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  await client.messages.create({ from: process.env.TWILIO_SMS_FROM, to: phone, body: `Your Robin sign-in code is: ${code}. Expires in 10 minutes.` })
+  await client.messages.create({ from: process.env.TWILIO_SMS_FROM, to: phone, body: `Your FEN sign-in code is: ${code}. Expires in 10 minutes.` })
 }
 
 async function sendTelegramCode(phone: string, code: string) {
   // Telegram requires a chat_id — we look it up from a stored mapping or inform the user to message the bot first
   const chatId = process.env[`TELEGRAM_CHAT_${phone.replace(/[^0-9]/g, '')}`]
-  if (!process.env.TELEGRAM_BOT_TOKEN || !chatId) throw new Error('Telegram not set up for this number. Message @RobinAssistantBot on Telegram first.')
+  if (!process.env.TELEGRAM_BOT_TOKEN || !chatId) throw new Error('Telegram not set up for this number. Message @FENAssistantBot on Telegram first.')
   const res = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: `Your Robin sign-in code is: ${code}. Expires in 10 minutes.` })
+    body: JSON.stringify({ chat_id: chatId, text: `Your FEN sign-in code is: ${code}. Expires in 10 minutes.` })
   })
   if (!res.ok) throw new Error(`Telegram delivery failed: ${res.status}`)
 }
@@ -86,13 +86,13 @@ async function sendEmail(email: string, subject: string, text: string) {
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: process.env.AUTH_EMAIL_FROM || 'Robin <no-reply@robin-agent.app>', to: email, subject, text })
+    body: JSON.stringify({ from: process.env.AUTH_EMAIL_FROM || 'FEN <no-reply@fen-agent.app>', to: email, subject, text })
   })
   if (!response.ok) throw new Error(`Email provider failed with ${response.status}`)
 }
 
 async function sendEmailCode(email: string, code: string) {
-  await sendEmail(email, 'Your Robin sign-in code', `Your Robin sign-in code is ${code}. It expires in 10 minutes.`)
+  await sendEmail(email, 'Your FEN sign-in code', `Your FEN sign-in code is ${code}. It expires in 10 minutes.`)
 }
 
 async function acceptedUser(db: any, phone: string) {
@@ -156,7 +156,7 @@ router.post('/auth/send-magic-link', async (req, res, next) => {
     if (requestedEmail && requestedEmail !== normalizeEmail(check.rows[0]?.email)) await db.query(`UPDATE waitlist SET email=$1 WHERE phone=$2`, [requestedEmail, phone])
     const magic = createToken(phone, 'magic', MAGIC_TTL_MS)
     const url = `${appBaseUrl(req)}/auth/magic?token=${encodeURIComponent(magic)}`
-    await sendEmail(email, 'Sign in to Robin', `Tap this link to sign in to Robin. It expires in 10 minutes.\n\n${url}`)
+    await sendEmail(email, 'Sign in to FEN', `Tap this link to sign in to FEN. It expires in 10 minutes.\n\n${url}`)
     res.json({ ok: true, delivery: 'email', email })
   } catch (err) { next(err) }
 })
@@ -164,7 +164,7 @@ router.post('/auth/send-magic-link', async (req, res, next) => {
 router.get('/auth/magic', async (req, res) => {
   const session = readToken(String(req.query.token || ''), 'magic')
   if (!session?.phone) return res.status(401).send('Magic link expired or invalid. Please request a new one.')
-  const nextUrl = `/frontend/robin_dashboard.html?token=${encodeURIComponent(createSession(session.phone).token)}&refresh=${encodeURIComponent(createSession(session.phone).refresh_token)}`
+  const nextUrl = `/frontend/fen_dashboard.html?token=${encodeURIComponent(createSession(session.phone).token)}&refresh=${encodeURIComponent(createSession(session.phone).refresh_token)}`
   res.redirect(nextUrl)
 })
 
@@ -224,7 +224,7 @@ router.get('/auth/google', (req, res) => {
 
 router.get('/auth/google/callback', async (req, res) => {
   const code = String(req.query.code || '')
-  if (!code) return res.redirect('/frontend/robin_site.html?error=google_denied')
+  if (!code) return res.redirect('/frontend/fen_site.html?error=google_denied')
 
   const clientId     = process.env.GOOGLE_CLIENT_ID     || ''
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -248,19 +248,19 @@ router.get('/auth/google/callback', async (req, res) => {
     let tokenData: any
     try { tokenData = JSON.parse(rawBody) } catch {
       console.error('[google-auth] token response not JSON:', rawBody.slice(0, 200))
-      return res.redirect('/frontend/robin_site.html?error=google_token_failed')
+      return res.redirect('/frontend/fen_site.html?error=google_token_failed')
     }
     if (tokenData.error) {
       console.error('[google-auth] token error:', tokenData.error, tokenData.error_description)
-      return res.redirect('/frontend/robin_site.html?error=google_token_failed')
+      return res.redirect('/frontend/fen_site.html?error=google_token_failed')
     }
-    if (!tokenData.id_token) return res.redirect('/frontend/robin_site.html?error=google_token_failed')
+    if (!tokenData.id_token) return res.redirect('/frontend/fen_site.html?error=google_token_failed')
 
     // Decode id_token (JWT — no verify needed for our purposes, Google already validated)
     const payload = JSON.parse(Buffer.from(tokenData.id_token.split('.')[1], 'base64url').toString())
     const email   = String(payload.email || '').toLowerCase().trim()
     const name    = String(payload.name  || payload.given_name || '').trim()
-    if (!email) return res.redirect('/frontend/robin_site.html?error=google_no_email')
+    if (!email) return res.redirect('/frontend/fen_site.html?error=google_no_email')
 
     const { db } = await import('../db/client.js')
 
@@ -269,7 +269,7 @@ router.get('/auth/google/callback', async (req, res) => {
 
     if (!check.rows.length || check.rows[0].status !== 'accepted') {
       // Not accepted yet — redirect to request access with email pre-filled
-      return res.redirect(`/frontend/robin_site.html?error=not_accepted&email=${encodeURIComponent(email)}`)
+      return res.redirect(`/frontend/fen_site.html?error=not_accepted&email=${encodeURIComponent(email)}`)
     }
 
     const user  = check.rows[0]
@@ -280,12 +280,12 @@ router.get('/auth/google/callback', async (req, res) => {
     if (!user.name && name) await db.query(`UPDATE waitlist SET name=$1 WHERE LOWER(email)=$2`, [name, email])
 
     const session = createSession(phone)
-    const nextUrl = `/frontend/robin_dashboard.html?token=${encodeURIComponent(session.token)}&refresh=${encodeURIComponent(session.refresh_token)}&name=${encodeURIComponent(user.name || name)}`
+    const nextUrl = `/frontend/fen_dashboard.html?token=${encodeURIComponent(session.token)}&refresh=${encodeURIComponent(session.refresh_token)}&name=${encodeURIComponent(user.name || name)}`
     res.redirect(nextUrl)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[google-auth] unhandled:', msg)
-    res.redirect(`/frontend/robin_site.html?error=google_failed&detail=${encodeURIComponent(msg.slice(0, 120))}`)
+    res.redirect(`/frontend/fen_site.html?error=google_failed&detail=${encodeURIComponent(msg.slice(0, 120))}`)
   }
 })
 

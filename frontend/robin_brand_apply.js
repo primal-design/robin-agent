@@ -1,6 +1,6 @@
 (() => {
   function mascotSrc() {
-    return window.RobinMascot?.src || ''
+    return window.FENMascot?.src || ''
   }
 
   function replaceImage(el) {
@@ -9,7 +9,7 @@
     // Don't overwrite an img that already has a valid inline src (base64 or blob)
     if (el.src && (el.src.startsWith('data:') || el.src.startsWith('blob:'))) return
     el.src = src
-    el.alt = 'Robin'
+    el.alt = 'FEN'
     el.style.objectFit = 'contain'
   }
 
@@ -19,7 +19,7 @@
     if (container.querySelector('img')) return
     const img = document.createElement('img')
     img.src = src
-    img.alt = 'Robin'
+    img.alt = 'FEN'
     img.style.cssText = 'height:28px;width:auto;object-fit:contain;opacity:.95;'
     container.insertBefore(img, container.firstChild)
   }
@@ -27,7 +27,7 @@
   function applyBrand() {
     document.querySelectorAll('#fox,.sb-fox,.ffox,.a-tb-fox,.si-logo img,.app-nav-brand img').forEach(replaceImage)
     document.querySelectorAll('.sb-brand,.fbrand,.a-tb-brand,.app-nav-brand').forEach(ensureLogo)
-    window.RobinMascot?.replaceFoxEmoji?.()
+    window.FENMascot?.replaceFoxEmoji?.()
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyBrand)

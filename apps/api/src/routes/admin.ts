@@ -4,14 +4,14 @@ const router = Router()
 
 // Simple password guard via header or query
 function isAuthorized(req: any) {
-  const secret = process.env.ADMIN_SECRET || 'robin-admin-2026'
+  const secret = process.env.ADMIN_SECRET || 'fen-admin-2026'
   const pw = req.headers['x-admin-secret'] || req.query.secret
   return pw === secret
 }
 
 // Client-side password check hits this lightweight route first
 router.post('/admin/auth', (req, res) => {
-  const secret = process.env.ADMIN_SECRET || 'robin-admin-2026'
+  const secret = process.env.ADMIN_SECRET || 'fen-admin-2026'
   if (req.body.password === secret) return res.json({ ok: true })
   return res.status(401).json({ ok: false, error: 'wrong_password' })
 })
@@ -48,11 +48,11 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
         if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM) {
           const twilio = (await import('twilio')).default
           const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-          const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
+          const appUrl = process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'
           await client.messages.create({
             from: process.env.TWILIO_WHATSAPP_FROM,
             to: `whatsapp:${phone}`,
-            body: `Hey ${name}! 🎉 You're in — Robin is ready for you.\n\nSign in here: ${appUrl}/frontend/robin_site.html`
+            body: `Hey ${name}! 🎉 You're in — FEN is ready for you.\n\nSign in here: ${appUrl}/frontend/fen_site.html`
           })
         }
       } catch (e) {
@@ -74,11 +74,11 @@ router.post('/admin/waitlist/notify', async (req, res, next) => {
     }
     const twilio = (await import('twilio')).default
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-    const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
+    const appUrl = process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'
     await client.messages.create({
       from: process.env.TWILIO_WHATSAPP_FROM,
       to: `whatsapp:${phone}`,
-      body: `Hey ${name || 'there'}! 🎉 Your Robin access is ready.\n\nSign in here: ${appUrl}/frontend/robin_site.html`
+      body: `Hey ${name || 'there'}! 🎉 Your FEN access is ready.\n\nSign in here: ${appUrl}/frontend/fen_site.html`
     })
     res.json({ ok: true })
   } catch (err) { next(err) }

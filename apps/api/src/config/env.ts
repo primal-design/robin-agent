@@ -18,7 +18,7 @@ export const env = {
   twilioWhatsappFrom: process.env.TWILIO_WHATSAPP_FROM ?? 'whatsapp:+14155238886',
   gmailClientId:      process.env.GMAIL_CLIENT_ID ?? '',
   gmailClientSecret:  process.env.GMAIL_CLIENT_SECRET ?? '',
-  gmailRedirectUri:   process.env.GMAIL_REDIRECT_URI ?? 'https://robin-agent.onrender.com/email/callback',
+  gmailRedirectUri:   process.env.GMAIL_REDIRECT_URI ?? 'https://fen-agent.onrender.com/email/callback',
   jwtSecret:          process.env.JWT_SECRET ?? 'dev-secret-change-me',
   adminToken:         process.env.ADMIN_TOKEN ?? '',
   youtubeKey:         process.env.YOUTUBE_API_KEY ?? '',
