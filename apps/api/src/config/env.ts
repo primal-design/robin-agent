@@ -32,6 +32,11 @@ export const env = {
   bodsApiKey:         process.env.BODS_API_KEY ?? '',
   githubToken:        process.env.GITHUB_TOKEN ?? '',
   stackAppKey:        process.env.STACKOVERFLOW_KEY ?? '',
+  stripeSecretKey:    process.env.STRIPE_SECRET_KEY ?? '',
+  stripeWebhookSecret:process.env.STRIPE_WEBHOOK_SECRET ?? '',
+  stripeStarterPrice: process.env.STRIPE_STARTER_PRICE_ID ?? '',
+  redisUrl:           process.env.REDIS_URL ?? '',
+  defaultWorkerId:    process.env.DEFAULT_WORKER_ID ?? '',
 }
 
 export function assertRequired() {

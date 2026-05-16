@@ -10,12 +10,16 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
+    "bullmq": "^5.76.8",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "googleapis": "^171.0.0",
     "gray-matter": "^4.0.3",
+    "ioredis": "^5.10.1",
     "pg": "^8.13.1",
+    "stripe": "^22.1.1",
     "twilio": "^5.4.0",
-    "googleapis": "^171.0.0"
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

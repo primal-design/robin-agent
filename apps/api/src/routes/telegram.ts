@@ -1,63 +1,51 @@
 import { Router } from 'express'
-import { chatService } from '../services/chat.service.js'
-import { findOrCreateUser, db } from '../db/client.js'
+import { eventQueue } from '../queues/eventQueue.js'
 
-const router = Router()
+export const telegramRouter = Router()
 
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? ''
 const TELEGRAM_API   = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`
 
-async function sendMessage(chatId: number, text: string) {
-  await fetch(`${TELEGRAM_API}/sendMessage`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
-  })
-}
+// Per-worker webhook: POST /webhooks/telegram/:workerId
+telegramRouter.post('/webhooks/telegram/:workerId', async (req, res) => {
+  res.json({ ok: true }) // acknowledge immediately
 
-router.post('/webhook', async (req, res) => {
-  // Acknowledge immediately so Telegram doesn't retry
-  res.sendStatus(200)
+  const { workerId } = req.params
+  const updateId = req.body?.update_id
 
-  try {
-    const message = req.body?.message
-    if (!message || !message.text) return
+  if (!req.body?.message) return
 
-    const chatId   = message.chat.id as number
-    const text     = String(message.text).trim()
-    const tgUserId = String(message.from?.id ?? chatId)
+  await eventQueue.add(
+    'telegram_message',
+    { workerId, payload: req.body },
+    { jobId: `telegram:${updateId}` } // idempotency — Telegram retries same update_id
+  )
+})
 
-    // Use telegram:<id> as the unique identifier
-    const userId = await findOrCreateUser(`telegram:${tgUserId}`)
+// Legacy single-bot webhook (keep for @fen_ai_bot)
+telegramRouter.post('/telegram/webhook', async (req, res) => {
+  res.json({ ok: true })
 
-    // Seed profile from waitlist if exists
-    const username = message.from?.username ?? ''
-    const firstName = message.from?.first_name ?? ''
-    const lastName  = message.from?.last_name ?? ''
-    const fullName  = [firstName, lastName].filter(Boolean).join(' ')
+  const defaultWorkerId = process.env.DEFAULT_WORKER_ID
+  if (!defaultWorkerId || !req.body?.message) return
 
-    const waitlist = await db.query(
-      `SELECT name, role FROM waitlist WHERE phone=$1 LIMIT 1`,
-      [`telegram:${tgUserId}`]
-    )
-    const meta = waitlist.rows[0]
-      ? { name: waitlist.rows[0].name, signupReason: waitlist.rows[0].role }
-      : fullName ? { name: fullName } : undefined
-
-    const reply = await chatService(userId, text, meta)
-    await sendMessage(chatId, reply)
-  } catch (err) {
-    console.error('[Telegram]', err)
-  }
+  const updateId = req.body?.update_id
+  await eventQueue.add(
+    'telegram_message',
+    { workerId: defaultWorkerId, payload: req.body },
+    { jobId: `telegram:${updateId}` }
+  )
 })
 
 // Register webhook with Telegram
-router.get('/set-webhook', async (req, res) => {
-  const host = process.env.APP_URL ?? `https://${req.headers.host}`
-  const webhookUrl = `${host}/telegram/webhook`
+telegramRouter.get('/telegram/set-webhook', async (req, res) => {
+  const host       = process.env.APP_URL ?? `https://${req.headers.host}`
+  const workerId   = (req.query.workerId as string) ?? process.env.DEFAULT_WORKER_ID ?? ''
+  const webhookUrl = workerId
+    ? `${host}/webhooks/telegram/${workerId}`
+    : `${host}/telegram/webhook`
+
   const resp = await fetch(`${TELEGRAM_API}/setWebhook?url=${encodeURIComponent(webhookUrl)}`)
   const data = await resp.json()
   res.json(data)
 })
-
-export default router
