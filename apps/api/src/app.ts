@@ -42,39 +42,15 @@ export function createApp() {
       if (env.sentryDsn && !html.includes('sentry'))
         headSnippets.push(`<script src="https://browser.sentry-cdn.com/7.99.0/bundle.min.js" crossorigin="anonymous"></script><script>Sentry.init({dsn:"${env.sentryDsn}",environment:"${env.nodeEnv}",tracesSampleRate:0.2,sendDefaultPii:false})</script>`)
 
-      // Analytics — consent-gated: PostHog + Cloudflare only load after user accepts
-      const analyticsSnippets: string[] = []
-      if (env.posthogKey)
-        analyticsSnippets.push(`(function(){var s=document.createElement('script');s.type='text/javascript';s.async=true;s.src='https://eu-assets.i.posthog.com/static/array.js';s.onload=function(){window.posthog&&posthog.init('${env.posthogKey}',{api_host:'https://eu.i.posthog.com',persistence:'localStorage'})};document.head.appendChild(s)})()`)
-      if (env.cfBeaconToken)
-        analyticsSnippets.push(`(function(){var s=document.createElement('script');s.defer=true;s.src='https://static.cloudflareinsights.com/beacon.min.js';s.setAttribute('data-cf-beacon','{"token":"${env.cfBeaconToken}"}');document.head.appendChild(s)})()`)
+      // PostHog — cookieless anonymous mode, no consent required under GDPR
+      // persistence:'memory' means no cookies, no localStorage tracking — anonymous sessions only
+      // IP is masked server-side by PostHog EU cloud
+      if (env.posthogKey && !html.includes('posthog'))
+        headSnippets.push(`<script>(function(){var s=document.createElement('script');s.async=true;s.src='https://eu-assets.i.posthog.com/static/array.js';s.onload=function(){posthog.init('${env.posthogKey}',{api_host:'https://eu.i.posthog.com',persistence:'memory',autocapture:false,capture_pageview:true,disable_session_recording:true,ip:false})};document.head.appendChild(s)})();</script>`)
 
-      if (analyticsSnippets.length && !html.includes('fen-consent')) {
-        const consentScript = `
-<script id="fen-consent">(function(){
-  var KEY='fen_analytics_consent';
-  function loadAnalytics(){${analyticsSnippets.join(';')}}
-  var consent=localStorage.getItem(KEY);
-  if(consent==='true'){loadAnalytics();return;}
-  if(consent==='false'){return;}
-  // Show banner
-  var b=document.createElement('div');
-  b.id='fen-cookie-banner';
-  b.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1A1816;color:#F8F7F4;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:9999;font-family:Inter,sans-serif;font-size:13px;';
-  b.innerHTML='<span>We use analytics to improve FEN. No personal data is sold or shared. <a href="/frontend/privacy.html" style="color:#B8976B;text-decoration:none">Privacy policy</a></span>'
-    +'<div style="display:flex;gap:10px;flex-shrink:0">'
-    +'<button onclick="fenConsent(false)" style="background:transparent;border:1px solid rgba(248,247,244,.3);color:#F8F7F4;padding:7px 16px;cursor:pointer;font-size:12px;font-family:Inter,sans-serif;letter-spacing:.1em">Decline</button>'
-    +'<button onclick="fenConsent(true)" style="background:#B8976B;border:none;color:#fff;padding:7px 16px;cursor:pointer;font-size:12px;font-family:Inter,sans-serif;letter-spacing:.1em">Accept</button>'
-    +'</div>';
-  document.body?document.body.appendChild(b):document.addEventListener('DOMContentLoaded',function(){document.body.appendChild(b)});
-  window.fenConsent=function(v){
-    localStorage.setItem(KEY,v?'true':'false');
-    var el=document.getElementById('fen-cookie-banner');if(el)el.remove();
-    if(v)loadAnalytics();
-  };
-})()</script>`
-        headSnippets.push(consentScript)
-      }
+      // Cloudflare Web Analytics — cookie-free by design, no consent required
+      if (env.cfBeaconToken && !html.includes('cf-beacon'))
+        headSnippets.push(`<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${env.cfBeaconToken}"}'></script>`)
 
       if (!html.includes('fen_auth.js'))
         scripts.push(`<script src="/frontend/fen_auth.js?v=${assetVersion}"></script>`)
