@@ -21,6 +21,38 @@ approvalsRouter.get('/approvals', async (req, res) => {
   res.json({ approvals: result.rows })
 })
 
+// POST /approvals/bulk-approve — approve all pending approvals for a tenant
+approvalsRouter.post('/approvals/bulk-approve', async (req, res) => {
+  const tenantId = (req.body.tenantId as string) || process.env.DEFAULT_TENANT_ID
+  if (!tenantId) return res.status(400).json({ error: 'tenantId required' })
+
+  const pending = await pool.query(
+    `SELECT a.*, c.external_user_id FROM approvals a
+     LEFT JOIN conversations c ON c.id = a.conversation_id
+     WHERE a.tenant_id = $1 AND a.status = 'pending'`,
+    [tenantId]
+  )
+
+  const results: { id: string; ok: boolean }[] = []
+  for (const approval of pending.rows) {
+    await pool.query(
+      `UPDATE approvals SET status = 'approved' WHERE id = $1 AND tenant_id = $2`,
+      [approval.id, tenantId]
+    )
+    if (approval.external_user_id && approval.proposed_message) {
+      await pool.query(
+        `INSERT INTO messages (tenant_id, conversation_id, direction, content)
+         VALUES ($1, $2, 'outbound', $3)`,
+        [tenantId, approval.conversation_id, approval.proposed_message]
+      )
+      await sendTelegram(Number(approval.external_user_id), approval.proposed_message)
+    }
+    results.push({ id: approval.id, ok: true })
+  }
+
+  res.json({ ok: true, approved: results.length, results })
+})
+
 // POST /approvals/:id/approve — approve and send
 approvalsRouter.post('/approvals/:id/approve', async (req, res) => {
   const { id } = req.params
@@ -43,6 +75,11 @@ approvalsRouter.post('/approvals/:id/approve', async (req, res) => {
 
   if (convRes.rows[0] && approval.proposed_message) {
     const chatId = convRes.rows[0].external_user_id
+    await pool.query(
+      `INSERT INTO messages (tenant_id, conversation_id, direction, content)
+       VALUES ($1, $2, 'outbound', $3)`,
+      [tenantId, approval.conversation_id, approval.proposed_message]
+    )
     await sendTelegram(Number(chatId), approval.proposed_message)
   }
 

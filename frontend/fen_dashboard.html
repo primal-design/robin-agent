@@ -359,11 +359,11 @@ nav.sb-nav{padding:12px 0;flex:1}
 <div class="view" id="view-actions">
   <div class="view-top">
     <div><h1 class="view-title serif">Approvals</h1><div class="view-sub">Everything FEN has prepared and is waiting for your word.</div></div>
+    <button id="bulk-approve-btn" onclick="bulkApprove()" style="display:none;background:var(--ink);color:#fff;border:none;padding:10px 20px;cursor:pointer;font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-family:'Inter',sans-serif">Approve All →</button>
   </div>
-  <div class="card"><div class="card-label">2 pending</div><div class="card-body">FEN never acts on these until you tap Approve. Ignore them and they expire in 72 hours — no action taken.</div></div>
+  <div class="card"><div class="card-label" id="approvals-count-label">Loading…</div><div class="card-body">FEN never acts on these until you tap Approve. Ignore them and they expire in 72 hours — no action taken.</div></div>
   <div id="approvals-list">
     <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-family:'DM Mono',monospace;margin-bottom:12px">Pending your decision</div>
-    <!-- Same action cards as today, minus the brief -->
   </div>
   <div class="empty-state" id="approvals-empty" style="display:none">
     <h3>All clear.</h3>
@@ -559,12 +559,21 @@ function loadActions() {
       if (appEmpty)    appEmpty.style.display     = '';
       if (todayList)   todayList.innerHTML        = '';
       if (appList)     appList.innerHTML          = '<div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-family:\'DM Mono\',monospace;margin-bottom:12px">Pending your decision</div>';
+      var countLabel = document.getElementById('approvals-count-label');
+      if (countLabel) countLabel.textContent = '0 pending';
+      var bulkBtn = document.getElementById('bulk-approve-btn');
+      if (bulkBtn) bulkBtn.style.display = 'none';
       updateBadges(0);
       return;
     }
 
     if (todayEmpty)  todayEmpty.style.display  = 'none';
     if (appEmpty)    appEmpty.style.display     = 'none';
+
+    var countLabel = document.getElementById('approvals-count-label');
+    if (countLabel) countLabel.textContent = approvals.length + ' pending';
+    var bulkBtn = document.getElementById('bulk-approve-btn');
+    if (bulkBtn) bulkBtn.style.display = approvals.length > 1 ? '' : 'none';
 
     var html = '<div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-family:\'DM Mono\',monospace;margin-bottom:12px">Pending your decision</div>';
     approvals.forEach(function(a) {
@@ -602,6 +611,20 @@ function rejectApproval(id) {
     var el = document.getElementById('ac-' + id);
     if (el) el.innerHTML = '<div style="font-size:12px;color:var(--ink3);padding:12px">Rejected — no message sent.</div>';
     loadActions();
+  });
+}
+
+function bulkApprove() {
+  var count = parseInt((document.getElementById('badge-approvals') || {}).textContent || '0');
+  if (!confirm('Approve and send all ' + (count || 'pending') + ' messages?')) return;
+  api('POST', '/approvals/bulk-approve', { tenantId: '00000000-0000-0000-0000-000000000001' }).then(function(data) {
+    var list = document.getElementById('approvals-list');
+    if (list) list.innerHTML = '<div class="ac-done" style="padding:16px;color:var(--green);font-size:13px">✓ ' + (data && data.approved ? data.approved : 'All') + ' messages approved and sent.</div>';
+    var btn = document.getElementById('bulk-approve-btn');
+    if (btn) btn.style.display = 'none';
+    var label = document.getElementById('approvals-count-label');
+    if (label) label.textContent = '0 pending';
+    updateBadges(0);
   });
 }
 function editAction(id) {
