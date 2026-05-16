@@ -36,15 +36,25 @@ export async function runAgentTurn(input: AgentTurnInput) {
 
   const historyRes = await client.query(
     `SELECT direction, content FROM messages
-     WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 10`,
+     WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 20`,
     [conversationId]
   )
-  const history = historyRes.rows
-    .reverse()
-    .map((r: { direction: string; content: string }) => ({
-      role: r.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
-      content: r.content,
-    }))
+
+  // Build history excluding the current inbound message (it's passed separately as inboundText)
+  // and strip any trailing unanswered user messages so we don't carry stale context forward
+  const allRows = historyRes.rows.reverse() as { direction: string; content: string }[]
+  const withoutCurrent = allRows.filter((r, i) =>
+    !(i === allRows.length - 1 && r.direction === 'inbound' && r.content === inboundText)
+  )
+  // Drop trailing inbound messages that have no outbound reply — they represent unanswered approvals
+  let trimmed = [...withoutCurrent]
+  while (trimmed.length > 0 && trimmed[trimmed.length - 1].direction === 'inbound') {
+    trimmed.pop()
+  }
+  const history = trimmed.map((r) => ({
+    role: r.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
+    content: r.content,
+  }))
 
   const isFirstMessage = history.length === 0
 
