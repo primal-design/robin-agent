@@ -37,6 +37,7 @@ export const env = {
   stripeStarterPrice: process.env.STRIPE_STARTER_PRICE_ID ?? '',
   redisUrl:           process.env.REDIS_URL ?? '',
   defaultWorkerId:    process.env.DEFAULT_WORKER_ID ?? '',
+  defaultTenantId:    process.env.DEFAULT_TENANT_ID ?? '',
 }
 
 export function assertRequired() {

@@ -543,31 +543,64 @@ function laterAction(actionId) {
 }
 
 function loadActions() {
-  var token = localStorage.getItem('fen_token') || 'web-default';
-  var sid   = token.startsWith('sid_') ? token.slice(4) : token;
-  api('GET', '/actions/' + (sid || 'web-default')).then(function(data) {
-    if (!data || !data.actions || !data.actions.length) return;
-    var container = document.querySelector('#view-today .action-cards') || document.querySelector('.action-cards');
-    if (!container) return;
-    container.innerHTML = '';
-    data.actions.forEach(function(a) {
-      var card = document.createElement('div');
-      card.className = 'action-card';
-      card.id = 'ac-' + a.id;
-      var riskClass = a.risk === 'low' ? 'email' : a.risk === 'high' ? 'send' : 'meeting';
-      card.innerHTML =
-        '<div class="ac-meta"><span class="ac-type ' + riskClass + '">' + (a.type || 'action') + '</span></div>' +
-        '<div class="ac-title">' + (a.title || 'Action ready') + '</div>' +
-        (a.body ? '<div class="ac-body">' + a.body.slice(0, 200) + '</div>' : '') +
-        '<div class="ac-actions">' +
-          '<button class="ac-btn approve" onclick="approveAction(\'' + a.id + '\',\'Done\')">Approve →</button>' +
-          '<button class="ac-btn deny" onclick="denyAction(\'' + a.id + '\')">Deny</button>' +
-          '<button class="ac-btn later" onclick="laterAction(\'' + a.id + '\')">Later</button>' +
+  var tenantId = '00000000-0000-0000-0000-000000000001';
+  api('GET', '/approvals?tenantId=' + tenantId).then(function(data) {
+    var approvals = (data && data.approvals) ? data.approvals : [];
+
+    // Render in today view
+    var todayList  = document.getElementById('actions-list');
+    var todayEmpty = document.getElementById('actions-empty');
+    // Render in approvals view
+    var appList    = document.getElementById('approvals-list');
+    var appEmpty   = document.getElementById('approvals-empty');
+
+    if (!approvals.length) {
+      if (todayEmpty)  todayEmpty.style.display  = '';
+      if (appEmpty)    appEmpty.style.display     = '';
+      if (todayList)   todayList.innerHTML        = '';
+      if (appList)     appList.innerHTML          = '<div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-family:\'DM Mono\',monospace;margin-bottom:12px">Pending your decision</div>';
+      updateBadges(0);
+      return;
+    }
+
+    if (todayEmpty)  todayEmpty.style.display  = 'none';
+    if (appEmpty)    appEmpty.style.display     = 'none';
+
+    var html = '<div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-family:\'DM Mono\',monospace;margin-bottom:12px">Pending your decision</div>';
+    approvals.forEach(function(a) {
+      var time = new Date(a.created_at).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+      html +=
+        '<div class="action-card" id="ac-' + a.id + '">' +
+          '<div class="ac-meta"><span class="ac-type send">' + a.action_type + '</span><span style="font-size:11px;color:var(--ink3);margin-left:8px">' + (a.channel || 'telegram') + ' · ' + time + '</span></div>' +
+          '<div class="ac-title">Reply to ' + (a.external_user_id || 'user') + '</div>' +
+          '<div class="ac-body" style="font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:15px;line-height:1.55;color:var(--ink2);margin:10px 0;padding:12px 14px;background:var(--bg);border-left:2px solid var(--gold)">' + (a.proposed_message || '') + '</div>' +
+          '<div class="ac-actions">' +
+            '<button class="ac-btn approve" onclick="approveApproval(\'' + a.id + '\')">Approve & Send →</button>' +
+            '<button class="ac-btn deny" onclick="rejectApproval(\'' + a.id + '\')">Reject</button>' +
+          '</div>' +
         '</div>';
-      container.appendChild(card);
     });
-    updateBadges();
-  }).catch(function(){});
+
+    if (todayList) todayList.innerHTML = html;
+    if (appList)   appList.innerHTML   = html;
+    updateBadges(approvals.length);
+  }).catch(function(e) { console.error('loadActions', e); });
+}
+
+function approveApproval(id) {
+  api('POST', '/approvals/' + id + '/approve', { tenantId: '00000000-0000-0000-0000-000000000001' }).then(function() {
+    var el = document.getElementById('ac-' + id);
+    if (el) el.innerHTML = '<div class="ac-done" style="padding:12px;color:var(--green);font-size:13px">✓ Approved and sent.</div>';
+    loadActions();
+  });
+}
+
+function rejectApproval(id) {
+  api('POST', '/approvals/' + id + '/reject', { tenantId: '00000000-0000-0000-0000-000000000001' }).then(function() {
+    var el = document.getElementById('ac-' + id);
+    if (el) el.innerHTML = '<div style="font-size:12px;color:var(--ink3);padding:12px">Rejected — no message sent.</div>';
+    loadActions();
+  });
 }
 function editAction(id) {
   var el = document.getElementById(id);
@@ -586,12 +619,15 @@ function editAction(id) {
   el.querySelector('.ac-actions').prepend(saveBtn);
 }
 
-function updateBadges() {
-  var pending = document.querySelectorAll('.action-card').length;
-  var remaining = Array.from(document.querySelectorAll('.action-card')).filter(function(el) {
-    return el.querySelector('.ac-btn.approve');
-  }).length;
-  // Update sidebar badge
+function updateBadges(count) {
+  var badge = document.getElementById('badge-approvals');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 /* ═══ MEMORY ═══ */

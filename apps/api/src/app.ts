@@ -4,8 +4,9 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 import fs from 'fs'
 
-import { telegramRouter } from './routes/telegram.js'
-import { billingRouter }  from './routes/billing.js'
+import { telegramRouter }  from './routes/telegram.js'
+import { billingRouter }   from './routes/billing.js'
+import { approvalsRouter } from './routes/approvals.js'
 import chatRouter         from './routes/chat.js'
 import gmailRouter        from './routes/gmail.js'
 import authRouter         from './routes/auth.js'
@@ -59,6 +60,7 @@ export function createApp() {
   app.use('/', adminRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
+  app.use('/', approvalsRouter)
   app.use('/', gmailRouter)
   app.use('/', chatRouter)
 
