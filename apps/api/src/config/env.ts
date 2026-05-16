@@ -38,6 +38,9 @@ export const env = {
   redisUrl:           process.env.REDIS_URL ?? '',
   defaultWorkerId:    process.env.DEFAULT_WORKER_ID ?? '',
   defaultTenantId:    process.env.DEFAULT_TENANT_ID ?? '',
+  sentryDsn:          process.env.SENTRY_DSN ?? '',
+  posthogKey:         process.env.POSTHOG_KEY ?? '',
+  cfBeaconToken:      process.env.CF_BEACON_TOKEN ?? '',
 }
 
 export function assertRequired() {

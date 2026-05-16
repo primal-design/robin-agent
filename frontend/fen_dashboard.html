@@ -598,8 +598,13 @@ function loadActions() {
   }).catch(function(e) { console.error('loadActions', e); });
 }
 
+function track(event, props) {
+  if (window.posthog) window.posthog.capture(event, props || {});
+}
+
 function approveApproval(id) {
   api('POST', '/approvals/' + id + '/approve', { tenantId: '00000000-0000-0000-0000-000000000001' }).then(function() {
+    track('approval_approved', { approval_id: id });
     var el = document.getElementById('ac-' + id);
     if (el) el.innerHTML = '<div class="ac-done" style="padding:12px;color:var(--green);font-size:13px">✓ Approved and sent.</div>';
     loadActions();
@@ -608,6 +613,7 @@ function approveApproval(id) {
 
 function rejectApproval(id) {
   api('POST', '/approvals/' + id + '/reject', { tenantId: '00000000-0000-0000-0000-000000000001' }).then(function() {
+    track('approval_rejected', { approval_id: id });
     var el = document.getElementById('ac-' + id);
     if (el) el.innerHTML = '<div style="font-size:12px;color:var(--ink3);padding:12px">Rejected — no message sent.</div>';
     loadActions();
@@ -618,6 +624,7 @@ function bulkApprove() {
   var count = parseInt((document.getElementById('badge-approvals') || {}).textContent || '0');
   if (!confirm('Approve and send all ' + (count || 'pending') + ' messages?')) return;
   api('POST', '/approvals/bulk-approve', { tenantId: '00000000-0000-0000-0000-000000000001' }).then(function(data) {
+    track('bulk_approve', { count: data && data.approved });
     var list = document.getElementById('approvals-list');
     if (list) list.innerHTML = '<div class="ac-done" style="padding:16px;color:var(--green);font-size:13px">✓ ' + (data && data.approved ? data.approved : 'All') + ' messages approved and sent.</div>';
     var btn = document.getElementById('bulk-approve-btn');

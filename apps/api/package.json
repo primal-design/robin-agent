@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
+    "@sentry/node": "^10.53.1",
     "bullmq": "^5.76.8",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
