@@ -4,6 +4,7 @@ import { createApproval } from '../services/approvals.js'
 import { evaluateRisk, extractMetadata, isKnownPattern, isRejectedPattern, decidePermission } from './trust.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
+import { audit } from '../services/audit.js'
 
 const anthropic = new Anthropic({ apiKey: env.anthropicKey })
 
@@ -58,6 +59,8 @@ export async function runAgentTurn(input: AgentTurnInput) {
 
   const isFirstMessage = history.length === 0
 
+  await audit({ tenantId, action: 'agent_called', actor: 'runtime', target: conversationId, metadata: { model: 'claude-haiku-4-5-20251001', history_length: history.length }, client })
+
   // Ask the LLM for a reply AND a confidence score
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -83,12 +86,7 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const rejectedPat    = await isRejectedPattern(client, tenantId, 'send_message', text)
   const { permission, reason } = decidePermission({ confidence, risk, knownPattern: knownPat, rejectedPattern: rejectedPat })
 
-  // Log the decision for audit
-  await client.query(
-    `INSERT INTO audit_log (tenant_id, actor, action, target, metadata)
-     VALUES ($1, 'runtime', 'permission_decision', $2, $3)`,
-    [tenantId, conversationId, JSON.stringify({ confidence, risk, knownPat, rejectedPat, permission, reason })]
-  ).catch(() => {})
+  await audit({ tenantId, action: 'trust_decision_made', actor: 'runtime', target: conversationId, metadata: { confidence, risk, knownPat, rejectedPat, permission, reason }, client })
 
   if (permission === 'auto_allowed') {
     return { status: 'sent' as const, message: text, confidence, risk, reason }

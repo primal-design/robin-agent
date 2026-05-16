@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
+import { audit } from '../services/audit.js'
 
 export const approvalsRouter = Router()
 
@@ -73,6 +74,8 @@ approvalsRouter.post('/approvals/:id/approve', async (req, res) => {
     [approval.conversation_id]
   )
 
+  await audit({ tenantId, action: 'approval_approved', actor: 'human', target: id, metadata: { conversation_id: approval.conversation_id } })
+
   if (convRes.rows[0] && approval.proposed_message) {
     const chatId = convRes.rows[0].external_user_id
     await pool.query(
@@ -81,6 +84,7 @@ approvalsRouter.post('/approvals/:id/approve', async (req, res) => {
       [tenantId, approval.conversation_id, approval.proposed_message]
     )
     await sendTelegram(Number(chatId), approval.proposed_message)
+    await audit({ tenantId, action: 'message_sent', actor: 'human', target: approval.conversation_id, metadata: { channel: 'telegram', chat_id: convRes.rows[0].external_user_id } })
   }
 
   res.json({ ok: true, approval: result.rows[0] })
@@ -97,6 +101,7 @@ approvalsRouter.post('/approvals/:id/reject', async (req, res) => {
   )
 
   if (!result.rows[0]) return res.status(404).json({ error: 'Approval not found' })
+  await audit({ tenantId, action: 'approval_rejected', actor: 'human', target: id, metadata: { conversation_id: result.rows[0].conversation_id } })
   res.json({ ok: true })
 })
 

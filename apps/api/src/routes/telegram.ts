@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { eventQueue } from '../queues/eventQueue.js'
+import { audit } from '../services/audit.js'
 
 export const telegramRouter = Router()
 
@@ -15,11 +16,15 @@ telegramRouter.post('/webhooks/telegram/:workerId', async (req, res) => {
 
   if (!req.body?.message) return
 
+  audit({ action: 'webhook_received', actor: 'telegram', target: workerId, metadata: { update_id: updateId, chat_id: req.body.message?.chat?.id } })
+
   await eventQueue.add(
     'telegram_message',
     { workerId, payload: req.body },
-    { jobId: `telegram_${updateId}` } // idempotency — Telegram retries same update_id
+    { jobId: `telegram_${updateId}` }
   )
+
+  audit({ action: 'job_queued', actor: 'telegram', target: workerId, metadata: { update_id: updateId, job_id: `telegram_${updateId}` } })
 })
 
 // Legacy single-bot webhook (keep for @fen_ai_bot)
@@ -30,11 +35,16 @@ telegramRouter.post('/telegram/webhook', async (req, res) => {
   if (!defaultWorkerId || !req.body?.message) return
 
   const updateId = req.body?.update_id
+
+  audit({ action: 'webhook_received', actor: 'telegram', target: defaultWorkerId, metadata: { update_id: updateId, chat_id: req.body.message?.chat?.id } })
+
   await eventQueue.add(
     'telegram_message',
     { workerId: defaultWorkerId, payload: req.body },
     { jobId: `telegram_${updateId}` }
   )
+
+  audit({ action: 'job_queued', actor: 'telegram', target: defaultWorkerId, metadata: { update_id: updateId, job_id: `telegram_${updateId}` } })
 })
 
 // Register webhook with Telegram

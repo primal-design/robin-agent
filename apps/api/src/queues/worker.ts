@@ -3,6 +3,7 @@ import { pool } from '../db/pool.js'
 import { withTenant } from '../db/withTenant.js'
 import { runAgentTurn } from '../runtime/runAgentTurn.js'
 import { handleComplianceCommand } from '../services/compliance.js'
+import { audit } from '../services/audit.js'
 
 function redisConnection() {
   if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
@@ -43,6 +44,8 @@ export const fenWorker = new Worker(
 
     const tenantId = tenantLookup.rows[0].tenant_id as string
 
+    await audit({ tenantId, action: 'job_started', actor: 'queue', target: workerId, metadata: { job_id: job.id } })
+
     return withTenant(tenantId, async (client) => {
       // Find or create conversation
       let convRes = await client.query(
@@ -68,6 +71,7 @@ export const fenWorker = new Worker(
          VALUES ($1, $2, 'inbound', $3)`,
         [tenantId, conversationId, text]
       )
+      await audit({ tenantId, action: 'message_saved', actor: 'queue', target: conversationId, metadata: { direction: 'inbound', length: text.length }, client })
 
       // Handle compliance commands before hitting the AI
       const complianceReply = await handleComplianceCommand(
@@ -92,7 +96,9 @@ export const fenWorker = new Worker(
            VALUES ($1, $2, 'outbound', $3)`,
           [tenantId, conversationId, result.message]
         )
+        await audit({ tenantId, action: 'message_saved', actor: 'runtime', target: conversationId, metadata: { direction: 'outbound', status: result.status }, client })
         await sendTelegram(chatId, result.message)
+        await audit({ tenantId, action: 'message_sent', actor: 'runtime', target: conversationId, metadata: { channel: 'telegram', chat_id: chatId, status: result.status }, client })
       }
 
       if (result.status === 'needs_approval') {
@@ -100,6 +106,7 @@ export const fenWorker = new Worker(
           chatId,
           `Your message is being reviewed. A human will approve and send it shortly.`
         )
+        await audit({ tenantId, action: 'approval_created', actor: 'runtime', target: conversationId, metadata: { channel: 'telegram' }, client })
       }
     })
   },
@@ -108,6 +115,9 @@ export const fenWorker = new Worker(
 
 fenWorker.on('failed', (job, err) => {
   console.error(`[Queue] Job ${job?.id} failed:`, err.message)
+  const tenantId = job?.data?.tenantId as string | undefined
+  const workerId = job?.data?.workerId as string | undefined
+  audit({ tenantId, action: 'job_failed', actor: 'queue', target: workerId, metadata: { job_id: job?.id, error: err.message } })
 })
 
 async function sendTelegram(chatId: number, text: string) {
