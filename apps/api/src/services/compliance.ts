@@ -67,11 +67,11 @@ export function firstMessageDisclosure(businessName: string) {
   )
 }
 
-function aboutMessage(businessName: string) {
+function aboutMessage(_businessName: string) {
   return (
-    `I'm an AI assistant for *${businessName}*, built on the Fen platform.\n\n` +
-    `• I'm not a human — I'm an AI.\n` +
-    `• A human can review and take over at any time.\n` +
+    `I'm *FEN* — an AI built to help you think, solve, and move faster in your business.\n\n` +
+    `Tell me what you're working on and I'll figure out the best way to help.\n\n` +
+    `• I'm an AI, not a human.\n` +
     `• Type /human to speak with a person.\n` +
     `• Type /forget to delete this conversation.\n` +
     `• Type /data to learn how your data is used.`
