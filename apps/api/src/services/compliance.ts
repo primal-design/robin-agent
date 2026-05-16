@@ -15,7 +15,9 @@ export async function handleComplianceCommand(
   const cmd = text.toLowerCase().trim()
 
   if (cmd === '/start') {
-    return aboutMessage('this business')
+    const memRes = await client.query(`SELECT value FROM business_memory WHERE key = 'business_name'`)
+    const name = memRes.rows[0]?.value ?? 'this business'
+    return aboutMessage(name)
   }
 
   if (cmd === '/about') {
