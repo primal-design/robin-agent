@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { PoolClient } from 'pg'
-import { checkPermission } from './permissions.js'
 import { createApproval } from '../services/approvals.js'
+import { evaluateRisk, extractMetadata, isKnownPattern, decidePermission } from './trust.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 
@@ -18,17 +18,12 @@ export interface AgentTurnInput {
 export async function runAgentTurn(input: AgentTurnInput) {
   const { client, tenantId, workerId, conversationId, inboundText } = input
 
-  const workerRes = await client.query(
-    'SELECT * FROM workers WHERE id = $1',
-    [workerId]
-  )
+  const workerRes = await client.query('SELECT * FROM workers WHERE id = $1', [workerId])
   if (!workerRes.rows[0]) throw new Error(`Worker ${workerId} not found`)
 
   const manifest = workerRes.rows[0].manifest as WorkerManifest
 
-  const memoryRes = await client.query(
-    'SELECT key, value FROM business_memory'
-  )
+  const memoryRes = await client.query('SELECT key, value FROM business_memory')
   const memory: Record<string, string> = Object.fromEntries(
     memoryRes.rows.map((r: { key: string; value: string }) => [r.key, r.value])
   )
@@ -40,11 +35,9 @@ export async function runAgentTurn(input: AgentTurnInput) {
 
   const historyRes = await client.query(
     `SELECT direction, content FROM messages
-     WHERE conversation_id = $1
-     ORDER BY created_at DESC LIMIT 10`,
+     WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 10`,
     [conversationId]
   )
-
   const history = historyRes.rows
     .reverse()
     .map((r: { direction: string; content: string }) => ({
@@ -52,35 +45,56 @@ export async function runAgentTurn(input: AgentTurnInput) {
       content: r.content,
     }))
 
+  const isFirstMessage = history.length === 0
+
+  // Ask the LLM for a reply AND a confidence score
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 700,
-    system: systemPrompt,
+    max_tokens: 800,
+    system: systemPrompt + `\n\nAfter your reply, on a new line write exactly: CONFIDENCE:0.XX (a number between 0 and 1 representing how confident you are this reply is correct and appropriate).`,
     messages: [...history, { role: 'user', content: inboundText }],
   })
 
-  const text = response.content
+  const raw = response.content
     .filter((b) => b.type === 'text')
     .map((b) => (b as { type: 'text'; text: string }).text)
     .join('\n')
 
-  const permission = checkPermission('send_message', manifest)
+  // Parse confidence out of response
+  const confMatch = raw.match(/CONFIDENCE:(0\.\d+)/i)
+  const confidence = confMatch ? parseFloat(confMatch[1]) : 0.7
+  const text = raw.replace(/\nCONFIDENCE:[\d.]+/i, '').trim()
 
-  if (permission === 'blocked') {
-    return { status: 'blocked' as const, message: 'This action requires a human.' }
+  // Run trust engine
+  const metadata   = extractMetadata(text, isFirstMessage)
+  const risk       = evaluateRisk('send_message', metadata)
+  const knownPat   = await isKnownPattern(client, tenantId, 'send_message', text)
+  const decision   = decidePermission({ confidence, risk, knownPattern: knownPat })
+
+  // Log the decision for audit
+  await client.query(
+    `INSERT INTO audit_log (tenant_id, actor, action, target, metadata)
+     VALUES ($1, 'runtime', 'permission_decision', $2, $3)`,
+    [tenantId, conversationId, JSON.stringify({ confidence, risk, knownPat, decision })]
+  ).catch(() => {}) // non-blocking
+
+  if (decision === 'auto_allowed') {
+    return { status: 'sent' as const, message: text, confidence, risk }
   }
 
-  if (permission === 'needs_approval') {
-    return createApproval({
-      client,
-      tenantId,
-      workerId,
-      conversationId,
-      actionType: 'send_message',
-      actionPayload: { message: text },
-      proposedMessage: text,
-    })
+  if (decision === 'auto_with_notify') {
+    // Send the message but flag it for review
+    return { status: 'sent_with_notify' as const, message: text, confidence, risk }
   }
 
-  return { status: 'sent' as const, message: text }
+  // needs_approval
+  return createApproval({
+    client,
+    tenantId,
+    workerId,
+    conversationId,
+    actionType: 'send_message',
+    actionPayload: { message: text, confidence, risk },
+    proposedMessage: text,
+  })
 }

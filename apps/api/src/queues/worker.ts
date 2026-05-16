@@ -32,9 +32,6 @@ export const fenWorker = new Worker(
 
     if (!text || !chatId) return
 
-    const allWorkers = await pool.query('SELECT id FROM workers')
-    console.log(`[Queue] DB has ${allWorkers.rows.length} workers:`, allWorkers.rows.map((r:any) => r.id))
-
     const tenantLookup = await pool.query(
       'SELECT tenant_id FROM workers WHERE id = $1',
       [workerId]
@@ -89,7 +86,7 @@ export const fenWorker = new Worker(
         inboundText: text,
       })
 
-      if (result.status === 'sent' && result.message) {
+      if ((result.status === 'sent' || result.status === 'sent_with_notify') && result.message) {
         await client.query(
           `INSERT INTO messages (tenant_id, conversation_id, direction, content)
            VALUES ($1, $2, 'outbound', $3)`,
