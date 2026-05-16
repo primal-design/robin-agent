@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { PoolClient } from 'pg'
 import { createApproval } from '../services/approvals.js'
-import { evaluateRisk, extractMetadata, isKnownPattern, decidePermission } from './trust.js'
+import { evaluateRisk, extractMetadata, isKnownPattern, isRejectedPattern, decidePermission } from './trust.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 
@@ -66,35 +66,35 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const text = raw.replace(/\nCONFIDENCE:[\d.]+/i, '').trim()
 
   // Run trust engine
-  const metadata   = extractMetadata(text, isFirstMessage)
-  const risk       = evaluateRisk('send_message', metadata)
-  const knownPat   = await isKnownPattern(client, tenantId, 'send_message', text)
-  const decision   = decidePermission({ confidence, risk, knownPattern: knownPat })
+  const metadata       = extractMetadata(text, isFirstMessage)
+  const risk           = evaluateRisk('send_message', metadata)
+  const knownPat       = await isKnownPattern(client, tenantId, 'send_message', text)
+  const rejectedPat    = await isRejectedPattern(client, tenantId, 'send_message', text)
+  const { permission, reason } = decidePermission({ confidence, risk, knownPattern: knownPat, rejectedPattern: rejectedPat })
 
   // Log the decision for audit
   await client.query(
     `INSERT INTO audit_log (tenant_id, actor, action, target, metadata)
      VALUES ($1, 'runtime', 'permission_decision', $2, $3)`,
-    [tenantId, conversationId, JSON.stringify({ confidence, risk, knownPat, decision })]
-  ).catch(() => {}) // non-blocking
+    [tenantId, conversationId, JSON.stringify({ confidence, risk, knownPat, rejectedPat, permission, reason })]
+  ).catch(() => {})
 
-  if (decision === 'auto_allowed') {
-    return { status: 'sent' as const, message: text, confidence, risk }
+  if (permission === 'auto_allowed') {
+    return { status: 'sent' as const, message: text, confidence, risk, reason }
   }
 
-  if (decision === 'auto_with_notify') {
-    // Send the message but flag it for review
-    return { status: 'sent_with_notify' as const, message: text, confidence, risk }
+  if (permission === 'auto_with_notify') {
+    return { status: 'sent_with_notify' as const, message: text, confidence, risk, reason }
   }
 
-  // needs_approval
+  // needs_approval — include reason so the UI can display it
   return createApproval({
     client,
     tenantId,
     workerId,
     conversationId,
     actionType: 'send_message',
-    actionPayload: { message: text, confidence, risk },
+    actionPayload: { message: text, confidence, risk, reason },
     proposedMessage: text,
   })
 }

@@ -44,15 +44,15 @@ export async function isKnownPattern(
   // Exact match first
   const exact = await client.query(
     `SELECT COUNT(*) FROM approvals
-     WHERE tenant_id    = $1
-       AND action_type  = $2
-       AND status       = 'approved'
-       AND proposed_message = $3`,
+     WHERE tenant_id         = $1
+       AND action_type       = $2
+       AND status            = 'approved'
+       AND proposed_message  = $3`,
     [tenantId, actionType, proposedMessage]
   )
   if (Number(exact.rows[0].count) >= 1) return true
 
-  // Fuzzy: same action type + same approximate length approved many times
+  // Fuzzy: same action type + similar length approved multiple times
   const pattern = await client.query(
     `SELECT COUNT(*) FROM approvals
      WHERE tenant_id   = $1
@@ -64,31 +64,85 @@ export async function isKnownPattern(
   return Number(pattern.rows[0].count) >= threshold
 }
 
+// ── 2b. Rejection learning ────────────────────────────────────────────────
+// If a tenant has rejected this pattern before, force approval regardless of confidence
+
+export async function isRejectedPattern(
+  client: PoolClient,
+  tenantId: string,
+  actionType: string,
+  proposedMessage: string,
+  threshold = 2
+): Promise<boolean> {
+  const result = await client.query(
+    `SELECT COUNT(*) FROM approvals
+     WHERE tenant_id   = $1
+       AND action_type = $2
+       AND status      = 'rejected'
+       AND ABS(LENGTH(proposed_message) - $3) < 60`,
+    [tenantId, actionType, proposedMessage.length]
+  )
+  return Number(result.rows[0].count) >= threshold
+}
+
 // ── 3. Decision engine ────────────────────────────────────────────────────
+
+export interface TrustDecision {
+  permission: PermissionDecision
+  reason:     string
+}
 
 export function decidePermission({
   confidence,
   risk,
   knownPattern,
+  rejectedPattern,
 }: {
-  confidence:   number
-  risk:         RiskLevel
-  knownPattern: boolean
-}): PermissionDecision {
+  confidence:      number
+  risk:            RiskLevel
+  knownPattern:    boolean
+  rejectedPattern: boolean
+}): TrustDecision {
+  // Rejection learning — this tenant has rejected this pattern before
+  if (rejectedPattern) return {
+    permission: 'needs_approval',
+    reason:     'Similar messages have been rejected by this tenant before',
+  }
+
   // Hard rule — high risk always needs human eyes
-  if (risk === 'high') return 'needs_approval'
+  if (risk === 'high') return {
+    permission: 'needs_approval',
+    reason:     'Message contains high-risk content (pricing, booking, or personal data)',
+  }
 
   // Learned pattern — trust what's been approved before
-  if (knownPattern) return 'auto_allowed'
+  if (knownPattern) return {
+    permission: 'auto_allowed',
+    reason:     'Matches a previously approved pattern',
+  }
 
-  // High confidence, low risk — auto-send
-  if (confidence >= 0.85 && risk === 'low') return 'auto_allowed'
+  // High confidence, low risk
+  if (confidence >= 0.85 && risk === 'low') return {
+    permission: 'auto_allowed',
+    reason:     `High confidence (${Math.round(confidence * 100)}%) and low risk`,
+  }
 
-  // Good confidence, medium risk — send but notify
-  if (confidence >= 0.75 && risk === 'medium') return 'auto_with_notify'
+  // Good confidence, medium risk
+  if (confidence >= 0.75 && risk === 'medium') return {
+    permission: 'auto_with_notify',
+    reason:     `Good confidence (${Math.round(confidence * 100)}%) but medium risk — sent with notification`,
+  }
 
-  // Default — human approval
-  return 'needs_approval'
+  // Low confidence
+  if (confidence < 0.75) return {
+    permission: 'needs_approval',
+    reason:     `Low confidence (${Math.round(confidence * 100)}%) — needs human review`,
+  }
+
+  return {
+    permission: 'needs_approval',
+    reason:     'New pattern — needs approval to build trust',
+  }
 }
 
 // ── 4. Metadata extractor ─────────────────────────────────────────────────
