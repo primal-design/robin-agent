@@ -1,6 +1,6 @@
 import type { PoolClient } from 'pg'
 
-const COMPLIANCE_COMMANDS = ['/about', '/forget', '/human', '/data', '/start']
+const COMPLIANCE_COMMANDS = ['/about', '/forget', '/human', '/data', '/start', '/export']
 
 export function isComplianceCommand(text: string) {
   return COMPLIANCE_COMMANDS.includes(text.toLowerCase().trim())
@@ -32,6 +32,10 @@ export async function handleComplianceCommand(
     return forgetConversation(client, conversationId, tenantId)
   }
 
+  if (cmd === '/export') {
+    return exportConversation(client, conversationId, tenantId)
+  }
+
   if (cmd === '/human') {
     return (
       `You've requested a human. A team member will pick this up shortly.\n\n` +
@@ -44,9 +48,10 @@ export async function handleComplianceCommand(
       `Your data rights:\n\n` +
       `• We store your conversation messages to provide the service.\n` +
       `• Type /forget to delete this conversation at any time.\n` +
+      `• Type /export to receive a copy of your conversation data.\n` +
       `• We do not sell your data.\n` +
-      `• Data is processed under GDPR.\n\n` +
-      `For a full data export or deletion request, contact us.`
+      `• Data is processed under GDPR.\n` +
+      `• Conversations are automatically deleted after 90 days of inactivity.`
     )
   }
 
@@ -63,6 +68,7 @@ export function firstMessageDisclosure(businessName: string) {
     `/about — what I am and who runs me\n` +
     `/human — speak to a person\n` +
     `/forget — delete this conversation\n` +
+    `/export — download your data\n` +
     `/data — your data rights`
   )
 }
@@ -75,6 +81,35 @@ function aboutMessage(_businessName: string) {
     `• Type /human to speak with a person.\n` +
     `• Type /forget to delete this conversation.\n` +
     `• Type /data to learn how your data is used.`
+  )
+}
+
+async function exportConversation(
+  client: PoolClient,
+  conversationId: string,
+  tenantId: string
+): Promise<string> {
+  const res = await client.query(
+    `SELECT direction, content, created_at FROM messages
+     WHERE conversation_id = $1 AND tenant_id = $2
+     ORDER BY created_at ASC`,
+    [conversationId, tenantId]
+  )
+
+  if (!res.rows.length) return `No messages found in this conversation.`
+
+  const lines = res.rows.map((r: { direction: string; content: string; created_at: Date }) => {
+    const time = new Date(r.created_at).toISOString().slice(0, 16).replace('T', ' ')
+    const who  = r.direction === 'inbound' ? 'You' : 'FEN'
+    return `[${time}] ${who}: ${r.content}`
+  })
+
+  return (
+    `Your conversation data (${lines.length} messages):\n\n` +
+    lines.join('\n') +
+    `\n\n` +
+    `Data exported under GDPR Article 20 (right to portability).\n` +
+    `Type /forget to delete this conversation.`
   )
 }
 

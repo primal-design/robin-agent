@@ -105,6 +105,34 @@ approvalsRouter.post('/approvals/:id/reject', async (req, res) => {
   res.json({ ok: true })
 })
 
+// GET /my-data/:conversationId — GDPR Article 20 data export
+approvalsRouter.get('/my-data/:conversationId', async (req, res) => {
+  const { conversationId } = req.params
+  const tenantId = (req.query.tenantId as string) || process.env.DEFAULT_TENANT_ID
+  if (!tenantId) return res.status(400).json({ error: 'tenantId required' })
+
+  const [messages, conv] = await Promise.all([
+    pool.query(
+      `SELECT direction, content, created_at FROM messages
+       WHERE conversation_id = $1 AND tenant_id = $2 ORDER BY created_at ASC`,
+      [conversationId, tenantId]
+    ),
+    pool.query(
+      `SELECT external_user_id, channel, created_at FROM conversations WHERE id = $1 AND tenant_id = $2`,
+      [conversationId, tenantId]
+    ),
+  ])
+
+  if (!conv.rows[0]) return res.status(404).json({ error: 'Conversation not found' })
+
+  res.json({
+    exported_at:  new Date().toISOString(),
+    gdpr_basis:   'Article 20 — Right to data portability',
+    conversation: { id: conversationId, channel: conv.rows[0].channel, started: conv.rows[0].created_at },
+    messages:     messages.rows,
+  })
+})
+
 async function sendTelegram(chatId: number, text: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) return

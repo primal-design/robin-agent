@@ -38,17 +38,43 @@ export function createApp() {
       const headSnippets: string[] = []
       const scripts: string[] = []
 
-      // Cloudflare Web Analytics
-      if (env.cfBeaconToken && !html.includes('cf-beacon'))
-        headSnippets.push(`<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${env.cfBeaconToken}"}'></script>`)
-
-      // PostHog
-      if (env.posthogKey && !html.includes('posthog'))
-        headSnippets.push(`<script>!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]);t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+" (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);posthog.init("${env.posthogKey}",{api_host:"https://eu.i.posthog.com"})</script>`)
-
-      // Sentry browser SDK (only if DSN is set)
+      // Sentry browser SDK — loads regardless of consent (error monitoring, no tracking)
       if (env.sentryDsn && !html.includes('sentry'))
-        headSnippets.push(`<script src="https://browser.sentry-cdn.com/7.99.0/bundle.min.js" crossorigin="anonymous"></script><script>Sentry.init({dsn:"${env.sentryDsn}",environment:"${env.nodeEnv}",tracesSampleRate:0.2})</script>`)
+        headSnippets.push(`<script src="https://browser.sentry-cdn.com/7.99.0/bundle.min.js" crossorigin="anonymous"></script><script>Sentry.init({dsn:"${env.sentryDsn}",environment:"${env.nodeEnv}",tracesSampleRate:0.2,sendDefaultPii:false})</script>`)
+
+      // Analytics — consent-gated: PostHog + Cloudflare only load after user accepts
+      const analyticsSnippets: string[] = []
+      if (env.posthogKey)
+        analyticsSnippets.push(`(function(){var s=document.createElement('script');s.type='text/javascript';s.async=true;s.src='https://eu-assets.i.posthog.com/static/array.js';s.onload=function(){window.posthog&&posthog.init('${env.posthogKey}',{api_host:'https://eu.i.posthog.com',persistence:'localStorage'})};document.head.appendChild(s)})()`)
+      if (env.cfBeaconToken)
+        analyticsSnippets.push(`(function(){var s=document.createElement('script');s.defer=true;s.src='https://static.cloudflareinsights.com/beacon.min.js';s.setAttribute('data-cf-beacon','{"token":"${env.cfBeaconToken}"}');document.head.appendChild(s)})()`)
+
+      if (analyticsSnippets.length && !html.includes('fen-consent')) {
+        const consentScript = `
+<script id="fen-consent">(function(){
+  var KEY='fen_analytics_consent';
+  function loadAnalytics(){${analyticsSnippets.join(';')}}
+  var consent=localStorage.getItem(KEY);
+  if(consent==='true'){loadAnalytics();return;}
+  if(consent==='false'){return;}
+  // Show banner
+  var b=document.createElement('div');
+  b.id='fen-cookie-banner';
+  b.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1A1816;color:#F8F7F4;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:16px;z-index:9999;font-family:Inter,sans-serif;font-size:13px;';
+  b.innerHTML='<span>We use analytics to improve FEN. No personal data is sold or shared. <a href="/frontend/privacy.html" style="color:#B8976B;text-decoration:none">Privacy policy</a></span>'
+    +'<div style="display:flex;gap:10px;flex-shrink:0">'
+    +'<button onclick="fenConsent(false)" style="background:transparent;border:1px solid rgba(248,247,244,.3);color:#F8F7F4;padding:7px 16px;cursor:pointer;font-size:12px;font-family:Inter,sans-serif;letter-spacing:.1em">Decline</button>'
+    +'<button onclick="fenConsent(true)" style="background:#B8976B;border:none;color:#fff;padding:7px 16px;cursor:pointer;font-size:12px;font-family:Inter,sans-serif;letter-spacing:.1em">Accept</button>'
+    +'</div>';
+  document.body?document.body.appendChild(b):document.addEventListener('DOMContentLoaded',function(){document.body.appendChild(b)});
+  window.fenConsent=function(v){
+    localStorage.setItem(KEY,v?'true':'false');
+    var el=document.getElementById('fen-cookie-banner');if(el)el.remove();
+    if(v)loadAnalytics();
+  };
+})()</script>`
+        headSnippets.push(consentScript)
+      }
 
       if (!html.includes('fen_auth.js'))
         scripts.push(`<script src="/frontend/fen_auth.js?v=${assetVersion}"></script>`)
