@@ -6,6 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 import fs from 'fs'
 
 import { env } from './config/env.js'
+
 import { telegramRouter }  from './routes/telegram.js'
 import { billingRouter }   from './routes/billing.js'
 import { approvalsRouter } from './routes/approvals.js'
@@ -13,14 +14,6 @@ import chatRouter         from './routes/chat.js'
 import gmailRouter        from './routes/gmail.js'
 import authRouter         from './routes/auth.js'
 import adminRouter        from './routes/admin.js'
-
-if (env.sentryDsn) {
-  Sentry.init({
-    dsn: env.sentryDsn,
-    environment: env.nodeEnv,
-    tracesSampleRate: 0.2,
-  })
-}
 
 export function createApp() {
   const app = express()
