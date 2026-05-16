@@ -18,7 +18,7 @@ telegramRouter.post('/webhooks/telegram/:workerId', async (req, res) => {
   await eventQueue.add(
     'telegram_message',
     { workerId, payload: req.body },
-    { jobId: `telegram:${updateId}` } // idempotency — Telegram retries same update_id
+    { jobId: `telegram_${updateId}` } // idempotency — Telegram retries same update_id
   )
 })
 
@@ -33,7 +33,7 @@ telegramRouter.post('/telegram/webhook', async (req, res) => {
   await eventQueue.add(
     'telegram_message',
     { workerId: defaultWorkerId, payload: req.body },
-    { jobId: `telegram:${updateId}` }
+    { jobId: `telegram_${updateId}` }
   )
 })
 
