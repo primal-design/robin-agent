@@ -72,9 +72,9 @@ export async function runAgentTurn(input: AgentTurnInput) {
     .join('\n')
 
   // Parse confidence out of response
-  const confMatch = raw.match(/CONFIDENCE:(0\.\d+)/i)
+  const confMatch = raw.match(/CONFIDENCE:\s*([\d.]+)/i)
   const confidence = confMatch ? parseFloat(confMatch[1]) : 0.7
-  const text = raw.replace(/\nCONFIDENCE:[\d.]+/i, '').trim()
+  const text = raw.replace(/\n?CONFIDENCE:\s*[\d.]+/i, '').trim()
 
   // Run trust engine
   const metadata       = extractMetadata(text, isFirstMessage)
