@@ -74,6 +74,9 @@ export function createApp() {
   // ── Health ────────────────────────────────────────────────────────────
   app.get('/health', (_, res) => res.json({ ok: true, service: 'fen-platform' }))
 
+  // ── Sentry test ───────────────────────────────────────────────────────
+  app.get('/debug-sentry', () => { throw new Error('Sentry test error from FEN API') })
+
   // ── Routes ────────────────────────────────────────────────────────────
   app.use('/', authRouter)
   app.use('/', adminRouter)
