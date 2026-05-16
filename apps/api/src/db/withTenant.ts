@@ -8,7 +8,7 @@ export async function withTenant<T>(
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    await client.query('SET LOCAL app.current_tenant = $1', [tenantId])
+    await client.query(`SET LOCAL app.current_tenant = '${tenantId}'`)
     const result = await fn(client)
     await client.query('COMMIT')
     return result
