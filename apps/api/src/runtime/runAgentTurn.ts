@@ -28,10 +28,11 @@ export async function runAgentTurn(input: AgentTurnInput) {
     memoryRes.rows.map((r: { key: string; value: string }) => [r.key, r.value])
   )
 
-  const systemPrompt = manifest.prompt.system.replace(
-    '{{business_name}}',
-    memory.business_name ?? 'the business'
-  )
+  // Inject all memory fields into system prompt
+  let systemPrompt = manifest.prompt.system
+  for (const [key, value] of Object.entries(memory)) {
+    systemPrompt = systemPrompt.replaceAll(`{{${key}}}`, value)
+  }
 
   const historyRes = await client.query(
     `SELECT direction, content FROM messages
