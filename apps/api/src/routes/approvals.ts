@@ -9,7 +9,7 @@ approvalsRouter.get('/approvals', async (req, res) => {
   if (!tenantId) return res.status(400).json({ error: 'tenantId required' })
 
   const result = await pool.query(
-    `SELECT a.id, a.action_type, a.proposed_message, a.status, a.created_at,
+    `SELECT a.id, a.action_type, a.proposed_message, a.action_payload, a.status, a.created_at,
             c.external_user_id, c.channel
      FROM approvals a
      LEFT JOIN conversations c ON c.id = a.conversation_id

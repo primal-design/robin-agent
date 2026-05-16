@@ -121,22 +121,28 @@ export function decidePermission({
     reason:     'Matches a previously approved pattern',
   }
 
-  // High confidence, low risk
-  if (confidence >= 0.85 && risk === 'low') return {
-    permission: 'auto_allowed',
-    reason:     `High confidence (${Math.round(confidence * 100)}%) and low risk`,
+  // Low risk — auto-send unless confidence is very low
+  if (risk === 'low') {
+    if (confidence >= 0.60) return {
+      permission: 'auto_allowed',
+      reason:     `Low risk, confidence ${Math.round(confidence * 100)}%`,
+    }
+    return {
+      permission: 'needs_approval',
+      reason:     `Low confidence (${Math.round(confidence * 100)}%) — needs human review`,
+    }
   }
 
-  // Good confidence, medium risk
-  if (confidence >= 0.75 && risk === 'medium') return {
-    permission: 'auto_with_notify',
-    reason:     `Good confidence (${Math.round(confidence * 100)}%) but medium risk — sent with notification`,
-  }
-
-  // Low confidence
-  if (confidence < 0.75) return {
-    permission: 'needs_approval',
-    reason:     `Low confidence (${Math.round(confidence * 100)}%) — needs human review`,
+  // Medium risk — send with notification if reasonable confidence
+  if (risk === 'medium') {
+    if (confidence >= 0.65) return {
+      permission: 'auto_with_notify',
+      reason:     `Medium risk, confidence ${Math.round(confidence * 100)}% — sent with notification`,
+    }
+    return {
+      permission: 'needs_approval',
+      reason:     `Low confidence (${Math.round(confidence * 100)}%) on medium-risk message`,
+    }
   }
 
   return {
