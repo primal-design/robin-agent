@@ -275,9 +275,20 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
 .si-loading-sub{font-size:14px;color:var(--ink3);font-weight:300}
 
 /* RESPONSIVE */
+/* ── Tablet (881px – 1200px) ──────────────────────────────────────────── */
+@media(min-width:881px) and (max-width:1200px){
+  .hero{padding:80px 36px 52px;gap:32px}
+  .phone{width:240px}
+  .pscreen{height:460px}
+}
+
+/* ── Mobile (≤ 880px) ────────────────────────────────────────────────── */
 @media(max-width:880px){
-  .hero{grid-template-columns:1fr;padding:24px 24px 40px;gap:16px}
-  .hero-text{padding:72px 0 16px}
+  .hero{grid-template-columns:1fr;padding:28px 24px 48px;gap:40px}
+  .hero-text{padding:60px 0 0}
+  .phone-wrap{align-items:center}
+  .phone{width:260px}
+  .pscreen{height:500px}
   nav{padding:0 24px}
   .nl:not(.btn){display:none}
   .handles{padding:52px 24px}.handles-inner{grid-template-columns:1fr;gap:36px}
