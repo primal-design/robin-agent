@@ -83,13 +83,28 @@ async function forgetConversation(
   conversationId: string,
   tenantId: string
 ): Promise<string> {
+  // Delete message content
   await client.query(
     `DELETE FROM messages WHERE conversation_id = $1 AND tenant_id = $2`,
     [conversationId, tenantId]
   )
+  // Delete pending approvals (contain proposed message text)
+  await client.query(
+    `DELETE FROM approvals WHERE conversation_id = $1 AND tenant_id = $2`,
+    [conversationId, tenantId]
+  )
+  // Scrub message content from audit_log metadata — keep the event record but remove personal data
+  await client.query(
+    `UPDATE audit_log
+     SET metadata = metadata - 'content' || '{"scrubbed":true}'::jsonb
+     WHERE tenant_id = $2
+       AND (metadata->>'conversation_id' = $1 OR target = $1)`,
+    [conversationId, tenantId]
+  )
+  // Delete the conversation itself
   await client.query(
     `DELETE FROM conversations WHERE id = $1 AND tenant_id = $2`,
     [conversationId, tenantId]
   )
-  return `Your conversation has been deleted. ✓`
+  return `Your conversation has been deleted. ✓\n\nAll messages, pending replies, and personal data tied to this conversation have been removed.`
 }
