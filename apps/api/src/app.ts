@@ -10,6 +10,7 @@ import { env } from './config/env.js'
 import { telegramRouter }  from './routes/telegram.js'
 import { billingRouter }   from './routes/billing.js'
 import { approvalsRouter } from './routes/approvals.js'
+import { agentRouter }     from './routes/agent.js'
 import chatRouter         from './routes/chat.js'
 import gmailRouter        from './routes/gmail.js'
 import authRouter         from './routes/auth.js'
@@ -82,6 +83,7 @@ export function createApp() {
   // ── Routes ────────────────────────────────────────────────────────────
   app.use('/', authRouter)
   app.use('/', adminRouter)
+  app.use('/', agentRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
   app.use('/', approvalsRouter)

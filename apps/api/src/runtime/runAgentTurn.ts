@@ -1,10 +1,24 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { PoolClient } from 'pg'
+import { readFileSync } from 'fs'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { createApproval } from '../services/approvals.js'
 import { evaluateRisk, extractMetadata, isKnownPattern, isRejectedPattern, decidePermission } from './trust.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 import { audit } from '../services/audit.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// Load base prompt from file — edit fen.prompt.md and redeploy, no SQL needed
+function loadFilePrompt(): string {
+  try {
+    return readFileSync(resolve(__dirname, '../workers/fen.prompt.md'), 'utf-8').trim()
+  } catch {
+    return ''
+  }
+}
 
 const anthropic = new Anthropic({ apiKey: env.anthropicKey })
 
@@ -29,8 +43,13 @@ export async function runAgentTurn(input: AgentTurnInput) {
     memoryRes.rows.map((r: { key: string; value: string }) => [r.key, r.value])
   )
 
-  // Inject all memory fields into system prompt
-  let systemPrompt = manifest.prompt.system
+  // System prompt: DB value takes priority (dashboard edits), fallback to file
+  const filePrompt = loadFilePrompt()
+  const rawPrompt = manifest.prompt.system && manifest.prompt.system !== filePrompt
+    ? manifest.prompt.system
+    : filePrompt || manifest.prompt.system
+
+  let systemPrompt = rawPrompt
   for (const [key, value] of Object.entries(memory)) {
     systemPrompt = systemPrompt.replaceAll(`{{${key}}}`, value)
   }
