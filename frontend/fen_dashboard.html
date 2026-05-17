@@ -484,28 +484,45 @@ nav.sb-nav{padding:12px 0;flex:1}
 <!-- AGENT CONFIG VIEW -->
 <div class="view" id="view-agent">
   <div class="view-top">
-    <div><h1 class="view-title serif">Agent <em>config</em></h1><div class="view-sub">Edit FEN's behaviour and memory without touching any database.</div></div>
+    <div><h1 class="view-title serif">Agent <em>config</em></h1><div class="view-sub">Edit FEN's behaviour and memory. No SQL, no deploys needed.</div></div>
   </div>
 
-  <!-- System prompt editor -->
+  <!-- Active prompt source indicator -->
+  <div id="prompt-source-banner" style="padding:10px 14px;margin-bottom:16px;font-size:12px;font-family:'DM Mono',monospace;border-radius:3px;background:var(--greenl);color:var(--green)">Loading…</div>
+
+  <!-- Runtime prompt override editor -->
   <div class="settings-section">
-    <div class="ss-title serif">System <em>prompt</em></div>
-    <div class="card-body" style="margin-bottom:12px;font-size:13px;color:var(--ink3)">This is the instruction set FEN follows in every conversation. Changes take effect immediately.</div>
-    <textarea id="prompt-editor" style="width:100%;min-height:320px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;padding:14px;border:.5px solid var(--rule2);background:var(--bg);color:var(--ink);resize:vertical;outline:none;" placeholder="Loading…"></textarea>
-    <div style="display:flex;gap:10px;margin-top:10px;align-items:center">
+    <div class="ss-title serif">Runtime prompt <em>override</em></div>
+    <div class="card-body" style="margin-bottom:12px;font-size:13px;color:var(--ink3)">Fast editable active behaviour. Overrides the repo baseline immediately. Leave blank to use the file baseline.</div>
+    <textarea id="prompt-editor" style="width:100%;min-height:300px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;padding:14px;border:.5px solid var(--rule2);background:var(--bg);color:var(--ink);resize:vertical;outline:none;" placeholder="Loading…"></textarea>
+    <div style="display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap">
       <button class="ac-btn approve" onclick="savePrompt()">Save & Apply →</button>
+      <button class="ac-btn edit" onclick="resetPrompt()">Reset to file baseline</button>
       <span id="prompt-status" style="font-size:12px;color:var(--ink3)"></span>
     </div>
   </div>
 
+  <!-- File baseline (read-only) -->
+  <div class="settings-section" style="margin-top:24px">
+    <div class="ss-title serif">File baseline <em>(read-only)</em></div>
+    <div class="card-body" style="margin-bottom:12px;font-size:13px;color:var(--ink3)">Version-controlled default in <code>fen.prompt.md</code>. Change via git push. This is what FEN uses when no runtime override is set.</div>
+    <textarea id="baseline-viewer" readonly style="width:100%;min-height:200px;font-family:'DM Mono',monospace;font-size:11px;line-height:1.6;padding:14px;border:.5px solid var(--rule);background:#FAFAF9;color:var(--ink3);resize:vertical;outline:none;"></textarea>
+  </div>
+
+  <!-- Prompt history -->
+  <div class="settings-section" style="margin-top:24px">
+    <div class="ss-title serif">Prompt <em>history</em></div>
+    <div id="prompt-history-list" style="margin-top:8px"></div>
+  </div>
+
   <!-- Memory editor -->
-  <div class="settings-section" style="margin-top:32px">
+  <div class="settings-section" style="margin-top:32px;padding-top:32px;border-top:.5px solid var(--rule)">
     <div class="ss-title serif">Business <em>memory</em></div>
-    <div class="card-body" style="margin-bottom:16px;font-size:13px;color:var(--ink3)">Key facts FEN injects into every conversation. Use {{key}} in the prompt to reference them.</div>
+    <div class="card-body" style="margin-bottom:16px;font-size:13px;color:var(--ink3)">Facts FEN injects into every conversation. Reference with <code>{{key}}</code> in the prompt.</div>
     <div id="memory-editor-list"></div>
-    <div style="display:flex;gap:10px;margin-top:16px">
-      <input id="mem-new-key" placeholder="key (e.g. business_name)" style="padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;flex:1"/>
-      <input id="mem-new-val" placeholder="value" style="padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;flex:2"/>
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+      <input id="mem-new-key" placeholder="key (e.g. business_name)" style="padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;flex:1;min-width:160px"/>
+      <input id="mem-new-val" placeholder="value" style="padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;flex:2;min-width:200px"/>
       <button class="ac-btn approve" onclick="addMemoryKey()" style="white-space:nowrap">Add →</button>
     </div>
   </div>
@@ -537,19 +554,58 @@ var TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
 function loadPrompt() {
   api('GET', '/agent/prompt?tenantId=' + TENANT_ID).then(function(data) {
-    var el = document.getElementById('prompt-editor');
-    if (el && data) el.value = data.prompt || '';
+    if (!data) return;
+    var editor   = document.getElementById('prompt-editor');
+    var baseline = document.getElementById('baseline-viewer');
+    var banner   = document.getElementById('prompt-source-banner');
+    if (baseline) baseline.value = data.baseline || '';
+    if (editor)   editor.value   = data.active   || '';
+    if (banner) {
+      if (data.source === 'dashboard_override') {
+        banner.style.background = 'var(--ambl)'; banner.style.color = 'var(--amber)';
+        banner.textContent = 'Active: Runtime override (dashboard edit)';
+      } else {
+        banner.style.background = 'var(--greenl)'; banner.style.color = 'var(--green)';
+        banner.textContent = 'Active: File baseline — fen.prompt.md (no override set)';
+      }
+    }
+    renderPromptHistory(data.history || []);
   });
+}
+
+function renderPromptHistory(history) {
+  var list = document.getElementById('prompt-history-list');
+  if (!list) return;
+  if (!history.length) { list.innerHTML = '<div style="font-size:13px;color:var(--ink3)">No prompt changes recorded yet.</div>'; return; }
+  list.innerHTML = history.map(function(h) {
+    var time = new Date(h.created_at).toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:.5px solid var(--rule)">'
+      + '<div style="flex:1"><div style="font-size:12px;font-family:\'DM Mono\',monospace;color:var(--ink3)">' + time + ' · ' + h.source + '</div>'
+      + '<div style="font-size:12px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:480px">' + (h.preview||'') + '…</div></div>'
+      + '<button onclick="rollbackPrompt(\'' + h.id + '\')" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:none;border:.5px solid var(--rule2);padding:5px 12px;cursor:pointer;font-family:inherit;color:var(--ink2)">Restore</button>'
+      + '</div>';
+  }).join('');
 }
 
 function savePrompt() {
   var el = document.getElementById('prompt-editor');
   var status = document.getElementById('prompt-status');
-  if (!el) return;
+  if (!el || !el.value.trim()) return;
   if (status) status.textContent = 'Saving…';
-  api('PUT', '/agent/prompt', { tenantId: TENANT_ID, prompt: el.value }).then(function() {
+  api('PUT', '/agent/prompt', { tenantId: TENANT_ID, prompt: el.value, source: 'dashboard' }).then(function() {
     if (status) { status.textContent = 'Saved ✓'; setTimeout(function(){ status.textContent=''; }, 3000); }
+    loadPrompt();
   });
+}
+
+function resetPrompt() {
+  if (!confirm('Reset to file baseline? The current runtime override will be removed.')) return;
+  api('POST', '/agent/prompt/reset', { tenantId: TENANT_ID }).then(function() { loadPrompt(); });
+}
+
+function rollbackPrompt(historyId) {
+  if (!confirm('Restore this version?')) return;
+  api('POST', '/agent/prompt/rollback/' + historyId, { tenantId: TENANT_ID }).then(function() { loadPrompt(); });
 }
 
 function loadMemoryEditor() {
@@ -576,9 +632,7 @@ function updateMemKey(input) {
 
 function deleteMemKey(key, row) {
   if (!confirm('Delete "' + key + '" from memory?')) return;
-  api('DELETE', '/agent/memory/' + key + '?tenantId=' + TENANT_ID).then(function() {
-    if (row) row.remove();
-  });
+  api('DELETE', '/agent/memory/' + key + '?tenantId=' + TENANT_ID).then(function() { if (row) row.remove(); });
 }
 
 function addMemoryKey() {
