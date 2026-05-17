@@ -37,7 +37,7 @@ export async function runAgentTurn(input: AgentTurnInput) {
   if (!workerRes.rows[0]) throw new Error(`Worker ${workerId} not found`)
 
   const manifest = workerRes.rows[0].manifest as WorkerManifest
-  const runtimeOverride = workerRes.rows[0].runtime_prompt as string | null
+  const runtimeOverride = workerRes.rows[0].runtime_prompt_override as string | null
 
   const memoryRes = await client.query('SELECT key, value FROM business_memory')
   const memory: Record<string, string> = Object.fromEntries(
@@ -45,11 +45,13 @@ export async function runAgentTurn(input: AgentTurnInput) {
   )
 
   // Prompt hierarchy (explicit, unambiguous):
-  //   1. runtime_prompt column (dashboard override) — fast editable active behaviour
-  //   2. fen.prompt.md file (repo baseline)          — version-controlled default
-  //   3. manifest.prompt.system                      — legacy fallback
-  const filePrompt  = loadFilePrompt()
-  const activePrompt = runtimeOverride || filePrompt || manifest.prompt.system
+  //   1. runtime_prompt_override (non-empty) — dashboard override
+  //   2. fen.prompt.md file                 — repo baseline default
+  //   3. manifest.prompt.system             — legacy fallback only
+  const filePrompt   = loadFilePrompt()
+  const activePrompt = (runtimeOverride && runtimeOverride.trim().length > 0)
+    ? runtimeOverride
+    : (filePrompt || manifest.prompt.system)
 
   let systemPrompt = activePrompt
   for (const [key, value] of Object.entries(memory)) {
