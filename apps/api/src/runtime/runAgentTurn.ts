@@ -113,10 +113,14 @@ export async function runAgentTurn(input: AgentTurnInput) {
     { role: 'user', content: inboundText },
   ]
 
+  const toolInstruction = hasTools
+    ? `\n\nYou have access to tools. Use web_search whenever the user asks about: current events, latest tools or products, prices, news, competitors, market data, recent developments, or anything that may have changed since your training. Do not answer these from memory — search first, then answer from the results.`
+    : ''
+
   const createParams: Anthropic.MessageCreateParamsNonStreaming = {
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 1024,
-    system:     systemPrompt + CONFIDENCE_INSTRUCTION,
+    system:     systemPrompt + toolInstruction + CONFIDENCE_INSTRUCTION,
     messages:   userMessages,
     ...(hasTools ? { tools: anthropicTools } : {}),
   }
