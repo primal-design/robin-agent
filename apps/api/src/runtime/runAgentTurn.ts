@@ -39,7 +39,9 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const manifest = workerRes.rows[0].manifest as WorkerManifest
   const runtimeOverride = workerRes.rows[0].runtime_prompt_override as string | null
 
-  const memoryRes = await client.query('SELECT key, value FROM business_memory')
+  const memoryRes = await client.query(
+    'SELECT key, value FROM business_memory WHERE tenant_id = $1', [tenantId]
+  )
   const memory: Record<string, string> = Object.fromEntries(
     memoryRes.rows.map((r: { key: string; value: string }) => [r.key, r.value])
   )

@@ -15,6 +15,7 @@ import chatRouter         from './routes/chat.js'
 import gmailRouter        from './routes/gmail.js'
 import authRouter         from './routes/auth.js'
 import adminRouter        from './routes/admin.js'
+import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } from './middleware/rateLimit.js'
 
 export function createApp() {
   const app = express()
@@ -25,6 +26,14 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }))
   app.use(express.urlencoded({ extended: false }))
   app.use((_, res, next) => { res.removeHeader('Content-Security-Policy'); next() })
+
+  // ── Rate limiting ─────────────────────────────────────────────────────
+  app.use('/auth/', authRateLimit)
+  app.use('/agent/', dashboardRateLimit)
+  app.use('/approvals/', dashboardRateLimit)
+  app.use('/chat', chatRateLimit)
+  app.use('/telegram/', chatRateLimit)
+  app.use('/', publicRateLimit)
 
   // ── Frontend serving ──────────────────────────────────────────────────
   const frontendDir  = resolve(__dirname, '../../../frontend')

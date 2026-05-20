@@ -4,6 +4,8 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { pool } from '../db/pool.js'
 import { audit } from '../services/audit.js'
+import { requireAuth, requireEditor } from '../lib/auth.js'
+import { tenantCanAccess } from '../services/policy.js'
 
 export const agentRouter = Router()
 
@@ -17,7 +19,6 @@ function loadFilePrompt(): string {
   } catch { return '' }
 }
 
-// Minimal line-based diff — returns a unified-style string
 function simpleDiff(oldText: string | null, newText: string | null): string {
   const oldLines = (oldText ?? '').split('\n')
   const newLines = (newText ?? '').split('\n')
@@ -51,26 +52,39 @@ async function writeHistory(params: {
   )
 }
 
+// Verify the requested workerId belongs to the given tenant; return 404 on mismatch
+// to avoid leaking existence of other tenants' resources.
+async function assertWorkerOwnership(res: any, tenantId: string, workerId: string): Promise<boolean> {
+  const result = await tenantCanAccess(tenantId, 'worker', workerId)
+  if (result.decision === 'deny') {
+    res.status(404).json({ error: 'not_found' })
+    return false
+  }
+  return true
+}
+
 // GET /agent/prompt
-agentRouter.get('/agent/prompt', async (req, res) => {
+agentRouter.get('/agent/prompt', requireAuth, async (req, res) => {
   const workerId = (req.query.workerId as string) || DEFAULT_WORKER()
   const tenantId = (req.query.tenantId as string) || DEFAULT_TENANT()
+
+  if (!await assertWorkerOwnership(res, tenantId, workerId)) return
 
   const workerRes = await pool.query(
     `SELECT runtime_prompt_override,
             runtime_prompt_override_updated_at,
             runtime_prompt_override_updated_by
-     FROM workers WHERE id = $1`,
-    [workerId]
+     FROM workers WHERE id = $1 AND tenant_id = $2`,
+    [workerId, tenantId]
   )
   const history = await pool.query(
     `SELECT id, action, source, saved_by, created_at,
             LEFT(COALESCE(new_prompt, old_prompt, ''), 120) AS preview,
             diff
      FROM prompt_history
-     WHERE worker_id = $1
+     WHERE worker_id = $1 AND tenant_id = $2
      ORDER BY created_at DESC LIMIT 20`,
-    [workerId]
+    [workerId, tenantId]
   )
 
   const override = workerRes.rows[0]?.runtime_prompt_override ?? null
@@ -89,13 +103,14 @@ agentRouter.get('/agent/prompt', async (req, res) => {
 })
 
 // PUT /agent/prompt — save runtime override
-agentRouter.put('/agent/prompt', async (req, res) => {
+agentRouter.put('/agent/prompt', requireEditor, async (req, res) => {
   const tenantId = (req.body.tenantId as string) || DEFAULT_TENANT()
   const workerId = (req.body.workerId as string) || DEFAULT_WORKER()
-  const { prompt, source = 'dashboard', saved_by = 'human' } = req.body as {
-    prompt: string; source?: string; saved_by?: string
-  }
+  const { prompt, source = 'dashboard' } = req.body as { prompt: string; source?: string }
+  const savedBy = req.actor!.phone
+
   if (!prompt?.trim()) return res.status(400).json({ error: 'prompt required' })
+  if (!await assertWorkerOwnership(res, tenantId, workerId)) return
 
   const oldPrompt = await getCurrentOverride(workerId)
 
@@ -104,20 +119,22 @@ agentRouter.put('/agent/prompt', async (req, res) => {
      SET runtime_prompt_override            = $1,
          runtime_prompt_override_updated_at = now(),
          runtime_prompt_override_updated_by = $2
-     WHERE id = $3`,
-    [prompt.trim(), saved_by, workerId]
+     WHERE id = $3 AND tenant_id = $4`,
+    [prompt.trim(), savedBy, workerId, tenantId]
   )
-  await writeHistory({ tenantId, workerId, oldPrompt, newPrompt: prompt.trim(), action: 'save', source: source as 'dashboard', savedBy: saved_by })
-  await audit({ tenantId, action: 'prompt_updated', actor: saved_by, target: workerId, metadata: { source, length: prompt.length } })
+  await writeHistory({ tenantId, workerId, oldPrompt, newPrompt: prompt.trim(), action: 'save', source: source as 'dashboard', savedBy })
+  await audit({ tenantId, action: 'prompt_updated', actor: savedBy, target: workerId, metadata: { source, length: prompt.length } })
 
   res.json({ ok: true })
 })
 
 // POST /agent/prompt/reset — clear override, revert to repo baseline
-agentRouter.post('/agent/prompt/reset', async (req, res) => {
+agentRouter.post('/agent/prompt/reset', requireEditor, async (req, res) => {
   const tenantId = (req.body.tenantId as string) || DEFAULT_TENANT()
   const workerId = (req.body.workerId as string) || DEFAULT_WORKER()
-  const savedBy  = (req.body.saved_by as string) || 'human'
+  const savedBy  = req.actor!.phone
+
+  if (!await assertWorkerOwnership(res, tenantId, workerId)) return
 
   const oldPrompt = await getCurrentOverride(workerId)
 
@@ -126,8 +143,8 @@ agentRouter.post('/agent/prompt/reset', async (req, res) => {
      SET runtime_prompt_override            = NULL,
          runtime_prompt_override_updated_at = now(),
          runtime_prompt_override_updated_by = $1
-     WHERE id = $2`,
-    [savedBy, workerId]
+     WHERE id = $2 AND tenant_id = $3`,
+    [savedBy, workerId, tenantId]
   )
   await writeHistory({ tenantId, workerId, oldPrompt, newPrompt: null, action: 'clear_override', source: 'repo_baseline', savedBy })
   await audit({ tenantId, action: 'prompt_reset_to_baseline', actor: savedBy, target: workerId })
@@ -136,13 +153,18 @@ agentRouter.post('/agent/prompt/reset', async (req, res) => {
 })
 
 // POST /agent/prompt/rollback/:historyId — restore a previous version
-agentRouter.post('/agent/prompt/rollback/:historyId', async (req, res) => {
+agentRouter.post('/agent/prompt/rollback/:historyId', requireEditor, async (req, res) => {
   const tenantId = (req.body.tenantId as string) || DEFAULT_TENANT()
   const workerId = (req.body.workerId as string) || DEFAULT_WORKER()
-  const savedBy  = (req.body.saved_by as string) || 'human'
+  const savedBy  = req.actor!.phone
 
+  if (!await assertWorkerOwnership(res, tenantId, workerId)) return
+
+  // Verify history entry belongs to this tenant's worker
   const hist = await pool.query(
-    `SELECT new_prompt, old_prompt FROM prompt_history WHERE id = $1`, [req.params.historyId]
+    `SELECT new_prompt, old_prompt FROM prompt_history
+     WHERE id = $1 AND tenant_id = $2 AND worker_id = $3`,
+    [req.params.historyId, tenantId, workerId]
   )
   if (!hist.rows[0]) return res.status(404).json({ error: 'History entry not found' })
 
@@ -156,8 +178,8 @@ agentRouter.post('/agent/prompt/rollback/:historyId', async (req, res) => {
      SET runtime_prompt_override            = $1,
          runtime_prompt_override_updated_at = now(),
          runtime_prompt_override_updated_by = $2
-     WHERE id = $3`,
-    [restorePrompt, savedBy, workerId]
+     WHERE id = $3 AND tenant_id = $4`,
+    [restorePrompt, savedBy, workerId, tenantId]
   )
   await writeHistory({ tenantId, workerId, oldPrompt, newPrompt: restorePrompt, action: 'rollback', source: 'rollback', savedBy })
   await audit({ tenantId, action: 'prompt_rolled_back', actor: savedBy, target: workerId, metadata: { history_id: req.params.historyId } })
@@ -166,7 +188,7 @@ agentRouter.post('/agent/prompt/rollback/:historyId', async (req, res) => {
 })
 
 // GET /agent/memory
-agentRouter.get('/agent/memory', async (req, res) => {
+agentRouter.get('/agent/memory', requireAuth, async (req, res) => {
   const tenantId = (req.query.tenantId as string) || DEFAULT_TENANT()
   const result = await pool.query(
     `SELECT key, value FROM business_memory WHERE tenant_id = $1 ORDER BY key`, [tenantId]
@@ -175,7 +197,7 @@ agentRouter.get('/agent/memory', async (req, res) => {
 })
 
 // PUT /agent/memory
-agentRouter.put('/agent/memory', async (req, res) => {
+agentRouter.put('/agent/memory', requireEditor, async (req, res) => {
   const tenantId = (req.body.tenantId as string) || DEFAULT_TENANT()
   const { key, value } = req.body as { key: string; value: string }
   if (!key?.trim()) return res.status(400).json({ error: 'key required' })
@@ -184,16 +206,20 @@ agentRouter.put('/agent/memory', async (req, res) => {
      ON CONFLICT (tenant_id, key) DO UPDATE SET value = $3`,
     [tenantId, key.trim(), value ?? '']
   )
-  await audit({ tenantId, action: 'memory_updated', actor: 'human', target: key })
+  await audit({ tenantId, action: 'memory_updated', actor: req.actor!.phone, target: key })
   res.json({ ok: true })
 })
 
 // DELETE /agent/memory/:key
-agentRouter.delete('/agent/memory/:key', async (req, res) => {
+agentRouter.delete('/agent/memory/:key', requireEditor, async (req, res) => {
   const tenantId = (req.query.tenantId as string) || DEFAULT_TENANT()
+  // Verify key belongs to this tenant before deleting
+  const result = await tenantCanAccess(tenantId, 'business_memory', req.params.key)
+  if (result.decision === 'deny') return res.status(404).json({ error: 'not_found' })
+
   await pool.query(
     `DELETE FROM business_memory WHERE tenant_id = $1 AND key = $2`, [tenantId, req.params.key]
   )
-  await audit({ tenantId, action: 'memory_deleted', actor: 'human', target: req.params.key })
+  await audit({ tenantId, action: 'memory_deleted', actor: req.actor!.phone, target: req.params.key })
   res.json({ ok: true })
 })

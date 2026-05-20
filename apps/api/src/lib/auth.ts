@@ -1,12 +1,28 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import type { Request, Response, NextFunction } from 'express'
 import { env } from '../config/env.js'
+import { pool } from '../db/pool.js'
 
 interface SessionPayload {
   phone: string
   iat: number
   exp: number
 }
+
+export interface AuthActor {
+  phone: string
+  role: string
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      actor?: AuthActor
+    }
+  }
+}
+
+// ── JWT-style tokens (lib/auth.ts createSessionToken) ────────────────────────
 
 function b64url(input: string | Buffer) {
   return Buffer.from(input).toString('base64url')
@@ -43,10 +59,84 @@ export function verifySessionToken(token: string): SessionPayload | null {
   }
 }
 
+// ── rt_ tokens (routes/auth.ts createToken format) ───────────────────────────
+
+function rtSecret() {
+  return env.robinAuthSecret || env.jwtSecret
+}
+
+function rtSign(payload: string) {
+  return createHmac('sha256', rtSecret()).update(payload).digest('base64url')
+}
+
+export function verifyRtToken(raw: string): { phone: string; type: string } | null {
+  if (!raw.startsWith('rt_')) return null
+  const [payload, sig] = raw.slice(3).split('.')
+  if (!payload || !sig) return null
+  const expected = rtSign(payload)
+  if (!safeEqual(sig, expected)) return null
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString())
+    if (!data.phone || !data.exp || Number(data.exp) <= Date.now()) return null
+    return { phone: data.phone, type: data.type }
+  } catch {
+    return null
+  }
+}
+
+// ── Token extraction — accepts both formats ───────────────────────────────────
+
+function extractPhone(authorization: string): string | null {
+  const token = authorization.replace(/^Bearer\s+/i, '').trim()
+  if (!token) return null
+  if (token.startsWith('rt_')) return verifyRtToken(token)?.phone ?? null
+  return verifySessionToken(token)?.phone ?? null
+}
+
+// ── Middleware ────────────────────────────────────────────────────────────────
+
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const phone = extractPhone(req.headers.authorization || '')
+  if (!phone) return res.status(401).json({ error: 'authentication_required' })
+  req.actor = { phone, role: 'user' }
+  next()
+}
+
+// Looks up role from DB and attaches to req.actor; falls back to 'user' if lookup fails
+export async function requireAuthWithRole(req: Request, res: Response, next: NextFunction) {
+  const phone = extractPhone(req.headers.authorization || '')
+  if (!phone) return res.status(401).json({ error: 'authentication_required' })
+  try {
+    const r = await pool.query(`SELECT role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+    req.actor = { phone, role: r.rows[0]?.role || 'user' }
+  } catch {
+    req.actor = { phone, role: 'user' }
+  }
+  next()
+}
+
+// Require admin or editor role for mutating dashboard routes
+export async function requireEditor(req: Request, res: Response, next: NextFunction) {
+  const phone = extractPhone(req.headers.authorization || '')
+  if (!phone) return res.status(401).json({ error: 'authentication_required' })
+  try {
+    const r = await pool.query(`SELECT role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+    const role: string = r.rows[0]?.role || 'user'
+    if (!['admin', 'editor', 'owner'].includes(role)) {
+      return res.status(403).json({ error: 'insufficient_permission', required: 'editor' })
+    }
+    req.actor = { phone, role }
+    next()
+  } catch (err) {
+    next(err)
+  }
+}
+
 export function phoneFromBearer(authorization = '') {
   const token = authorization.replace(/^Bearer\s+/i, '').trim()
   if (!token) return ''
-  return verifySessionToken(token)?.phone || ''
+  if (token.startsWith('rt_')) return verifyRtToken(token)?.phone ?? ''
+  return verifySessionToken(token)?.phone ?? ''
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
