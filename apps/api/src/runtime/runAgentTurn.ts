@@ -5,6 +5,9 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { createApproval } from '../services/approvals.js'
 import { evaluateRisk, extractMetadata, isKnownPattern, isRejectedPattern, decidePermission } from './trust.js'
+import { getAllowedTools, toAnthropicTool } from './tools/registry.js'
+import { dispatchTool } from './tools/dispatcher.js'
+import { getEpisodicSummary } from '../services/episodic.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 import { audit } from '../services/audit.js'
@@ -19,9 +22,6 @@ function loadFile(name: string): string {
   }
 }
 
-// Assembles soul + runtime baseline in the correct layer order.
-// Soul is always prepended — it is not overridable at runtime.
-// The runtime baseline (or dashboard override) follows.
 function loadFilePrompt(): string {
   const soul    = loadFile('fen.soul.md')
   const runtime = loadFile('fen.prompt.md')
@@ -30,12 +30,14 @@ function loadFilePrompt(): string {
 
 const anthropic = new Anthropic({ apiKey: env.anthropicKey })
 
+const CONFIDENCE_INSTRUCTION = `\n\nAfter your reply, on a new line write exactly: CONFIDENCE:0.XX (a number between 0 and 1 representing how confident you are this reply is correct and appropriate).`
+
 export interface AgentTurnInput {
-  client: PoolClient
-  tenantId: string
-  workerId: string
+  client:         PoolClient
+  tenantId:       string
+  workerId:       string
   conversationId: string
-  inboundText: string
+  inboundText:    string
 }
 
 export async function runAgentTurn(input: AgentTurnInput) {
@@ -44,9 +46,10 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const workerRes = await client.query('SELECT * FROM workers WHERE id = $1', [workerId])
   if (!workerRes.rows[0]) throw new Error(`Worker ${workerId} not found`)
 
-  const manifest = workerRes.rows[0].manifest as WorkerManifest
+  const manifest        = workerRes.rows[0].manifest as WorkerManifest
   const runtimeOverride = workerRes.rows[0].runtime_prompt_override as string | null
 
+  // ── Memory ────────────────────────────────────────────────────────────────
   const memoryRes = await client.query(
     'SELECT key, value FROM business_memory WHERE tenant_id = $1', [tenantId]
   )
@@ -54,10 +57,13 @@ export async function runAgentTurn(input: AgentTurnInput) {
     memoryRes.rows.map((r: { key: string; value: string }) => [r.key, r.value])
   )
 
-  // Prompt hierarchy (explicit, unambiguous):
-  //   1. runtime_prompt_override (non-empty) — dashboard override
-  //   2. fen.prompt.md file                 — repo baseline default
-  //   3. manifest.prompt.system             — legacy fallback only
+  // ── Episodic memory ───────────────────────────────────────────────────────
+  const episodicSummary = await getEpisodicSummary(client, conversationId)
+  memory['episodic_summary'] = episodicSummary || '(no prior context for this conversation)'
+  memory['active_goal']      = ''
+
+  // ── Prompt assembly ───────────────────────────────────────────────────────
+  // Priority: runtime_prompt_override (dashboard) → fen.soul + fen.prompt (repo) → manifest legacy
   const filePrompt   = loadFilePrompt()
   const activePrompt = (runtimeOverride && runtimeOverride.trim().length > 0)
     ? runtimeOverride
@@ -68,58 +74,127 @@ export async function runAgentTurn(input: AgentTurnInput) {
     systemPrompt = systemPrompt.replaceAll(`{{${key}}}`, value)
   }
 
+  // ── Conversation history ──────────────────────────────────────────────────
   const historyRes = await client.query(
     `SELECT direction, content FROM messages
      WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 20`,
     [conversationId]
   )
 
-  // Build history excluding the current inbound message (it's passed separately as inboundText)
-  // and strip any trailing unanswered user messages so we don't carry stale context forward
   const allRows = historyRes.rows.reverse() as { direction: string; content: string }[]
   const withoutCurrent = allRows.filter((r, i) =>
     !(i === allRows.length - 1 && r.direction === 'inbound' && r.content === inboundText)
   )
-  // Drop trailing inbound messages that have no outbound reply — they represent unanswered approvals
   let trimmed = [...withoutCurrent]
   while (trimmed.length > 0 && trimmed[trimmed.length - 1].direction === 'inbound') {
     trimmed.pop()
   }
   const history = trimmed.map((r) => ({
-    role: r.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
+    role:    r.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
     content: r.content,
   }))
 
   const isFirstMessage = history.length === 0
 
-  await audit({ tenantId, action: 'agent_called', actor: 'runtime', target: conversationId, metadata: { model: 'claude-haiku-4-5-20251001', history_length: history.length }, client })
+  // ── Tools ─────────────────────────────────────────────────────────────────
+  const allowedTools   = await getAllowedTools(client, workerId)
+  const anthropicTools = allowedTools.map(toAnthropicTool)
+  const hasTools       = anthropicTools.length > 0
 
-  // Ask the LLM for a reply AND a confidence score
-  const response = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 800,
-    system: systemPrompt + `\n\nAfter your reply, on a new line write exactly: CONFIDENCE:0.XX (a number between 0 and 1 representing how confident you are this reply is correct and appropriate).`,
-    messages: [...history, { role: 'user', content: inboundText }],
+  await audit({
+    tenantId, action: 'agent_called', actor: 'runtime', target: conversationId,
+    metadata: { model: 'claude-haiku-4-5-20251001', history_length: history.length, tools: allowedTools.map(t => t.id) },
+    client,
   })
 
-  const raw = response.content
-    .filter((b) => b.type === 'text')
-    .map((b) => (b as { type: 'text'; text: string }).text)
-    .join('\n')
+  // ── LLM call (with optional tool loop) ───────────────────────────────────
+  const userMessages: Anthropic.MessageParam[] = [
+    ...history,
+    { role: 'user', content: inboundText },
+  ]
 
-  // Parse confidence out of response
-  const confMatch = raw.match(/CONFIDENCE:\s*([\d.]+)/i)
+  const createParams: Anthropic.MessageCreateParamsNonStreaming = {
+    model:      'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
+    system:     systemPrompt + CONFIDENCE_INSTRUCTION,
+    messages:   userMessages,
+    ...(hasTools ? { tools: anthropicTools } : {}),
+  }
+
+  const firstResponse = await anthropic.messages.create(createParams)
+
+  let rawText: string
+
+  if (hasTools && firstResponse.stop_reason === 'tool_use') {
+    // Execute all tool calls in parallel
+    const toolUseBlocks = firstResponse.content.filter(
+      (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
+    )
+
+    await audit({
+      tenantId, action: 'tools_called', actor: 'runtime', target: conversationId,
+      metadata: { tools: toolUseBlocks.map(b => b.name) },
+      client,
+    })
+
+    const toolResults = await Promise.all(
+      toolUseBlocks.map((b) =>
+        dispatchTool(client, tenantId, conversationId, {
+          id:    b.id,
+          name:  b.name,
+          input: b.input as Record<string, unknown>,
+        })
+      )
+    )
+
+    // Second call with tool results
+    const secondResponse = await anthropic.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      system:     systemPrompt + CONFIDENCE_INSTRUCTION,
+      tools:      anthropicTools,
+      messages:   [
+        ...userMessages,
+        { role: 'assistant', content: firstResponse.content },
+        {
+          role: 'user',
+          content: toolResults.map((r) => ({
+            type:        'tool_result' as const,
+            tool_use_id: r.toolUseId,
+            content:     r.content,
+          })),
+        },
+      ],
+    })
+
+    rawText = secondResponse.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('\n')
+  } else {
+    rawText = firstResponse.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('\n')
+  }
+
+  // ── Parse confidence ──────────────────────────────────────────────────────
+  const confMatch = rawText.match(/CONFIDENCE:\s*([\d.]+)/i)
   const confidence = confMatch ? parseFloat(confMatch[1]) : 0.7
-  const text = raw.replace(/\n?CONFIDENCE:\s*[\d.]+/i, '').trim()
+  const text = rawText.replace(/\n?CONFIDENCE:\s*[\d.]+/i, '').trim()
 
-  // Run trust engine
+  // ── Trust engine ──────────────────────────────────────────────────────────
   const metadata       = extractMetadata(text, isFirstMessage)
   const risk           = evaluateRisk('send_message', metadata)
   const knownPat       = await isKnownPattern(client, tenantId, 'send_message', text)
   const rejectedPat    = await isRejectedPattern(client, tenantId, 'send_message', text)
   const { permission, reason } = decidePermission({ confidence, risk, knownPattern: knownPat, rejectedPattern: rejectedPat })
 
-  await audit({ tenantId, action: 'trust_decision_made', actor: 'runtime', target: conversationId, metadata: { confidence, risk, knownPat, rejectedPat, permission, reason }, client })
+  await audit({
+    tenantId, action: 'trust_decision_made', actor: 'runtime', target: conversationId,
+    metadata: { confidence, risk, knownPat, rejectedPat, permission, reason },
+    client,
+  })
 
   if (permission === 'auto_allowed') {
     return { status: 'sent' as const, message: text, confidence, risk, reason }
@@ -129,14 +204,13 @@ export async function runAgentTurn(input: AgentTurnInput) {
     return { status: 'sent_with_notify' as const, message: text, confidence, risk, reason }
   }
 
-  // needs_approval — include reason so the UI can display it
   return createApproval({
     client,
     tenantId,
     workerId,
     conversationId,
-    actionType: 'send_message',
-    actionPayload: { message: text, confidence, risk, reason },
+    actionType:      'send_message',
+    actionPayload:   { message: text, confidence, risk, reason },
     proposedMessage: text,
   })
 }

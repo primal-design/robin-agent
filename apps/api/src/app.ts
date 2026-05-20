@@ -16,6 +16,7 @@ import gmailRouter        from './routes/gmail.js'
 import authRouter         from './routes/auth.js'
 import adminRouter        from './routes/admin.js'
 import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } from './middleware/rateLimit.js'
+import toolsRouter from './routes/tools.js'
 
 export function createApp() {
   const app = express()
@@ -93,6 +94,7 @@ export function createApp() {
   app.use('/', authRouter)
   app.use('/', adminRouter)
   app.use('/', agentRouter)
+  app.use('/', toolsRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
   app.use('/', approvalsRouter)

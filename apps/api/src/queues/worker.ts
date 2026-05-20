@@ -4,6 +4,7 @@ import { withTenant } from '../db/withTenant.js'
 import { runAgentTurn } from '../runtime/runAgentTurn.js'
 import { handleComplianceCommand } from '../services/compliance.js'
 import { audit } from '../services/audit.js'
+import { updateEpisodicSummary } from '../services/episodic.js'
 
 function redisConnection() {
   if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
@@ -99,6 +100,10 @@ export const fenWorker = new Worker(
         await audit({ tenantId, action: 'message_saved', actor: 'runtime', target: conversationId, metadata: { direction: 'outbound', status: result.status }, client })
         await sendTelegram(chatId, result.message)
         await audit({ tenantId, action: 'message_sent', actor: 'runtime', target: conversationId, metadata: { channel: 'telegram', chat_id: chatId, status: result.status }, client })
+
+        // Update episodic memory after successful send — fire and forget
+        updateEpisodicSummary(client, conversationId, text, result.message)
+          .catch((e) => console.error('[episodic] post-send update failed:', e.message))
       }
 
       if (result.status === 'needs_approval') {
