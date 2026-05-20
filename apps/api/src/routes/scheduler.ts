@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth, requireEditor } from '../lib/auth.js'
-import { scheduleJob, removeJob } from '../services/scheduler.js'
 
 const router = Router()
 
@@ -38,15 +37,6 @@ router.post('/scheduled-jobs', requireEditor, async (req, res) => {
     [tenantId, worker_id, name, task, cron_expression, output_chat_id ? parseInt(output_chat_id) : null]
   )
   const job = r.rows[0]
-
-  await scheduleJob(job.id, job.cron_expression, {
-    jobId:        job.id,
-    tenantId,
-    workerId:     worker_id,
-    task:         job.task,
-    outputChatId: job.output_chat_id ?? null,
-  })
-
   res.status(201).json(job)
 })
 
@@ -78,25 +68,12 @@ router.patch('/scheduled-jobs/:id', requireEditor, async (req, res) => {
   )
   const updated = r.rows[0]
 
-  // Reschedule with new cron if expression changed or re-enabled
-  await removeJob(id)
-  if (updated.enabled) {
-    await scheduleJob(updated.id, updated.cron_expression, {
-      jobId:        updated.id,
-      tenantId:     updated.tenant_id,
-      workerId:     updated.worker_id,
-      task:         updated.task,
-      outputChatId: updated.output_chat_id ?? null,
-    })
-  }
-
   res.json(updated)
 })
 
 // DELETE /scheduled-jobs/:id
 router.delete('/scheduled-jobs/:id', requireEditor, async (req, res) => {
   const { id } = req.params
-  await removeJob(id)
   await pool.query('DELETE FROM scheduled_jobs WHERE id = $1', [id])
   res.json({ ok: true })
 })
