@@ -8,6 +8,7 @@ import { evaluateRisk, extractMetadata, isKnownPattern, isRejectedPattern, decid
 import { getAllowedTools, toAnthropicTool } from './tools/registry.js'
 import { dispatchTool } from './tools/dispatcher.js'
 import { getEpisodicSummary } from '../services/episodic.js'
+import { getActiveGoal, formatGoalForPrompt, updateGoalProgress, completeGoal } from '../services/goals.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 import { audit } from '../services/audit.js'
@@ -60,7 +61,10 @@ export async function runAgentTurn(input: AgentTurnInput) {
   // ── Episodic memory ───────────────────────────────────────────────────────
   const episodicSummary = await getEpisodicSummary(client, conversationId)
   memory['episodic_summary'] = episodicSummary || '(no prior context for this conversation)'
-  memory['active_goal']      = ''
+
+  // ── Goal context ──────────────────────────────────────────────────────────
+  const activeGoal = await getActiveGoal(client, conversationId)
+  memory['active_goal'] = activeGoal ? formatGoalForPrompt(activeGoal) : ''
 
   // ── Prompt assembly ───────────────────────────────────────────────────────
   // Priority: runtime_prompt_override (dashboard) → fen.soul + fen.prompt (repo) → manifest legacy
@@ -185,7 +189,27 @@ export async function runAgentTurn(input: AgentTurnInput) {
   // ── Parse confidence ──────────────────────────────────────────────────────
   const confMatch = rawText.match(/CONFIDENCE:\s*([\d.]+)/i)
   const confidence = confMatch ? parseFloat(confMatch[1]) : 0.7
-  const text = rawText.replace(/\n?CONFIDENCE:\s*[\d.]+/i, '').trim()
+
+  // ── Parse goal markers and strip from reply ───────────────────────────────
+  const goalProgressMatch  = rawText.match(/\n?GOAL_PROGRESS:\s*(.+)/i)
+  const goalCompleteMatch  = rawText.match(/\n?GOAL_COMPLETE:\s*(.+)/i)
+
+  let text = rawText
+    .replace(/\n?CONFIDENCE:\s*[\d.]+/i, '')
+    .replace(/\n?GOAL_PROGRESS:\s*.+/i, '')
+    .replace(/\n?GOAL_COMPLETE:\s*.+/i, '')
+    .trim()
+
+  // Apply goal updates fire-and-forget — never crash main flow
+  if (activeGoal) {
+    if (goalCompleteMatch) {
+      completeGoal(client, activeGoal.id, goalCompleteMatch[1].trim())
+        .catch((e) => console.error('[goals] complete failed:', e.message))
+    } else if (goalProgressMatch) {
+      updateGoalProgress(client, activeGoal.id, goalProgressMatch[1].trim())
+        .catch((e) => console.error('[goals] progress update failed:', e.message))
+    }
+  }
 
   // ── Trust engine ──────────────────────────────────────────────────────────
   const metadata       = extractMetadata(text, isFirstMessage)

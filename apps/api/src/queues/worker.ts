@@ -14,6 +14,10 @@ function redisConnection() {
 export const fenWorker = new Worker(
   'fen-events',
   async (job) => {
+    if (job.name === 'cron_task') {
+      await handleCronTask(job.data as CronTaskData)
+      return
+    }
     if (job.name !== 'telegram_message') return
 
     const { workerId, payload } = job.data as {
@@ -124,6 +128,70 @@ fenWorker.on('failed', (job, err) => {
   const workerId = job?.data?.workerId as string | undefined
   audit({ tenantId, action: 'job_failed', actor: 'queue', target: workerId, metadata: { job_id: job?.id, error: err.message } })
 })
+
+interface CronTaskData {
+  jobId:        string
+  tenantId:     string
+  workerId:     string
+  task:         string
+  outputChatId: number | null
+}
+
+async function handleCronTask(data: CronTaskData) {
+  const { jobId, tenantId, workerId, task, outputChatId } = data
+
+  const runRes = await pool.query(
+    `INSERT INTO job_runs (job_id, tenant_id, status) VALUES ($1, $2, 'running') RETURNING id`,
+    [jobId, tenantId]
+  )
+  const runId = runRes.rows[0].id as string
+
+  try {
+    await withTenant(tenantId, async (client) => {
+      let convRes = await client.query(
+        `SELECT id FROM conversations WHERE tenant_id = $1 AND worker_id = $2 AND channel = 'cron' LIMIT 1`,
+        [tenantId, workerId]
+      )
+      if (!convRes.rows.length) {
+        convRes = await client.query(
+          `INSERT INTO conversations (tenant_id, worker_id, external_user_id, channel)
+           VALUES ($1, $2, 'cron', 'cron') RETURNING id`,
+          [tenantId, workerId]
+        )
+      }
+      const conversationId = convRes.rows[0].id as string
+
+      await client.query(
+        `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'inbound', $3)`,
+        [tenantId, conversationId, task]
+      )
+
+      const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: task })
+      const output = (result.status === 'sent' || result.status === 'sent_with_notify') ? result.message : null
+
+      if (output) {
+        await client.query(
+          `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'outbound', $3)`,
+          [tenantId, conversationId, output]
+        )
+        if (outputChatId) await sendTelegram(outputChatId, output)
+      }
+
+      await pool.query(
+        `UPDATE job_runs SET status = 'completed', output = $1, completed_at = now() WHERE id = $2`,
+        [output ?? '(no output)', runId]
+      )
+      await pool.query(`UPDATE scheduled_jobs SET last_run_at = now() WHERE id = $1`, [jobId])
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error(`[cron] job ${jobId} run ${runId} failed:`, msg)
+    await pool.query(
+      `UPDATE job_runs SET status = 'failed', output = $1, completed_at = now() WHERE id = $2`,
+      [msg, runId]
+    )
+  }
+}
 
 async function sendTelegram(chatId: number, text: string) {
   const token = process.env.TELEGRAM_BOT_TOKEN

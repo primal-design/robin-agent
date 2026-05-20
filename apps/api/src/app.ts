@@ -17,6 +17,8 @@ import authRouter         from './routes/auth.js'
 import adminRouter        from './routes/admin.js'
 import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } from './middleware/rateLimit.js'
 import toolsRouter from './routes/tools.js'
+import goalsRouter from './routes/goals.js'
+import schedulerRouter from './routes/scheduler.js'
 
 export function createApp() {
   const app = express()
@@ -95,6 +97,8 @@ export function createApp() {
   app.use('/', adminRouter)
   app.use('/', agentRouter)
   app.use('/', toolsRouter)
+  app.use('/', goalsRouter)
+  app.use('/', schedulerRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
   app.use('/', approvalsRouter)
