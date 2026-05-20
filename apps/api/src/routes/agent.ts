@@ -13,10 +13,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const DEFAULT_TENANT = () => process.env.DEFAULT_TENANT_ID ?? ''
 const DEFAULT_WORKER = () => process.env.DEFAULT_WORKER_ID ?? ''
 
-function loadFilePrompt(): string {
+function loadFile(name: string): string {
   try {
-    return readFileSync(resolve(__dirname, '../workers/fen.prompt.md'), 'utf-8').trim()
+    return readFileSync(resolve(__dirname, `../workers/${name}`), 'utf-8').trim()
   } catch { return '' }
+}
+
+function loadFilePrompt(): string {
+  const soul    = loadFile('fen.soul.md')
+  const runtime = loadFile('fen.prompt.md')
+  return [soul, runtime].filter(Boolean).join('\n\n---\n\n')
 }
 
 function simpleDiff(oldText: string | null, newText: string | null): string {

@@ -11,13 +11,21 @@ import { audit } from '../services/audit.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// Load base prompt from file — edit fen.prompt.md and redeploy, no SQL needed
-function loadFilePrompt(): string {
+function loadFile(name: string): string {
   try {
-    return readFileSync(resolve(__dirname, '../workers/fen.prompt.md'), 'utf-8').trim()
+    return readFileSync(resolve(__dirname, `../workers/${name}`), 'utf-8').trim()
   } catch {
     return ''
   }
+}
+
+// Assembles soul + runtime baseline in the correct layer order.
+// Soul is always prepended — it is not overridable at runtime.
+// The runtime baseline (or dashboard override) follows.
+function loadFilePrompt(): string {
+  const soul    = loadFile('fen.soul.md')
+  const runtime = loadFile('fen.prompt.md')
+  return [soul, runtime].filter(Boolean).join('\n\n---\n\n')
 }
 
 const anthropic = new Anthropic({ apiKey: env.anthropicKey })
