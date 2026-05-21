@@ -19,6 +19,7 @@ import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } fro
 import toolsRouter from './routes/tools.js'
 import goalsRouter from './routes/goals.js'
 import schedulerRouter from './routes/scheduler.js'
+import memoryRouter from './routes/memory.js'
 
 export function createApp() {
   const app = express()
@@ -101,6 +102,7 @@ export function createApp() {
   app.use('/', toolsRouter)
   app.use('/', goalsRouter)
   app.use('/', schedulerRouter)
+  app.use('/', memoryRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
   app.use('/', approvalsRouter)

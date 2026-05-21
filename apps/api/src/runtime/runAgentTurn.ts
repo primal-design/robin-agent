@@ -10,6 +10,7 @@ import { dispatchTool } from './tools/dispatcher.js'
 import { getEpisodicSummary } from '../services/episodic.js'
 import { getActiveGoal, formatGoalForPrompt, updateGoalProgress, completeGoal } from '../services/goals.js'
 import { hydrateMemory, flattenCoreMemory } from '../services/memoryHydrator.js'
+import { proposeMemoryCandidate } from '../services/memoryLearning.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 import { audit } from '../services/audit.js'
@@ -201,6 +202,26 @@ export async function runAgentTurn(input: AgentTurnInput) {
     .replace(/\n?GOAL_PROGRESS:\s*.+/i, '')
     .replace(/\n?GOAL_COMPLETE:\s*.+/i, '')
     .trim()
+
+  // ── Parse memory learning markers and strip from reply ───────────────────
+  // Format: MEMORY_LEARN: key=value | reason
+  const memoryLearnMatches = [...rawText.matchAll(/\n?MEMORY_LEARN:\s*([^=\n]+)=([^\|^\n]+)(?:\|([^\n]+))?/gi)]
+  text = text.replace(/\n?MEMORY_LEARN:\s*[^\n]+/gi, '').trim()
+
+  // Propose memory candidates fire-and-forget
+  for (const match of memoryLearnMatches) {
+    const key    = match[1].trim()
+    const value  = match[2].trim()
+    const reason = match[3]?.trim() ?? 'observed in conversation'
+    proposeMemoryCandidate(client, tenantId, {
+      targetLayer:         'core',
+      proposedScope:       'tenant',
+      proposedMemoryKey:   key,
+      proposedMemoryValue: value,
+      reason,
+      riskLevel:           'low',
+    }, conversationId).catch((e) => console.error('[memory] learn failed:', e.message))
+  }
 
   // Apply goal updates fire-and-forget — never crash main flow
   if (activeGoal) {
