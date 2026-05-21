@@ -1,6 +1,7 @@
 import { Queue } from 'bullmq'
 import { pool } from '../db/pool.js'
 import crypto from 'crypto'
+import { checkRunQuota } from './tenantLimits.js'
 
 function redisConnection() {
   if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
@@ -80,6 +81,17 @@ export async function dispatchScheduledWork(): Promise<void> {
       if (!runRes.rows[0]) continue // already dispatched (idempotency)
 
       const jobRunId = runRes.rows[0].id
+
+      // Check tenant quota before enqueuing
+      const quota = await checkRunQuota(job.tenant_id)
+      if (!quota.allowed) {
+        await client.query(
+          `UPDATE job_runs SET status='failed', error=$1, finished_at=now() WHERE id=$2`,
+          [`quota_exceeded: ${quota.reason}`, jobRunId]
+        )
+        console.warn(`[scheduler] Tenant ${job.tenant_id} quota exceeded: ${quota.reason}`)
+        continue
+      }
 
       // Enqueue worker job
       const bullJob = await fenQueue.add(

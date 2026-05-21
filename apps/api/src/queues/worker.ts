@@ -149,7 +149,7 @@ interface ScheduledJobData {
 }
 
 async function runScheduledJob(data: ScheduledJobData) {
-  const { jobRunId, scheduledJobId, tenantId, workerId, task, outputChatId } = data
+  const { jobRunId, scheduledJobId, tenantId, workerId, task, executionMode, outputChatId } = data
 
   await pool.query(
     `UPDATE job_runs SET status = 'running', started_at = now() WHERE id = $1`,
@@ -158,53 +158,60 @@ async function runScheduledJob(data: ScheduledJobData) {
 
   try {
     await withTenant(tenantId, async (client) => {
-      // Find or create cron conversation per worker
-      let convRes = await client.query(
-        `SELECT id FROM conversations
-         WHERE tenant_id = $1 AND worker_id = $2 AND channel = 'cron' LIMIT 1`,
-        [tenantId, workerId]
-      )
-      if (!convRes.rows.length) {
-        convRes = await client.query(
-          `INSERT INTO conversations (tenant_id, worker_id, external_user_id, channel)
-           VALUES ($1, $2, 'cron', 'cron') RETURNING id`,
+      let output: string | null = null
+
+      if (executionMode === 'script_only') {
+        // No LLM — task text is the output directly (deterministic collector)
+        output = task
+      } else {
+        // agent_only or script_plus_agent — find or create cron conversation
+        let convRes = await client.query(
+          `SELECT id FROM conversations
+           WHERE tenant_id = $1 AND worker_id = $2 AND channel = 'cron' LIMIT 1`,
           [tenantId, workerId]
         )
-      }
-      const conversationId = convRes.rows[0].id as string
+        if (!convRes.rows.length) {
+          convRes = await client.query(
+            `INSERT INTO conversations (tenant_id, worker_id, external_user_id, channel)
+             VALUES ($1, $2, 'cron', 'cron') RETURNING id`,
+            [tenantId, workerId]
+          )
+        }
+        const conversationId = convRes.rows[0].id as string
 
-      await client.query(
-        `INSERT INTO messages (tenant_id, conversation_id, direction, content)
-         VALUES ($1, $2, 'inbound', $3)`,
-        [tenantId, conversationId, task]
-      )
-
-      const result = await runAgentTurn({
-        client, tenantId, workerId, conversationId, inboundText: task,
-      })
-      const output = (result.status === 'sent' || result.status === 'sent_with_notify')
-        ? result.message : null
-
-      if (output) {
         await client.query(
           `INSERT INTO messages (tenant_id, conversation_id, direction, content)
-           VALUES ($1, $2, 'outbound', $3)`,
-          [tenantId, conversationId, output]
+           VALUES ($1, $2, 'inbound', $3)`,
+          [tenantId, conversationId, task]
         )
 
-        if (outputChatId) {
-          const { alreadySent, actionId } = await registerOutboundAction({
-            client,
-            tenantId,
-            jobRunId,
-            actionType: 'telegram_message',
-            targetKey:  String(outputChatId),
-            payload:    { text: output, jobRunId },
-          })
-          if (!alreadySent) {
-            await sendTelegram(outputChatId, output)
-            await markOutboundSent({ client, actionId })
-          }
+        const result = await runAgentTurn({
+          client, tenantId, workerId, conversationId, inboundText: task,
+        })
+        output = (result.status === 'sent' || result.status === 'sent_with_notify')
+          ? result.message : null
+
+        if (output) {
+          await client.query(
+            `INSERT INTO messages (tenant_id, conversation_id, direction, content)
+             VALUES ($1, $2, 'outbound', $3)`,
+            [tenantId, conversationId, output]
+          )
+        }
+      }
+
+      if (output && outputChatId) {
+        const { alreadySent, actionId } = await registerOutboundAction({
+          client,
+          tenantId,
+          jobRunId,
+          actionType: 'telegram_message',
+          targetKey:  String(outputChatId),
+          payload:    { text: output, jobRunId },
+        })
+        if (!alreadySent) {
+          await sendTelegram(outputChatId, output)
+          await markOutboundSent({ client, actionId })
         }
       }
 
