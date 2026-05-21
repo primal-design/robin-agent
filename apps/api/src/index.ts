@@ -4,12 +4,12 @@ import { createApp } from './app.js'
 import { ensureParaTables } from './memory/para.js'
 import './queues/worker.js'
 import { runDataRetention } from './jobs/dataRetention.js'
-import { loadAndScheduleJobs } from './services/scheduler.js'
+import { startDispatcher } from './services/scheduler.js'
 
 assertRequired()
 
 ensureParaTables().catch(err => console.warn('PARA tables init failed:', err))
-loadAndScheduleJobs().catch(err => console.warn('[scheduler] startup load failed:', err))
+startDispatcher().catch(err => console.warn('[scheduler] dispatcher start failed:', err))
 
 const app = createApp()
 

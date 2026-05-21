@@ -5,6 +5,7 @@ import { runAgentTurn } from '../runtime/runAgentTurn.js'
 import { handleComplianceCommand } from '../services/compliance.js'
 import { audit } from '../services/audit.js'
 import { updateEpisodicSummary } from '../services/episodic.js'
+import { dispatchScheduledWork, registerOutboundAction, markOutboundSent } from '../services/scheduler.js'
 
 function redisConnection() {
   if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
@@ -14,10 +15,19 @@ function redisConnection() {
 export const fenWorker = new Worker(
   'fen-events',
   async (job) => {
-    if (job.name === 'cron_task') {
-      await handleCronTask(job.data as CronTaskData)
+    // ── Shared scheduler dispatcher ───────────────────────────────────────────
+    if (job.name === 'dispatch_scheduled_work') {
+      await dispatchScheduledWork()
       return
     }
+
+    // ── Scheduled job execution ───────────────────────────────────────────────
+    if (job.name === 'run_scheduled_job') {
+      await runScheduledJob(job.data as ScheduledJobData)
+      return
+    }
+
+    // ── Telegram message ──────────────────────────────────────────────────────
     if (job.name !== 'telegram_message') return
 
     const { workerId, payload } = job.data as {
@@ -52,25 +62,21 @@ export const fenWorker = new Worker(
     await audit({ tenantId, action: 'job_started', actor: 'queue', target: workerId, metadata: { job_id: job.id } })
 
     return withTenant(tenantId, async (client) => {
-      // Find or create conversation
       let convRes = await client.query(
         `SELECT id FROM conversations
          WHERE tenant_id = $1 AND worker_id = $2 AND external_user_id = $3 AND channel = 'telegram'`,
         [tenantId, workerId, externalUserId]
       )
-
       if (!convRes.rows.length) {
         convRes = await client.query(
           `INSERT INTO conversations (tenant_id, worker_id, external_user_id, channel)
-           VALUES ($1, $2, $3, 'telegram')
-           RETURNING id`,
+           VALUES ($1, $2, $3, 'telegram') RETURNING id`,
           [tenantId, workerId, externalUserId]
         )
       }
 
       const conversationId = convRes.rows[0].id as string
 
-      // Save inbound message
       await client.query(
         `INSERT INTO messages (tenant_id, conversation_id, direction, content)
          VALUES ($1, $2, 'inbound', $3)`,
@@ -78,22 +84,13 @@ export const fenWorker = new Worker(
       )
       await audit({ tenantId, action: 'message_saved', actor: 'queue', target: conversationId, metadata: { direction: 'inbound', length: text.length }, client })
 
-      // Handle compliance commands before hitting the AI
-      const complianceReply = await handleComplianceCommand(
-        text, client, conversationId, tenantId
-      )
+      const complianceReply = await handleComplianceCommand(text, client, conversationId, tenantId)
       if (complianceReply) {
         await sendTelegram(chatId, complianceReply)
         return
       }
 
-      const result = await runAgentTurn({
-        client,
-        tenantId,
-        workerId,
-        conversationId,
-        inboundText: text,
-      })
+      const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: text })
 
       if ((result.status === 'sent' || result.status === 'sent_with_notify') && result.message) {
         await client.query(
@@ -102,19 +99,29 @@ export const fenWorker = new Worker(
           [tenantId, conversationId, result.message]
         )
         await audit({ tenantId, action: 'message_saved', actor: 'runtime', target: conversationId, metadata: { direction: 'outbound', status: result.status }, client })
-        await sendTelegram(chatId, result.message)
-        await audit({ tenantId, action: 'message_sent', actor: 'runtime', target: conversationId, metadata: { channel: 'telegram', chat_id: chatId, status: result.status }, client })
 
-        // Update episodic memory after successful send — fire and forget
+        // Idempotency guard before sending
+        const { alreadySent, actionId } = await registerOutboundAction({
+          client,
+          tenantId,
+          conversationId,
+          actionType: 'telegram_message',
+          targetKey:  String(chatId),
+          payload:    { text: result.message },
+        })
+
+        if (!alreadySent) {
+          await sendTelegram(chatId, result.message)
+          await markOutboundSent({ client, actionId })
+          await audit({ tenantId, action: 'message_sent', actor: 'runtime', target: conversationId, metadata: { channel: 'telegram', chat_id: chatId, status: result.status }, client })
+        }
+
         updateEpisodicSummary(client, conversationId, text, result.message)
           .catch((e) => console.error('[episodic] post-send update failed:', e.message))
       }
 
       if (result.status === 'needs_approval') {
-        await sendTelegram(
-          chatId,
-          `Your message is being reviewed. A human will approve and send it shortly.`
-        )
+        await sendTelegram(chatId, `Your message is being reviewed. A human will approve and send it shortly.`)
         await audit({ tenantId, action: 'approval_created', actor: 'runtime', target: conversationId, metadata: { channel: 'telegram' }, client })
       }
     })
@@ -129,27 +136,32 @@ fenWorker.on('failed', (job, err) => {
   audit({ tenantId, action: 'job_failed', actor: 'queue', target: workerId, metadata: { job_id: job?.id, error: err.message } })
 })
 
-interface CronTaskData {
-  jobId:        string
-  tenantId:     string
-  workerId:     string
-  task:         string
-  outputChatId: number | null
+// ── Scheduled job runner ──────────────────────────────────────────────────────
+
+interface ScheduledJobData {
+  jobRunId:       string
+  scheduledJobId: string
+  tenantId:       string
+  workerId:       string
+  task:           string
+  executionMode:  string
+  outputChatId:   number | null
 }
 
-async function handleCronTask(data: CronTaskData) {
-  const { jobId, tenantId, workerId, task, outputChatId } = data
+async function runScheduledJob(data: ScheduledJobData) {
+  const { jobRunId, scheduledJobId, tenantId, workerId, task, outputChatId } = data
 
-  const runRes = await pool.query(
-    `INSERT INTO job_runs (job_id, tenant_id, status) VALUES ($1, $2, 'running') RETURNING id`,
-    [jobId, tenantId]
+  await pool.query(
+    `UPDATE job_runs SET status = 'running', started_at = now() WHERE id = $1`,
+    [jobRunId]
   )
-  const runId = runRes.rows[0].id as string
 
   try {
     await withTenant(tenantId, async (client) => {
+      // Find or create cron conversation per worker
       let convRes = await client.query(
-        `SELECT id FROM conversations WHERE tenant_id = $1 AND worker_id = $2 AND channel = 'cron' LIMIT 1`,
+        `SELECT id FROM conversations
+         WHERE tenant_id = $1 AND worker_id = $2 AND channel = 'cron' LIMIT 1`,
         [tenantId, workerId]
       )
       if (!convRes.rows.length) {
@@ -162,34 +174,61 @@ async function handleCronTask(data: CronTaskData) {
       const conversationId = convRes.rows[0].id as string
 
       await client.query(
-        `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'inbound', $3)`,
+        `INSERT INTO messages (tenant_id, conversation_id, direction, content)
+         VALUES ($1, $2, 'inbound', $3)`,
         [tenantId, conversationId, task]
       )
 
-      const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: task })
-      const output = (result.status === 'sent' || result.status === 'sent_with_notify') ? result.message : null
+      const result = await runAgentTurn({
+        client, tenantId, workerId, conversationId, inboundText: task,
+      })
+      const output = (result.status === 'sent' || result.status === 'sent_with_notify')
+        ? result.message : null
 
       if (output) {
         await client.query(
-          `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'outbound', $3)`,
+          `INSERT INTO messages (tenant_id, conversation_id, direction, content)
+           VALUES ($1, $2, 'outbound', $3)`,
           [tenantId, conversationId, output]
         )
-        if (outputChatId) await sendTelegram(outputChatId, output)
+
+        if (outputChatId) {
+          const { alreadySent, actionId } = await registerOutboundAction({
+            client,
+            tenantId,
+            jobRunId,
+            actionType: 'telegram_message',
+            targetKey:  String(outputChatId),
+            payload:    { text: output, jobRunId },
+          })
+          if (!alreadySent) {
+            await sendTelegram(outputChatId, output)
+            await markOutboundSent({ client, actionId })
+          }
+        }
       }
 
       await pool.query(
-        `UPDATE job_runs SET status = 'completed', output = $1, completed_at = now() WHERE id = $2`,
-        [output ?? '(no output)', runId]
+        `UPDATE job_runs
+         SET status = 'completed', output = $1, completed_at = now(), finished_at = now()
+         WHERE id = $2`,
+        [output ?? '(no output)', jobRunId]
       )
-      await pool.query(`UPDATE scheduled_jobs SET last_run_at = now() WHERE id = $1`, [jobId])
+      await pool.query(
+        `UPDATE scheduled_jobs SET last_completed_at = now() WHERE id = $1`,
+        [scheduledJobId]
+      )
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[cron] job ${jobId} run ${runId} failed:`, msg)
+    console.error(`[scheduler] job_run ${jobRunId} failed:`, msg)
     await pool.query(
-      `UPDATE job_runs SET status = 'failed', output = $1, completed_at = now() WHERE id = $2`,
-      [msg, runId]
+      `UPDATE job_runs
+       SET status = 'failed', error = $1, completed_at = now(), finished_at = now()
+       WHERE id = $2`,
+      [msg, jobRunId]
     )
+    throw err // re-throw so BullMQ retries
   }
 }
 
