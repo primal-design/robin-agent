@@ -9,6 +9,7 @@ import { getAllowedTools, toAnthropicTool } from './tools/registry.js'
 import { dispatchTool } from './tools/dispatcher.js'
 import { getEpisodicSummary } from '../services/episodic.js'
 import { getActiveGoal, formatGoalForPrompt, updateGoalProgress, completeGoal } from '../services/goals.js'
+import { hydrateMemory, flattenCoreMemory } from '../services/memoryHydrator.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 import { audit } from '../services/audit.js'
@@ -50,13 +51,14 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const manifest        = workerRes.rows[0].manifest as WorkerManifest
   const runtimeOverride = workerRes.rows[0].runtime_prompt_override as string | null
 
-  // ── Memory ────────────────────────────────────────────────────────────────
-  const memoryRes = await client.query(
-    'SELECT key, value FROM business_memory WHERE tenant_id = $1', [tenantId]
-  )
-  const memory: Record<string, string> = Object.fromEntries(
-    memoryRes.rows.map((r: { key: string; value: string }) => [r.key, r.value])
-  )
+  // ── Memory (MemoryHydrator) ───────────────────────────────────────────────
+  const hydrated = await hydrateMemory({
+    client,
+    tenantId,
+    conversationId,
+    includeSearch: false,
+  })
+  const memory = flattenCoreMemory(hydrated.coreMemory)
 
   // ── Episodic memory ───────────────────────────────────────────────────────
   const episodicSummary = await getEpisodicSummary(client, conversationId)
