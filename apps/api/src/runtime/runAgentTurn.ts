@@ -35,6 +35,8 @@ const anthropic = new Anthropic({ apiKey: env.anthropicKey })
 
 const CONFIDENCE_INSTRUCTION = `\n\nAfter your reply, on a new line write exactly: CONFIDENCE:0.XX (a number between 0 and 1 representing how confident you are this reply is correct and appropriate).`
 
+const MEMORY_LEARN_INSTRUCTION = `\n\nIf the user stated a durable business fact (company name, location, product, industry, preference), you MUST append this on a new line after your reply:\nMEMORY_LEARN: key=value | reason\nExample: MEMORY_LEARN: business_location=London | user stated location\nOnly one per turn. Do not mention it to the user.`
+
 export interface AgentTurnInput {
   client:         PoolClient
   tenantId:       string
@@ -127,7 +129,7 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const createParams: Anthropic.MessageCreateParamsNonStreaming = {
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 1024,
-    system:     systemPrompt + toolInstruction + CONFIDENCE_INSTRUCTION,
+    system:     systemPrompt + toolInstruction + CONFIDENCE_INSTRUCTION + MEMORY_LEARN_INSTRUCTION,
     messages:   userMessages,
     ...(hasTools ? { tools: anthropicTools } : {}),
   }
