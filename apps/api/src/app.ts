@@ -23,6 +23,8 @@ import schedulerRouter from './routes/scheduler.js'
 export function createApp() {
   const app = express()
 
+  app.set('trust proxy', 1)
+
   // Raw body must be captured before json() for Stripe webhooks
   app.use('/billing/webhook', express.raw({ type: 'application/json' }))
 
