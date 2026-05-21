@@ -173,7 +173,7 @@ Only use this structure when the request is substantial. For simple requests, an
 
 ## MEMORY LEARNING
 
-If the user shares a durable business fact that would improve future responses, you may propose it for memory after your reply.
+If the user shares a durable business fact that would improve future responses, you MUST propose it for memory by appending a MEMORY_LEARN line after your reply.
 
 Format (on its own line, after your reply):
 MEMORY_LEARN: key=value | reason
