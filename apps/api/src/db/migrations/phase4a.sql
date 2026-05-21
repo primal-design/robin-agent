@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS business_memory_core (
   CONSTRAINT bmc_status_check    CHECK (status IN ('active', 'archived')),
   CONSTRAINT bmc_sec_check       CHECK (security_status IN ('pending', 'approved', 'rejected')),
   CONSTRAINT bmc_source_check    CHECK (source_type IN ('user', 'agent', 'system', 'integration')),
-  UNIQUE (tenant_id, owner_user_id, memory_key)
+  UNIQUE (tenant_id, memory_key) -- partial unique index created separately for NULL owner_user_id
 );
 
 CREATE INDEX IF NOT EXISTS idx_bmc_tenant ON business_memory_core (tenant_id, status, security_status);
