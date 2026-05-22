@@ -85,7 +85,8 @@ CREATE TABLE IF NOT EXISTS business_memory_events (
   CONSTRAINT bme_actor_check  CHECK (actor_type IN ('user', 'agent', 'system', 'integration')),
   CONSTRAINT bme_action_check CHECK (action IN (
     'created', 'updated', 'archived', 'promoted', 'rejected',
-    'security_flagged', 'security_passed', 'security_blocked'
+    'security_flagged', 'security_passed', 'security_blocked',
+    'sync_completed', 'sync_failed'
   ))
 );
 
@@ -101,11 +102,14 @@ ALTER TABLE business_memory_security_reviews FORCE  ROW LEVEL SECURITY;
 ALTER TABLE business_memory_events           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_memory_events           FORCE  ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS bmcand_tenant_isolation ON business_memory_candidates;
 CREATE POLICY bmcand_tenant_isolation ON business_memory_candidates
   USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
 
+DROP POLICY IF EXISTS bmsr_tenant_isolation ON business_memory_security_reviews;
 CREATE POLICY bmsr_tenant_isolation ON business_memory_security_reviews
   USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
 
+DROP POLICY IF EXISTS bme_tenant_isolation ON business_memory_events;
 CREATE POLICY bme_tenant_isolation ON business_memory_events
   USING (tenant_id = current_setting('app.current_tenant', true)::uuid);

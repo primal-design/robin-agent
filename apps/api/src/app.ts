@@ -20,6 +20,8 @@ import toolsRouter from './routes/tools.js'
 import goalsRouter from './routes/goals.js'
 import schedulerRouter from './routes/scheduler.js'
 import memoryRouter from './routes/memory.js'
+import activityRouter from './routes/activity.js'
+import connectorsRouter from './routes/connectors.js'
 
 export function createApp() {
   const app = express()
@@ -103,6 +105,8 @@ export function createApp() {
   app.use('/', goalsRouter)
   app.use('/', schedulerRouter)
   app.use('/', memoryRouter)
+  app.use('/', activityRouter)
+  app.use('/', connectorsRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
   app.use('/', approvalsRouter)

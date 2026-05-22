@@ -4,8 +4,9 @@ import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { pool } from '../db/pool.js'
 import { audit } from '../services/audit.js'
-import { requireAuth, requireEditor } from '../lib/auth.js'
+import { requireAuth, requireEditor, assertTenantAccess } from '../lib/auth.js'
 import { tenantCanAccess } from '../services/policy.js'
+import { getTenantLimits } from '../services/tenantLimits.js'
 
 export const agentRouter = Router()
 
@@ -228,4 +229,111 @@ agentRouter.delete('/agent/memory/:key', requireEditor, async (req, res) => {
   )
   await audit({ tenantId, action: 'memory_deleted', actor: req.actor!.phone, target: req.params.key })
   res.json({ ok: true })
+})
+
+// GET /workers — list workers for the authenticated user's tenant.
+// Tenant is derived from session (users+memberships) with a fallback to DEFAULT_TENANT
+// for single-tenant setups where memberships may not yet be populated.
+// If ?tenantId= is supplied it is verified against the actor's memberships before use.
+agentRouter.get('/workers', requireEditor, async (req, res) => {
+  const phone = req.actor!.phone
+
+  // Look up tenant memberships for this actor
+  const memberRes = await pool.query<{ tenant_id: string }>(
+    `SELECT m.tenant_id
+     FROM memberships m
+     JOIN users u ON u.id = m.user_id
+     WHERE u.phone_e164 = $1
+     LIMIT 10`,
+    [phone]
+  )
+  const memberTenants = memberRes.rows.map(r => r.tenant_id)
+
+  const requestedTenantId = req.query.tenantId as string | undefined
+  let tenantId: string
+
+  if (requestedTenantId) {
+    // Only allow if the actor is explicitly a member of the requested tenant,
+    // OR it matches DEFAULT_TENANT (backwards-compat for single-tenant setups
+    // where the memberships table is not yet populated).
+    const isMember = memberTenants.includes(requestedTenantId)
+    const isDefault = requestedTenantId === DEFAULT_TENANT()
+    if (!isMember && !isDefault) {
+      return res.status(403).json({ error: 'tenant_access_denied' })
+    }
+    tenantId = requestedTenantId
+  } else if (memberTenants.length > 0) {
+    tenantId = memberTenants[0]
+  } else {
+    // Single-tenant fallback: authenticated editor with no membership rows
+    // is assumed to belong to the platform default tenant
+    tenantId = DEFAULT_TENANT()
+  }
+
+  // Return richer worker data so the dashboard Workers page can render without extra round-trips
+  const r = await pool.query(
+    `SELECT w.id, w.name, w.status, w.created_at,
+            w.runtime_prompt_override IS NOT NULL AS has_prompt_override,
+            w.runtime_prompt_override_updated_at,
+            COALESCE(
+              (SELECT COUNT(*) FROM scheduled_jobs sj WHERE sj.worker_id = w.id AND sj.enabled = true),
+              0
+            ) AS active_jobs,
+            COALESCE(
+              (SELECT started_at FROM job_runs jr WHERE jr.tenant_id = w.tenant_id
+               ORDER BY jr.started_at DESC LIMIT 1),
+              NULL
+            ) AS last_run_at
+     FROM workers w
+     WHERE w.tenant_id = $1
+     ORDER BY w.created_at LIMIT 10`,
+    [tenantId]
+  )
+  res.json(r.rows)
+})
+
+// GET /settings/limits — tenant limits + current usage for the Settings page
+agentRouter.get('/settings/limits', requireEditor, async (req, res) => {
+  const phone = req.actor!.phone
+
+  const memberRes = await pool.query<{ tenant_id: string }>(
+    `SELECT m.tenant_id FROM memberships m JOIN users u ON u.id = m.user_id
+     WHERE u.phone_e164 = $1 LIMIT 1`,
+    [phone]
+  )
+  const tenantId = memberRes.rows[0]?.tenant_id ?? DEFAULT_TENANT()
+
+  const requestedTenantId = req.query.tenantId as string | undefined
+  if (requestedTenantId && requestedTenantId !== tenantId) {
+    const ok = await assertTenantAccess(phone, requestedTenantId)
+    if (!ok) return res.status(403).json({ error: 'tenant_access_denied' })
+  }
+  const resolvedTenant = requestedTenantId ?? tenantId
+
+  const [limits, dailyRes, concurrentRes, jobCountRes] = await Promise.all([
+    getTenantLimits(resolvedTenant),
+    pool.query<{ runs_today: string }>(
+      `SELECT COUNT(*) AS runs_today FROM job_runs
+       WHERE tenant_id=$1 AND started_at >= CURRENT_DATE AND status != 'failed'`,
+      [resolvedTenant]
+    ),
+    pool.query<{ running: string }>(
+      `SELECT COUNT(*) AS running FROM job_runs
+       WHERE tenant_id=$1 AND status IN ('queued','running')`,
+      [resolvedTenant]
+    ),
+    pool.query<{ count: string }>(
+      `SELECT COUNT(*) AS count FROM scheduled_jobs WHERE tenant_id=$1 AND enabled=true`,
+      [resolvedTenant]
+    ),
+  ])
+
+  res.json({
+    limits,
+    usage: {
+      runs_today:       parseInt(dailyRes.rows[0]?.runs_today ?? '0', 10),
+      concurrent_runs:  parseInt(concurrentRes.rows[0]?.running ?? '0', 10),
+      scheduled_jobs:   parseInt(jobCountRes.rows[0]?.count ?? '0', 10),
+    },
+  })
 })

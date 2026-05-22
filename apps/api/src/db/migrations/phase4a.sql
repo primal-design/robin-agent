@@ -78,20 +78,6 @@ CREATE INDEX IF NOT EXISTS idx_bmsnap_tenant  ON business_memory_snapshots (tena
 CREATE INDEX IF NOT EXISTS idx_bmsnap_run     ON business_memory_snapshots (job_run_id);
 CREATE INDEX IF NOT EXISTS idx_bmsnap_conv    ON business_memory_snapshots (conversation_id);
 
--- ── Migrate existing business_memory rows into business_memory_core ───────────
-INSERT INTO business_memory_core (tenant_id, memory_key, memory_value, source_type, status, security_status)
-SELECT
-  tenant_id,
-  key,
-  to_jsonb(value),
-  'user',
-  'active',
-  'approved'
-FROM business_memory
-ON CONFLICT (tenant_id, owner_user_id, memory_key) DO UPDATE
-  SET memory_value = EXCLUDED.memory_value,
-      updated_at   = now();
-
 -- ── RLS ───────────────────────────────────────────────────────────────────────
 ALTER TABLE business_memory_core     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_memory_core     FORCE  ROW LEVEL SECURITY;
@@ -100,11 +86,14 @@ ALTER TABLE business_memory_search   FORCE  ROW LEVEL SECURITY;
 ALTER TABLE business_memory_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE business_memory_snapshots FORCE  ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS bmc_tenant_isolation ON business_memory_core;
 CREATE POLICY bmc_tenant_isolation ON business_memory_core
   USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
 
+DROP POLICY IF EXISTS bms_tenant_isolation ON business_memory_search;
 CREATE POLICY bms_tenant_isolation ON business_memory_search
   USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
 
+DROP POLICY IF EXISTS bmsnap_tenant_isolation ON business_memory_snapshots;
 CREATE POLICY bmsnap_tenant_isolation ON business_memory_snapshots
   USING (tenant_id = current_setting('app.current_tenant', true)::uuid);

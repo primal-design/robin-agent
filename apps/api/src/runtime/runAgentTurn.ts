@@ -9,7 +9,7 @@ import { getAllowedTools, toAnthropicTool } from './tools/registry.js'
 import { dispatchTool } from './tools/dispatcher.js'
 import { getEpisodicSummary } from '../services/episodic.js'
 import { getActiveGoal, formatGoalForPrompt, updateGoalProgress, completeGoal } from '../services/goals.js'
-import { hydrateMemory, flattenCoreMemory } from '../services/memoryHydrator.js'
+import { hydrateMemory, flattenCoreMemory, renderSearchContext } from '../services/memoryHydrator.js'
 import { proposeMemoryCandidate } from '../services/memoryLearning.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
@@ -59,7 +59,8 @@ export async function runAgentTurn(input: AgentTurnInput) {
     client,
     tenantId,
     conversationId,
-    includeSearch: false,
+    taskPrompt:    inboundText,
+    includeSearch: true,
   })
   const memory = flattenCoreMemory(hydrated.coreMemory)
 
@@ -81,6 +82,12 @@ export async function runAgentTurn(input: AgentTurnInput) {
   let systemPrompt = activePrompt
   for (const [key, value] of Object.entries(memory)) {
     systemPrompt = systemPrompt.replaceAll(`{{${key}}}`, value)
+  }
+
+  // ── Inject semantic search context ───────────────────────────────────────
+  const searchBlock = renderSearchContext(hydrated.searchContext)
+  if (searchBlock) {
+    systemPrompt += `\n\n## Relevant Business Context\nThe following information was retrieved from your knowledge base and may be relevant to the current message:\n\n${searchBlock}`
   }
 
   // ── Conversation history ──────────────────────────────────────────────────

@@ -41,16 +41,42 @@ export const env = {
   defaultTenantId:    process.env.DEFAULT_TENANT_ID ?? '',
   sentryDsn:          process.env.SENTRY_DSN ?? '',
   posthogKey:         process.env.POSTHOG_KEY ?? '',
-  cfBeaconToken:      process.env.CF_BEACON_TOKEN ?? '',
+  cfBeaconToken:           process.env.CF_BEACON_TOKEN ?? '',
+  connectorCallbackBase:    process.env.CONNECTOR_CALLBACK_BASE ?? '',
+  connectorEncryptionKey:   process.env.CONNECTOR_ENCRYPTION_KEY ?? '',
+  connectorEncryptionKeyId: process.env.CONNECTOR_ENCRYPTION_KEY_ID ?? '1',
+  connectorSyncIntervalMin: Number(process.env.CONNECTOR_SYNC_INTERVAL_MIN ?? '60'),
+  slackClientId:            process.env.SLACK_CLIENT_ID ?? '',
+  slackClientSecret:        process.env.SLACK_CLIENT_SECRET ?? '',
+  hubspotClientId:          process.env.HUBSPOT_CLIENT_ID ?? '',
+  hubspotClientSecret:      process.env.HUBSPOT_CLIENT_SECRET ?? '',
+  voyageKey:                process.env.VOYAGE_API_KEY ?? '',
 }
 
 export function assertRequired() {
   const missing = ['ANTHROPIC_KEY', 'DATABASE_URL'].filter(k => !process.env[k])
   if (missing.length) console.warn(`⚠️  Missing env vars: ${missing.join(', ')}`)
-  if (env.nodeEnv === 'production' && env.jwtSecret === 'dev-secret-change-me') {
-    console.warn('⚠️  JWT_SECRET is using the development default')
-  }
-  if (env.nodeEnv === 'production' && !env.adminToken) {
-    console.warn('⚠️  ADMIN_TOKEN is not configured')
+
+  if (env.nodeEnv === 'production') {
+    if (env.jwtSecret === 'dev-secret-change-me') {
+      console.warn('⚠️  JWT_SECRET is using the development default')
+    }
+    if (!env.adminToken) {
+      console.warn('⚠️  ADMIN_TOKEN is not configured')
+    }
+
+    // Connector token encryption — hard fail in production when Gmail/Drive is configured
+    if (env.gmailClientId) {
+      const k = env.connectorEncryptionKey
+      if (!k) {
+        console.error('❌ FATAL: CONNECTOR_ENCRYPTION_KEY must be set in production when Gmail/Drive connectors are enabled.')
+        console.error('   Generate with: openssl rand -hex 32')
+        process.exit(1)
+      }
+      if (k.length !== 64 && k.length < 32) {
+        console.error('❌ FATAL: CONNECTOR_ENCRYPTION_KEY must be a 64-char hex string (openssl rand -hex 32) or at least 32 characters.')
+        process.exit(1)
+      }
+    }
   }
 }

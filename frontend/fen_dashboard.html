@@ -164,6 +164,11 @@ nav.sb-nav{padding:12px 0;flex:1}
 .dz-desc{font-size:13px;color:var(--ink2);margin-bottom:16px;font-weight:300;line-height:1.6}
 .dz-btn{font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:10px 20px;background:var(--red);color:#fff;border:none;cursor:pointer;font-family:"Inter",sans-serif}
 
+/* ════ SCHEDULER RUNS ════ */
+.run-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:.5px solid var(--rule)}
+.run-output{flex:1;font-size:12px;color:var(--ink2);font-weight:300;line-height:1.5}
+.run-meta{font-size:10px;font-family:"DM Mono",monospace;color:var(--ink3);margin-top:2px}
+
 @media(max-width:768px){
   .shell{grid-template-columns:1fr}
   .sidebar{display:none}
@@ -211,6 +216,10 @@ nav.sb-nav{padding:12px 0;flex:1}
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v2.75l1.75 1.75"/></svg>
       Memory
     </a>
+    <a class="app-nav-tab" id="nav-scheduler" href="fen_dashboard.html" onclick="localStorage.setItem('rvw','scheduler')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M6 1v4M10 1v4"/></svg>
+      Scheduler
+    </a>
     <a class="app-nav-tab" id="nav-settings" href="fen_dashboard.html" onclick="localStorage.setItem('rvw','settings')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/></svg>
       Settings
@@ -257,17 +266,42 @@ nav.sb-nav{padding:12px 0;flex:1}
     <div class="sb-link" onclick="showView('memory')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 5.5v2.75l1.75 1.75"/></svg>
       Memory
-      <span class="sb-badge g" id="mem-badge" style="display:none">0</span>
+      <span class="sb-badge" id="cand-badge" style="display:none">0</span>
+    </div>
+    <div class="sb-link" onclick="showView('scheduler')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 7h12M6 1v4M10 1v4"/></svg>
+      Scheduler
+    </div>
+    <div class="sb-link" onclick="showView('activity')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h3l2-5 2 10 2-5h3"/></svg>
+      Activity
     </div>
     <div class="sb-link" onclick="showView('history')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 8h12M2 4h12M2 12h8"/></svg>
       History
     </div>
 
-    <div class="sb-section">Settings</div>
-    <div class="sb-link" onclick="showView('agent')">
+    <div class="sb-section">Control plane</div>
+    <div class="sb-link" onclick="showView('workers')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M5 6h6M5 9h4"/></svg>
-      Agent config
+      Workers
+    </div>
+    <div class="sb-link" onclick="showView('agent')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2a3 3 0 100 6 3 3 0 000-6zM2 14a6 6 0 0112 0"/></svg>
+      Prompt editor
+    </div>
+    <div class="sb-link" onclick="showView('connectors')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4l4 4-4 4"/><circle cx="3" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
+      Connectors
+    </div>
+    <div class="sb-link" onclick="showView('waitlist')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M2 13c0-3 2.5-5 6-5s6 2 6 5"/></svg>
+      Waitlist <span class="app-nav-badge" id="waitlist-badge" style="display:none"></span>
+    </div>
+    <div class="sb-section">Config</div>
+    <div class="sb-link" onclick="showView('limits')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12h2V7H2zM7 12h2V4H7zM12 12h2V9h-2"/></svg>
+      Limits &amp; quotas
     </div>
     <div class="sb-link" onclick="showView('settings')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1"/></svg>
@@ -378,18 +412,37 @@ nav.sb-nav{padding:12px 0;flex:1}
 <!-- MEMORY VIEW -->
 <div class="view" id="view-memory">
   <div class="view-top">
-    <div><h1 class="view-title serif">What FEN <em>knows about you.</em></h1><div class="view-sub">Everything FEN has learned. Edit or delete any fact at any time.</div></div>
+    <div><h1 class="view-title serif">What FEN <em>knows.</em></h1><div class="view-sub">Business facts FEN injects into every conversation. Add, edit, or delete at any time.</div></div>
     <div class="view-date"><span id="mem-count">0</span> facts</div>
   </div>
 
-  <div class="mem-section">
-    <div class="mem-section-title">Identity</div>
-    <div id="mem-empty-message" class="card-body" style="padding:8px 0 0;color:var(--ink3)">FEN hasn't saved any profile details yet.</div>
+  <!-- Tabs -->
+  <div style="display:flex;gap:0;border-bottom:.5px solid var(--rule2);margin-bottom:24px">
+    <button id="mem-tab-core" onclick="switchMemTab('core')" style="padding:10px 20px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;background:none;border:none;border-bottom:2px solid var(--gold2);color:var(--ink);cursor:pointer;font-family:inherit;margin-bottom:-1px">Core memory</button>
+    <button id="mem-tab-cands" onclick="switchMemTab('cands')" style="padding:10px 20px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;background:none;border:none;border-bottom:2px solid transparent;color:var(--ink3);cursor:pointer;font-family:inherit;margin-bottom:-1px">Pending review <span id="cand-tab-count" style="display:none;background:var(--amber);color:#fff;border-radius:7px;font-size:10px;padding:1px 5px;margin-left:4px">0</span></button>
   </div>
 
-  <div style="margin-top:24px;padding-top:24px;border-top:.5px solid var(--rule);display:flex;gap:12px">
-    <button class="ac-btn edit" onclick="exportMemory()">Export as JSON</button>
-    <button class="ac-btn deny" style="color:var(--red)" onclick="clearMemory()">Clear all memory</button>
+  <!-- Core memory tab -->
+  <div id="mem-panel-core">
+    <div id="core-mem-list">
+      <div class="empty-state"><h3>No facts yet.</h3><p>Tell FEN something about your business — it will remember it for every conversation.</p></div>
+    </div>
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+      <input id="core-new-key" placeholder="key (e.g. business_name)" style="padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;flex:1;min-width:160px"/>
+      <input id="core-new-val" placeholder="value" style="padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;flex:2;min-width:200px"/>
+      <button class="ac-btn approve" onclick="addCoreMemory()" style="white-space:nowrap">Add →</button>
+    </div>
+    <div style="margin-top:20px;padding-top:20px;border-top:.5px solid var(--rule);display:flex;gap:12px">
+      <button class="ac-btn deny" style="color:var(--red)" onclick="clearMemory()">Clear all memory</button>
+    </div>
+  </div>
+
+  <!-- Candidates tab -->
+  <div id="mem-panel-cands" style="display:none">
+    <div class="card" style="margin-bottom:20px"><div class="card-body" style="font-size:13px">FEN proposes new facts as it learns from your conversations. Review and approve or reject each one.</div></div>
+    <div id="cands-list">
+      <div class="empty-state"><h3>All clear.</h3><p>No memory candidates waiting for review.</p></div>
+    </div>
   </div>
 </div>
 
@@ -528,6 +581,206 @@ nav.sb-nav{padding:12px 0;flex:1}
   </div>
 </div>
 
+<!-- WORKERS VIEW -->
+<div class="view" id="view-workers">
+  <div class="view-top">
+    <div><h1 class="view-title serif">Workers</h1><div class="view-sub">The agents running under this tenant. Each worker has its own prompt, tools, and memory context.</div></div>
+  </div>
+  <div id="workers-list">
+    <div class="empty-state"><h3>Loading…</h3></div>
+  </div>
+
+  <!-- Worker detail panel (shown when a worker is selected) -->
+  <div id="worker-detail" style="display:none;margin-top:32px;padding-top:24px;border-top:.5px solid var(--rule)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <h2 class="serif" style="font-size:22px;font-weight:300" id="wdet-name">Worker</h2>
+      <button class="ac-btn edit" onclick="hideWorkerDetail()" style="font-size:11px">← Back to list</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;border-bottom:.5px solid var(--rule2);margin-bottom:24px">
+      <button id="wt-prompt" onclick="switchWorkerTab('prompt')" style="padding:10px 20px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;background:none;border:none;border-bottom:2px solid var(--gold2);color:var(--ink);cursor:pointer;font-family:inherit;margin-bottom:-1px">Prompt</button>
+      <button id="wt-tools" onclick="switchWorkerTab('tools')" style="padding:10px 20px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;background:none;border:none;border-bottom:2px solid transparent;color:var(--ink3);cursor:pointer;font-family:inherit;margin-bottom:-1px">Tools</button>
+      <button id="wt-activity" onclick="switchWorkerTab('activity')" style="padding:10px 20px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;background:none;border:none;border-bottom:2px solid transparent;color:var(--ink3);cursor:pointer;font-family:inherit;margin-bottom:-1px">Activity</button>
+    </div>
+
+    <!-- Prompt tab -->
+    <div id="wp-prompt">
+      <div id="wdet-prompt-source" style="padding:10px 14px;margin-bottom:16px;font-size:12px;font-family:'DM Mono',monospace;border-radius:3px;background:var(--greenl);color:var(--green)">Loading…</div>
+      <textarea id="wdet-prompt-editor" style="width:100%;min-height:280px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;padding:14px;border:.5px solid var(--rule2);background:var(--bg);color:var(--ink);resize:vertical;outline:none;" placeholder="Loading…"></textarea>
+      <div style="display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap">
+        <button class="ac-btn approve" onclick="saveWorkerPrompt()">Save & Apply →</button>
+        <button class="ac-btn edit" onclick="resetWorkerPrompt()">Reset to baseline</button>
+        <span id="wdet-prompt-status" style="font-size:12px;color:var(--ink3)"></span>
+      </div>
+      <div style="margin-top:24px">
+        <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:12px">Prompt history</div>
+        <div id="wdet-prompt-history"></div>
+      </div>
+    </div>
+
+    <!-- Tools tab -->
+    <div id="wp-tools" style="display:none">
+      <div class="card" style="margin-bottom:16px"><div class="card-body" style="font-size:13px">Toggle which tools FEN can use. Changes take effect on the next agent turn.</div></div>
+      <div id="wdet-tools-list"></div>
+    </div>
+
+    <!-- Activity tab -->
+    <div id="wp-activity" style="display:none">
+      <div id="wdet-activity-list"><div class="empty-state"><h3>Loading…</h3></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- LIMITS VIEW -->
+<!-- CONNECTORS VIEW -->
+<div class="view" id="view-connectors">
+  <div class="view-top">
+    <div>
+      <h1 class="view-title serif">Connectors</h1>
+      <div class="view-sub">Read-only data sources FEN can learn from. Connect a provider to sync emails and documents into FEN's memory.</div>
+    </div>
+    <button class="ac-btn edit" onclick="loadConnectors()">Refresh</button>
+  </div>
+
+  <!-- Flash messages -->
+  <div id="connector-flash" style="display:none;padding:12px 16px;margin-bottom:16px;font-size:13px"></div>
+
+  <!-- Active grants -->
+  <div id="connectors-grants" style="margin-bottom:32px">
+    <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:12px">Connected sources</div>
+    <div id="grants-list"><div class="empty-state"><h3>Loading…</h3></div></div>
+  </div>
+
+  <!-- Available providers -->
+  <div id="connectors-catalogue">
+    <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:12px">Available providers</div>
+    <div id="catalogue-list"><div class="empty-state"><h3>Loading…</h3></div></div>
+  </div>
+</div>
+
+<div class="view" id="view-limits">
+  <div class="view-top">
+    <div><h1 class="view-title serif">Limits <em>&amp; quotas</em></h1><div class="view-sub">Current usage against tenant-level rate limits. Contact support to increase limits.</div></div>
+    <button class="ac-btn edit" onclick="loadLimits()">Refresh</button>
+  </div>
+
+  <div id="limits-content">
+    <div class="empty-state"><h3>Loading…</h3></div>
+  </div>
+</div>
+
+<!-- ACTIVITY VIEW -->
+<div class="view" id="view-activity">
+  <div class="view-top">
+    <div><h1 class="view-title serif">Activity</h1><div class="view-sub">Everything FEN did — runs, memory changes, outbound messages. Sorted newest first.</div></div>
+    <button class="ac-btn edit" onclick="loadActivity()" style="white-space:nowrap">Refresh</button>
+  </div>
+
+  <!-- Filter bar -->
+  <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+    <button class="activity-filter on" data-f="all" onclick="setActivityFilter(this,'all')" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border:none;background:var(--ink);color:#fff;cursor:pointer;font-family:inherit">All</button>
+    <button class="activity-filter" data-f="job_run" onclick="setActivityFilter(this,'job_run')" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border:.5px solid var(--rule2);background:none;color:var(--ink2);cursor:pointer;font-family:inherit">Job runs</button>
+    <button class="activity-filter" data-f="memory_event" onclick="setActivityFilter(this,'memory_event')" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border:.5px solid var(--rule2);background:none;color:var(--ink2);cursor:pointer;font-family:inherit">Memory</button>
+    <button class="activity-filter" data-f="outbound_action" onclick="setActivityFilter(this,'outbound_action')" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border:.5px solid var(--rule2);background:none;color:var(--ink2);cursor:pointer;font-family:inherit">Outbound</button>
+    <button class="activity-filter" data-f="connector" onclick="setActivityFilter(this,'connector')" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border:.5px solid var(--rule2);background:none;color:var(--ink2);cursor:pointer;font-family:inherit">Connectors</button>
+  </div>
+
+  <div id="activity-list">
+    <div class="empty-state"><h3>Loading…</h3></div>
+  </div>
+</div>
+
+<!-- SCHEDULER VIEW -->
+<div class="view" id="view-scheduler">
+  <div class="view-top">
+    <div><h1 class="view-title serif">Scheduled <em>jobs</em></h1><div class="view-sub">Recurring tasks FEN runs automatically. Each job fires a full agent turn.</div></div>
+    <button class="ac-btn approve" onclick="showJobForm()" id="sched-new-btn">+ New job</button>
+  </div>
+
+  <!-- Create / edit form (hidden by default) -->
+  <div id="job-form" style="display:none;background:var(--card);border:.5px solid var(--rule2);padding:24px;margin-bottom:24px">
+    <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:16px" id="job-form-title">New scheduled job</div>
+    <input type="hidden" id="job-edit-id"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Job name</div>
+        <input id="job-name" placeholder="Morning brief" style="width:100%;padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none"/>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Cron expression</div>
+        <input id="job-cron" placeholder="0 8 * * *" style="width:100%;padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:'DM Mono',monospace;outline:none"/>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Task — what FEN should do</div>
+      <textarea id="job-task" rows="3" placeholder="Generate a morning brief with today's priorities and send it to the output channel." style="width:100%;padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;resize:vertical"></textarea>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Execution mode</div>
+        <select id="job-exec-mode" style="width:100%;padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;background:var(--card)">
+          <option value="agent_only">Agent only</option>
+          <option value="script_plus_agent">Script + Agent</option>
+          <option value="script_only">Script only (no LLM)</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Timezone</div>
+        <select id="job-timezone" style="width:100%;padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:inherit;outline:none;background:var(--card)">
+          <option value="UTC">UTC</option>
+          <option value="Europe/London">Europe/London</option>
+          <option value="Europe/Paris">Europe/Paris</option>
+          <option value="America/New_York">America/New_York</option>
+          <option value="America/Chicago">America/Chicago</option>
+          <option value="America/Los_Angeles">America/Los_Angeles</option>
+          <option value="Asia/Dubai">Asia/Dubai</option>
+          <option value="Asia/Kolkata">Asia/Kolkata</option>
+          <option value="Asia/Singapore">Asia/Singapore</option>
+          <option value="Asia/Tokyo">Asia/Tokyo</option>
+          <option value="Australia/Sydney">Australia/Sydney</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink3);margin-bottom:4px">Output Telegram chat ID</div>
+        <input id="job-chat-id" placeholder="123456789 (optional)" style="width:100%;padding:9px 12px;border:.5px solid var(--rule2);font-size:13px;font-family:'DM Mono',monospace;outline:none"/>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="ac-btn approve" onclick="saveJob()">Save job →</button>
+      <button class="ac-btn edit" onclick="hideJobForm()">Cancel</button>
+      <span id="job-save-status" style="font-size:12px;color:var(--ink3)"></span>
+    </div>
+  </div>
+
+  <!-- Jobs list -->
+  <div id="jobs-list">
+    <div class="empty-state"><h3>No scheduled jobs yet.</h3><p>Create a job to have FEN run tasks automatically on a schedule.</p></div>
+  </div>
+
+  <!-- Runs panel (shown when a job is selected) -->
+  <div id="runs-panel" style="display:none;margin-top:32px;padding-top:24px;border-top:.5px solid var(--rule)">
+    <div style="font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:14px">Recent runs — <span id="runs-job-name"></span></div>
+    <div id="runs-list"></div>
+  </div>
+</div>
+
+<div class="view" id="view-waitlist">
+  <div class="view-top">
+    <div>
+      <div class="view-title">Waitlist</div>
+      <div class="view-sub">Review and accept access requests</div>
+    </div>
+    <button class="ac-btn approve" onclick="loadWaitlist()">Refresh</button>
+  </div>
+  <div id="waitlist-filter" style="display:flex;gap:8px;margin-bottom:20px">
+    <button class="ac-btn active" id="wl-filter-pending" onclick="setWaitlistFilter('pending')">Pending</button>
+    <button class="ac-btn" id="wl-filter-accepted" onclick="setWaitlistFilter('accepted')">Accepted</button>
+    <button class="ac-btn" id="wl-filter-all" onclick="setWaitlistFilter('all')">All</button>
+  </div>
+  <div id="waitlist-list"><div class="empty-state"><p>Loading…</p></div></div>
+</div>
+
 </div><!-- end main -->
 </div><!-- end shell -->
 
@@ -551,6 +804,11 @@ function api(method, path, body) {
 }
 /* ═══ AGENT CONFIG ═══ */
 var TENANT_ID = '00000000-0000-0000-0000-000000000001';
+var WORKER_ID = '';
+// Load WORKER_ID from the workers endpoint on init — used by memory/scheduler routes
+api('GET', '/workers?tenantId=' + TENANT_ID).then(function(data) {
+  if (data && data.length) WORKER_ID = data[0].id;
+});
 
 function loadPrompt() {
   api('GET', '/agent/prompt?tenantId=' + TENANT_ID).then(function(data) {
@@ -649,6 +907,13 @@ var _origShowView = showView;
 function showView(id) {
   _origShowView(id);
   if (id === 'agent') { loadPrompt(); loadMemoryEditor(); }
+  if (id === 'memory') { loadCoreMemory(); loadCandidates(); }
+  if (id === 'scheduler') { loadJobs(); }
+  if (id === 'activity') { loadActivity(); }
+  if (id === 'workers')     { loadWorkers(); }
+  if (id === 'connectors')  { loadConnectors(); }
+  if (id === 'limits')      { loadLimits(); }
+  if (id === 'waitlist')    { loadWaitlist(); }
 }
 
 /* ═══ DATE ═══ */
@@ -816,42 +1081,124 @@ function updateBadges(count) {
 }
 
 /* ═══ MEMORY ═══ */
-function deleteMem(btn) {
-  var row = btn.closest('.mem-item');
-  var key = row.querySelector('.mem-key').textContent;
-  if (confirm('Delete "' + key + '" from FEN\'s memory?')) {
-    row.style.opacity = '0'; row.style.transition = 'opacity .3s';
-    setTimeout(function() { row.remove(); updateMemCount(); }, 300);
-  }
+function switchMemTab(tab) {
+  var isCore = tab === 'core';
+  document.getElementById('mem-panel-core').style.display = isCore ? '' : 'none';
+  document.getElementById('mem-panel-cands').style.display = isCore ? 'none' : '';
+  var tc = document.getElementById('mem-tab-core'), td = document.getElementById('mem-tab-cands');
+  if (tc) { tc.style.borderBottomColor = isCore ? 'var(--gold2)' : 'transparent'; tc.style.color = isCore ? 'var(--ink)' : 'var(--ink3)'; }
+  if (td) { td.style.borderBottomColor = isCore ? 'transparent' : 'var(--gold2)'; td.style.color = isCore ? 'var(--ink3)' : 'var(--ink)'; }
 }
-function updateMemCount() {
-  var cnt = document.querySelectorAll('.mem-item').length;
-  document.getElementById('mem-count').textContent = cnt;
-  var mb=document.getElementById('mem-badge'); if(mb){mb.textContent=cnt; mb.style.display=cnt>0?'inline-block':'none';} var mc=document.getElementById('mem-count'); if(mc) mc.textContent=cnt;
-  var empty = document.getElementById('mem-empty-message');
-  if (empty) empty.style.display = cnt > 0 ? 'none' : 'block';
-}
-function makeMemItem(key, value, confidence) {
-  var row = document.createElement('div');
-  row.className = 'mem-item';
-  row.innerHTML =
-    '<div class="mem-dot"></div>' +
-    '<div class="mem-key">' + key + '</div>' +
-    '<div class="mem-val">' + value + '</div>' +
-    '<span class="mem-conf hi">' + (confidence || '100%') + '</span>' +
-    '<button class="mem-del" onclick="deleteMem(this)">delete</button>';
-  return row;
-}
-function renderProfileMemory(profile) {
-  var section = document.querySelector('#view-memory .mem-section');
-  if (!section) return;
-  section.querySelectorAll('.mem-item').forEach(function(item) { item.remove(); });
 
-  if (profile && profile.name) section.appendChild(makeMemItem('Name', profile.name, '100%'));
-  if (profile && profile.role) section.appendChild(makeMemItem('Role', profile.role, '100%'));
-
-  updateMemCount();
+function loadCoreMemory() {
+  if (!WORKER_ID) { setTimeout(loadCoreMemory, 400); return; }
+  api('GET', '/memory/core?worker_id=' + WORKER_ID).then(function(data) {
+    var list = document.getElementById('core-mem-list');
+    if (!list || !data) return;
+    if (!data.length) {
+      list.innerHTML = '<div class="empty-state"><h3>No facts yet.</h3><p>Tell FEN something about your business — it will remember it for every conversation.</p></div>';
+      document.getElementById('mem-count').textContent = '0';
+      return;
+    }
+    list.innerHTML = '';
+    data.forEach(function(m) {
+      var val = typeof m.memory_value === 'object' ? JSON.stringify(m.memory_value).replace(/^"|"$/g,'') : m.memory_value;
+      if (val && val.startsWith('"') && val.endsWith('"')) val = val.slice(1,-1);
+      var row = document.createElement('div');
+      row.className = 'mem-item';
+      row.setAttribute('data-key', m.memory_key);
+      row.innerHTML =
+        '<div class="mem-dot"></div>' +
+        '<div class="mem-key">' + m.memory_key + '</div>' +
+        '<input class="mem-val" value="' + (val||'').replace(/"/g,'&quot;') + '" onchange="updateCoreMemory(this)" style="flex:1;border:none;background:transparent;font-size:13px;font-family:inherit;color:var(--ink2);outline:none;font-weight:300;padding:0"/>' +
+        '<span class="mem-conf hi" style="font-size:9px">' + (m.source_type||'user') + '</span>' +
+        '<button class="mem-del" onclick="deleteCoreMemory(\'' + m.memory_key + '\',this.closest(\'.mem-item\'))">delete</button>';
+      list.appendChild(row);
+    });
+    document.getElementById('mem-count').textContent = data.length;
+  });
 }
+
+function updateCoreMemory(input) {
+  if (!WORKER_ID) return;
+  var key = input.closest('.mem-item').getAttribute('data-key');
+  api('PUT', '/memory/core', { worker_id: WORKER_ID, memory_key: key, memory_value: input.value });
+}
+
+function deleteCoreMemory(key, row) {
+  if (!WORKER_ID || !confirm('Delete "' + key + '" from memory?')) return;
+  api('DELETE', '/memory/core/' + encodeURIComponent(key) + '?worker_id=' + WORKER_ID).then(function() {
+    if (row) { row.style.opacity='0'; row.style.transition='opacity .3s'; setTimeout(function(){ row.remove(); var cnt=document.querySelectorAll('#core-mem-list .mem-item').length; document.getElementById('mem-count').textContent=cnt; }, 300); }
+  });
+}
+
+function addCoreMemory() {
+  if (!WORKER_ID) return;
+  var k = document.getElementById('core-new-key');
+  var v = document.getElementById('core-new-val');
+  if (!k || !v || !k.value.trim()) return;
+  api('PUT', '/memory/core', { worker_id: WORKER_ID, memory_key: k.value.trim(), memory_value: v.value }).then(function() {
+    k.value = ''; v.value = '';
+    loadCoreMemory();
+  });
+}
+
+function loadCandidates() {
+  if (!WORKER_ID) { setTimeout(loadCandidates, 400); return; }
+  api('GET', '/memory/candidates?worker_id=' + WORKER_ID + '&status=pending').then(function(data) {
+    var list = document.getElementById('cands-list');
+    if (!list || !data) return;
+    var badge = document.getElementById('cand-badge');
+    var tabBadge = document.getElementById('cand-tab-count');
+    var count = data.length;
+    if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline-block' : 'none'; }
+    if (tabBadge) { tabBadge.textContent = count; tabBadge.style.display = count > 0 ? 'inline-block' : 'none'; }
+    if (!count) {
+      list.innerHTML = '<div class="empty-state"><h3>All clear.</h3><p>No memory candidates waiting for review.</p></div>';
+      return;
+    }
+    list.innerHTML = data.map(function(c) {
+      var riskCls = c.risk_level === 'high' ? 'var(--red)' : c.risk_level === 'medium' ? 'var(--amber)' : 'var(--green)';
+      var created = new Date(c.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      return '<div class="action-card" id="cand-' + c.id + '">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">' +
+          '<span style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-family:\'DM Mono\',monospace;padding:3px 8px;border-radius:3px;background:var(--bg);color:var(--ink3)">' + (c.target_layer||'core') + '</span>' +
+          '<span style="font-size:10px;font-family:\'DM Mono\',monospace;color:' + riskCls + '">' + (c.risk_level||'low') + ' risk</span>' +
+          '<span style="font-size:11px;color:var(--ink3);margin-left:auto">' + created + '</span>' +
+        '</div>' +
+        '<div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:4px">' + c.proposed_memory_key + ' = <span style="font-weight:300;font-family:\'Cormorant Garamond\',serif;font-style:italic;font-size:15px">' + (c.proposed_memory_value||'') + '</span></div>' +
+        (c.reason ? '<div style="font-size:12px;color:var(--ink3);margin:6px 0 10px">Why: ' + c.reason + '</div>' : '') +
+        '<div class="ac-actions">' +
+          '<button class="ac-btn approve" onclick="approveCandidate(\'' + c.id + '\')">Approve →</button>' +
+          '<button class="ac-btn deny" onclick="rejectCandidate(\'' + c.id + '\')">Reject</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  });
+}
+
+function approveCandidate(id) {
+  if (!WORKER_ID) return;
+  api('POST', '/memory/candidates/' + id + '/approve', { worker_id: WORKER_ID }).then(function() {
+    var el = document.getElementById('cand-' + id);
+    if (el) el.innerHTML = '<div class="ac-done" style="padding:12px;color:var(--green);font-size:13px">✓ Approved and added to core memory.</div>';
+    setTimeout(loadCandidates, 800);
+    setTimeout(loadCoreMemory, 800);
+  });
+}
+
+function rejectCandidate(id) {
+  if (!WORKER_ID) return;
+  api('POST', '/memory/candidates/' + id + '/reject', { worker_id: WORKER_ID }).then(function() {
+    var el = document.getElementById('cand-' + id);
+    if (el) el.innerHTML = '<div style="font-size:12px;color:var(--ink3);padding:12px">Rejected — will not be used.</div>';
+    setTimeout(loadCandidates, 800);
+  });
+}
+
+function renderProfileMemory() {}
+function updateMemCount() {}
+function makeMemItem() { return document.createElement('div'); }
 function setName(name) {
   var clean = (name || '').trim();
   var navName = clean || 'You';
@@ -883,10 +1230,6 @@ function applyProfile(profile) {
   profile = profile || {};
   setName(profile.name || localStorage.getItem('fen_user_name') || '');
   setRole(profile.role || localStorage.getItem('fen_user_role') || '');
-  renderProfileMemory({
-    name: profile.name || localStorage.getItem('fen_user_name') || '',
-    role: profile.role || localStorage.getItem('fen_user_role') || '',
-  });
 }
 function exportMemory() {
   var token = localStorage.getItem('fen_token') || 'web-default';
@@ -966,6 +1309,615 @@ function confirmDelete() {
   }
 }
 
+/* ═══ SCHEDULER ═══ */
+function showJobForm(job) {
+  var form = document.getElementById('job-form');
+  var title = document.getElementById('job-form-title');
+  if (!form) return;
+  document.getElementById('job-edit-id').value = job ? job.id : '';
+  document.getElementById('job-name').value = job ? (job.name||'') : '';
+  document.getElementById('job-cron').value = job ? (job.cron_expression||'') : '';
+  document.getElementById('job-task').value = job ? (job.task||'') : '';
+  document.getElementById('job-chat-id').value = job ? (job.output_chat_id||'') : '';
+  var em = document.getElementById('job-exec-mode');
+  if (em) em.value = job ? (job.execution_mode||'agent_only') : 'agent_only';
+  var tz = document.getElementById('job-timezone');
+  if (tz) tz.value = job ? (job.timezone||'UTC') : (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
+  if (title) title.textContent = job ? 'Edit job' : 'New scheduled job';
+  form.style.display = '';
+  document.getElementById('job-name').focus();
+}
+
+function hideJobForm() {
+  var form = document.getElementById('job-form');
+  if (form) form.style.display = 'none';
+  document.getElementById('job-save-status').textContent = '';
+}
+
+function saveJob() {
+  if (!WORKER_ID) { alert('Worker not loaded yet, please wait a moment.'); return; }
+  var id = document.getElementById('job-edit-id').value;
+  var name = document.getElementById('job-name').value.trim();
+  var cron = document.getElementById('job-cron').value.trim();
+  var task = document.getElementById('job-task').value.trim();
+  var chatId = document.getElementById('job-chat-id').value.trim();
+  var status = document.getElementById('job-save-status');
+  if (!name || !cron || !task) { if (status) status.textContent = 'Name, cron, and task are required.'; return; }
+  if (status) status.textContent = 'Saving…';
+  var execMode = (document.getElementById('job-exec-mode') || {}).value || 'agent_only';
+  var timezone = (document.getElementById('job-timezone') || {}).value || 'UTC';
+  var body = { worker_id: WORKER_ID, name: name, cron_expression: cron, task: task, execution_mode: execMode, timezone: timezone };
+  if (chatId) body.output_chat_id = chatId;
+  var p = id
+    ? api('PATCH', '/scheduled-jobs/' + id, body)
+    : api('POST', '/scheduled-jobs', body);
+  p.then(function(data) {
+    if (data && data.error) { if (status) status.textContent = 'Error: ' + data.error; return; }
+    if (status) { status.textContent = 'Saved ✓'; setTimeout(function(){ status.textContent=''; },2000); }
+    hideJobForm();
+    loadJobs();
+  });
+}
+
+function loadJobs() {
+  if (!WORKER_ID) { setTimeout(loadJobs, 400); return; }
+  api('GET', '/scheduled-jobs?worker_id=' + WORKER_ID).then(function(data) {
+    var list = document.getElementById('jobs-list');
+    if (!list || !data) return;
+    if (!data.length) {
+      list.innerHTML = '<div class="empty-state"><h3>No scheduled jobs yet.</h3><p>Create a job to have FEN run tasks automatically on a schedule.</p></div>';
+      return;
+    }
+    list.innerHTML = data.map(function(j) {
+      var lastRun = j.last_completed_at ? new Date(j.last_completed_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Never';
+      var nextRun = j.next_run_at ? new Date(j.next_run_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+      var enabledStyle = j.enabled ? 'var(--green)' : 'rgba(26,24,22,.25)';
+      var modeLabel = {agent_only:'Agent',script_plus_agent:'Script+Agent',script_only:'Script'}[j.execution_mode] || j.execution_mode;
+      return '<div class="action-card">' +
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">' +
+          '<div>' +
+            '<div style="font-size:15px;font-weight:500;color:var(--ink)">' + j.name + '</div>' +
+            '<div style="font-size:12px;font-family:\'DM Mono\',monospace;color:var(--ink3);margin-top:2px">' +
+              j.cron_expression + ' · ' + (j.timezone||'UTC') + ' · ' + modeLabel +
+              ' &nbsp;·&nbsp; Last: ' + lastRun + ' &nbsp;·&nbsp; Next: ' + nextRun +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+            '<span style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-family:\'DM Mono\',monospace;color:' + enabledStyle + '">' + (j.enabled ? 'active' : 'disabled') + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-size:13px;color:var(--ink2);font-weight:300;margin-bottom:12px;font-style:italic;font-family:\'Cormorant Garamond\',serif">' + j.task + '</div>' +
+        '<div class="ac-actions">' +
+          '<button class="ac-btn edit" onclick=\'showJobForm(' + JSON.stringify(j).replace(/'/g,"&#39;") + ')\'>Edit</button>' +
+          '<button class="ac-btn edit" onclick="viewRuns(\'' + j.id + '\',\'' + j.name.replace(/'/g,"") + '\')" style="background:var(--bg)">Runs</button>' +
+          (j.enabled
+            ? '<button class="ac-btn deny" onclick="toggleJob(\'' + j.id + '\',false)">Disable</button>'
+            : '<button class="ac-btn approve" style="background:var(--green)" onclick="toggleJob(\'' + j.id + '\',true)">Enable</button>') +
+          '<button class="ac-btn deny" style="color:var(--red)" onclick="deleteJob(\'' + j.id + '\')">Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  });
+}
+
+function toggleJob(id, enabled) {
+  api('PATCH', '/scheduled-jobs/' + id, { enabled: enabled }).then(loadJobs);
+}
+
+function deleteJob(id) {
+  if (!confirm('Delete this scheduled job? All run history will be preserved.')) return;
+  api('DELETE', '/scheduled-jobs/' + id).then(loadJobs);
+}
+
+function viewRuns(jobId, jobName) {
+  var panel = document.getElementById('runs-panel');
+  var nameEl = document.getElementById('runs-job-name');
+  if (nameEl) nameEl.textContent = jobName;
+  if (panel) panel.style.display = '';
+  api('GET', '/scheduled-jobs/' + jobId + '/runs').then(function(data) {
+    var list = document.getElementById('runs-list');
+    if (!list || !data) return;
+    if (!data.length) { list.innerHTML = '<div style="font-size:13px;color:var(--ink3)">No runs yet.</div>'; return; }
+    list.innerHTML = data.map(function(r) {
+      var started = r.started_at ? new Date(r.started_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+      var duration = (r.started_at && r.finished_at) ? Math.round((new Date(r.finished_at)-new Date(r.started_at))/1000) + 's' : '';
+      var statusCls = r.status === 'completed' ? 'sent' : r.status === 'failed' ? 'denied' : 'auto';
+      var bodyText = r.status === 'failed' && r.error
+        ? '<span style="color:var(--red)">' + r.error.slice(0,160) + '</span>'
+        : (r.output ? r.output.slice(0,160) + (r.output.length>160?'…':'') : '(no output)');
+      return '<div class="hist-row">' +
+        '<div class="hist-body">' +
+          '<div class="hist-title" style="font-size:12px;line-height:1.5">' + bodyText + '</div>' +
+          '<div class="hist-meta">' + started + (duration ? ' · ' + duration : '') + (r.attempt_count > 1 ? ' · attempt ' + r.attempt_count : '') + '</div>' +
+        '</div>' +
+        '<span class="hist-status ' + statusCls + '">' + r.status + '</span>' +
+      '</div>';
+    }).join('');
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+}
+
+/* ═══ WORKERS ═══ */
+var _selectedWorkerId = WORKER_ID;
+var _selectedWorkerName = '';
+
+function loadWorkers() {
+  api('GET', '/workers?tenantId=' + TENANT_ID).then(function(data) {
+    var list = document.getElementById('workers-list');
+    if (!list || !data) return;
+    if (!data.length) {
+      list.innerHTML = '<div class="empty-state"><h3>No workers.</h3><p>This tenant has no workers configured.</p></div>';
+      return;
+    }
+    list.innerHTML = data.map(function(w) {
+      var statusColor = {live:'var(--green)',testing:'var(--amber)',paused:'var(--ink3)',draft:'var(--ink3)'}[w.status] || 'var(--ink3)';
+      var lastRun = w.last_run_at ? new Date(w.last_run_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : 'Never';
+      return '<div class="action-card" style="cursor:pointer" onclick="openWorker(\'' + w.id + '\',\'' + (w.name||'').replace(/'/g,'') + '\')">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+          '<div style="font-size:15px;font-weight:500;color:var(--ink)">' + w.name + '</div>' +
+          '<span style="font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-family:\'DM Mono\',monospace;color:' + statusColor + '">' + (w.status||'draft') + '</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:24px">' +
+          '<div style="font-size:12px;color:var(--ink3)">Active jobs: <strong style="color:var(--ink)">' + (w.active_jobs||0) + '</strong></div>' +
+          '<div style="font-size:12px;color:var(--ink3)">Last run: <strong style="color:var(--ink)">' + lastRun + '</strong></div>' +
+          '<div style="font-size:12px;color:var(--ink3)">Prompt: <strong style="color:' + (w.has_prompt_override?'var(--amber)':'var(--green)') + '">' + (w.has_prompt_override?'override active':'using baseline') + '</strong></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  });
+}
+
+function openWorker(workerId, workerName) {
+  _selectedWorkerId = workerId;
+  _selectedWorkerName = workerName;
+  var det = document.getElementById('worker-detail');
+  var list = document.getElementById('workers-list');
+  var nameEl = document.getElementById('wdet-name');
+  if (det) det.style.display = '';
+  if (list) list.style.display = 'none';
+  if (nameEl) nameEl.textContent = workerName;
+  switchWorkerTab('prompt');
+}
+
+function hideWorkerDetail() {
+  document.getElementById('worker-detail').style.display = 'none';
+  document.getElementById('workers-list').style.display = '';
+}
+
+function switchWorkerTab(tab) {
+  ['prompt','tools','activity'].forEach(function(t) {
+    var panel = document.getElementById('wp-' + t);
+    var btn   = document.getElementById('wt-' + t);
+    if (panel) panel.style.display = t === tab ? '' : 'none';
+    if (btn) { btn.style.borderBottomColor = t === tab ? 'var(--gold2)' : 'transparent'; btn.style.color = t === tab ? 'var(--ink)' : 'var(--ink3)'; }
+  });
+  if (tab === 'prompt')   loadWorkerPrompt();
+  if (tab === 'tools')    loadWorkerTools();
+  if (tab === 'activity') loadWorkerActivity();
+}
+
+function loadWorkerPrompt() {
+  api('GET', '/agent/prompt?workerId=' + _selectedWorkerId + '&tenantId=' + TENANT_ID).then(function(data) {
+    if (!data) return;
+    var editor = document.getElementById('wdet-prompt-editor');
+    var banner = document.getElementById('wdet-prompt-source');
+    var hist   = document.getElementById('wdet-prompt-history');
+    if (editor) editor.value = data.override || '';
+    if (banner) {
+      if (data.source === 'dashboard_override') {
+        banner.style.background = 'var(--ambl)'; banner.style.color = 'var(--amber)';
+        banner.textContent = 'Active: Runtime override';
+      } else {
+        banner.style.background = 'var(--greenl)'; banner.style.color = 'var(--green)';
+        banner.textContent = 'Active: File baseline — fen.prompt.md';
+      }
+    }
+    if (hist) {
+      if (!data.history || !data.history.length) { hist.innerHTML = '<div style="font-size:13px;color:var(--ink3)">No prompt changes yet.</div>'; return; }
+      hist.innerHTML = data.history.map(function(h) {
+        var t = new Date(h.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        return '<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:.5px solid var(--rule)">' +
+          '<div style="flex:1"><div style="font-size:12px;font-family:\'DM Mono\',monospace;color:var(--ink3)">' + t + ' · ' + (h.source||'') + '</div>' +
+          '<div style="font-size:12px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:440px">' + (h.preview||'') + '…</div></div>' +
+          '<button onclick="rollbackWorkerPrompt(\'' + h.id + '\')" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:none;border:.5px solid var(--rule2);padding:5px 12px;cursor:pointer;font-family:inherit;color:var(--ink2)">Restore</button>' +
+        '</div>';
+      }).join('');
+    }
+  });
+}
+
+function saveWorkerPrompt() {
+  var el = document.getElementById('wdet-prompt-editor');
+  var status = document.getElementById('wdet-prompt-status');
+  if (!el) return;
+  if (status) status.textContent = 'Saving…';
+  api('PUT', '/agent/prompt', { tenantId: TENANT_ID, workerId: _selectedWorkerId, prompt: el.value, source: 'dashboard' }).then(function() {
+    if (status) { status.textContent = 'Saved ✓'; setTimeout(function(){ status.textContent=''; },3000); }
+    loadWorkerPrompt();
+  });
+}
+
+function resetWorkerPrompt() {
+  if (!confirm('Reset to file baseline? The runtime override will be removed.')) return;
+  api('POST', '/agent/prompt/reset', { tenantId: TENANT_ID, workerId: _selectedWorkerId }).then(function() { loadWorkerPrompt(); });
+}
+
+function rollbackWorkerPrompt(histId) {
+  if (!confirm('Restore this version?')) return;
+  api('POST', '/agent/prompt/rollback/' + histId, { tenantId: TENANT_ID, workerId: _selectedWorkerId }).then(function() { loadWorkerPrompt(); });
+}
+
+function loadWorkerTools() {
+  api('GET', '/tools/worker?workerId=' + _selectedWorkerId).then(function(data) {
+    var list = document.getElementById('wdet-tools-list');
+    if (!list || !data || !data.tools) return;
+    if (!data.tools.length) { list.innerHTML = '<div style="font-size:13px;color:var(--ink3)">No tools registered.</div>'; return; }
+    list.innerHTML = data.tools.map(function(t) {
+      var isOn = t.enabled !== false;
+      return '<div class="perm-row">' +
+        '<div class="perm-icon" style="background:var(--bg);font-size:14px">' + (t.side_effect ? '⚡' : '🔍') + '</div>' +
+        '<div class="perm-info"><div class="perm-name">' + t.name + '</div><div class="perm-desc">' + (t.description||'') + (t.side_effect ? ' · has side effects' : '') + '</div></div>' +
+        '<div class="perm-status ' + (isOn?'on':'off') + '"><span style="width:5px;height:5px;border-radius:50%;background:' + (isOn?'var(--green)':'rgba(26,24,22,.2)') + ';display:inline-block"></span>' + (isOn?'Enabled':'Disabled') + '</div>' +
+        '<button class="toggle ' + (isOn?'on':'off') + '" onclick="toggleWorkerTool(\'' + t.id + '\',this)" title="' + t.name + '"></button>' +
+      '</div>';
+    }).join('');
+  });
+}
+
+function toggleWorkerTool(toolId, btn) {
+  var isOn = btn.classList.contains('on');
+  var newState = !isOn;
+  api('PUT', '/tools/worker/' + toolId, { tenantId: TENANT_ID, workerId: _selectedWorkerId, enabled: newState }).then(function() {
+    btn.classList.toggle('on', newState); btn.classList.toggle('off', !newState);
+    var status = btn.previousElementSibling;
+    if (status) { status.className = 'perm-status ' + (newState?'on':'off'); status.innerHTML = '<span style="width:5px;height:5px;border-radius:50%;background:' + (newState?'var(--green)':'rgba(26,24,22,.2)') + ';display:inline-block"></span>' + (newState?'Enabled':'Disabled'); }
+  });
+}
+
+function loadWorkerActivity() {
+  api('GET', '/activity?worker_id=' + _selectedWorkerId + '&limit=20').then(function(data) {
+    var list = document.getElementById('wdet-activity-list');
+    if (!list) return;
+    var items = (data && data.items) ? data.items : (Array.isArray(data) ? data : []);
+    if (!items.length) { list.innerHTML = '<div class="empty-state"><h3>No activity.</h3><p>Nothing recorded for this worker yet.</p></div>'; return; }
+    list.innerHTML = renderActivityItems(items);
+  });
+}
+
+function renderActivityItems(items) {
+  return items.map(function(item) {
+    var time = new Date(item.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    if (item._type === 'job_run') {
+      var sc = item.status === 'completed' ? 'sent' : item.status === 'failed' ? 'denied' : 'auto';
+      var body = item.status === 'failed' && item.error ? item.error.slice(0,100) : (item.output||'(no output)').slice(0,100);
+      return '<div class="hist-row"><div class="hist-icon" style="background:var(--bg);font-size:13px">⚙</div><div class="hist-body"><div class="hist-title">' + (item.job_name||'Job') + '</div><div style="font-size:12px;color:var(--ink2);font-weight:300">' + body + '</div><div class="hist-meta">' + time + '</div></div><span class="hist-status ' + sc + '">' + item.status + '</span></div>';
+    }
+    if (item._type === 'memory_event') {
+      var isSync = item.action === 'sync_completed' || item.action === 'sync_failed';
+      var isFail = item.action === 'sync_failed';
+      if (isSync) {
+        var _ref = item.source_ref || '';
+        var providerLabel = (item.source_type === 'gdrive'   || _ref.indexOf('gdrive')   > -1) ? 'Google Drive'
+                        : (item.source_type === 'gmail'      || _ref.indexOf('gmail')    > -1) ? 'Gmail'
+                        : (item.source_type === 'slack'      || _ref.indexOf('slack')    > -1) ? 'Slack'
+                        : (item.source_type === 'hubspot'    || _ref.indexOf('hubspot')  > -1) ? 'HubSpot'
+                        : (item.source_type || 'Connector');
+        var syncIcon = isFail ? '⚠' : '⟳';
+        var syncSt   = isFail ? 'denied' : 'sent';
+        var syncTitle = providerLabel + ' sync ' + (isFail ? 'failed' : 'completed');
+        var syncBody  = item.reason ? item.reason.slice(0, 100) : '';
+        return '<div class="hist-row"><div class="hist-icon" style="background:var(--bg);font-size:13px">' + syncIcon + '</div><div class="hist-body"><div class="hist-title">' + syncTitle + '</div><div style="font-size:12px;color:var(--ink2);font-weight:300">' + syncBody + '</div><div class="hist-meta">' + time + '</div></div><span class="hist-status ' + syncSt + '">' + (isFail ? 'error' : 'ok') + '</span></div>';
+      }
+      return '<div class="hist-row"><div class="hist-icon" style="background:var(--bg);font-size:13px">🧠</div><div class="hist-body"><div class="hist-title">Memory ' + item.action + '</div><div class="hist-meta">' + time + (item.reason?' · '+item.reason.slice(0,60):'') + '</div></div><span class="hist-status auto">' + (item.memory_layer||'core') + '</span></div>';
+    }
+    if (item._type === 'outbound_action') {
+      var sc2 = item.status === 'sent' ? 'sent' : item.status === 'failed' ? 'denied' : 'auto';
+      return '<div class="hist-row"><div class="hist-icon" style="background:var(--bg);font-size:13px">📤</div><div class="hist-body"><div class="hist-title">' + item.action_type + '</div><div class="hist-meta">' + time + '</div></div><span class="hist-status ' + sc2 + '">' + item.status + '</span></div>';
+    }
+    return '';
+  }).join('');
+}
+
+/* ═══ LIMITS ═══ */
+function loadLimits() {
+  api('GET', '/settings/limits?tenantId=' + TENANT_ID).then(function(data) {
+    var el = document.getElementById('limits-content');
+    if (!el || !data) return;
+    var l = data.limits || {};
+    var u = data.usage  || {};
+
+    function pct(used, max) {
+      return max > 0 ? Math.min(100, Math.round(used/max*100)) : 0;
+    }
+    function bar(used, max, label) {
+      var p = pct(used, max);
+      var color = p >= 90 ? 'var(--red)' : p >= 70 ? 'var(--amber)' : 'var(--green)';
+      return '<div style="margin-bottom:20px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">' +
+          '<div style="font-size:14px;font-weight:400;color:var(--ink)">' + label + '</div>' +
+          '<div style="font-size:12px;font-family:\'DM Mono\',monospace;color:var(--ink3)">' + used + ' / ' + max + '</div>' +
+        '</div>' +
+        '<div style="height:6px;background:var(--rule);border-radius:3px;overflow:hidden">' +
+          '<div style="height:100%;width:' + p + '%;background:' + color + ';border-radius:3px;transition:width .4s"></div>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--ink3);margin-top:4px">' + p + '% used</div>' +
+      '</div>';
+    }
+
+    el.innerHTML =
+      '<div class="card" style="margin-bottom:24px">' +
+        bar(u.runs_today      ||0, l.max_runs_per_day        ||100,  'Runs today')         +
+        bar(u.concurrent_runs ||0, l.max_concurrent_runs     ||5,    'Concurrent runs')     +
+        bar(u.scheduled_jobs  ||0, l.max_scheduled_jobs      ||20,   'Active scheduled jobs') +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="card-label">Other limits</div>' +
+        '<div class="pref-row"><div class="pref-label">LLM calls per minute</div><div class="pref-val">' + (l.max_llm_calls_per_minute||10) + '</div></div>' +
+        '<div class="pref-row"><div class="pref-label">Tokens per day</div><div class="pref-val">' + ((l.max_tokens_per_day||500000)/1000).toFixed(0) + 'k</div></div>' +
+      '</div>';
+  });
+}
+
+/* ═══ ACTIVITY ═══ */
+var _activityData = [];
+var _activityFilter = 'all';
+
+function setActivityFilter(btn, filter) {
+  _activityFilter = filter;
+  document.querySelectorAll('.activity-filter').forEach(function(b) {
+    b.style.background = 'none'; b.style.color = 'var(--ink2)'; b.style.border = '.5px solid var(--rule2)';
+  });
+  btn.style.background = 'var(--ink)'; btn.style.color = '#fff'; btn.style.border = 'none';
+  renderActivity();
+}
+
+function loadActivity() {
+  if (!WORKER_ID) { setTimeout(loadActivity, 400); return; }
+  api('GET', '/activity?worker_id=' + WORKER_ID + '&limit=100').then(function(data) {
+    if (!data) return;
+    _activityData = (data.items || data); // handle both paginated and legacy format
+    renderActivity();
+  });
+}
+
+function renderActivity() {
+  var list = document.getElementById('activity-list');
+  if (!list) return;
+  var items = _activityFilter === 'all'
+    ? _activityData
+    : _activityFilter === 'connector'
+      ? _activityData.filter(function(i) {
+          return i._type === 'memory_event' &&
+                 (i.action === 'sync_completed' || i.action === 'sync_failed');
+        })
+      : _activityData.filter(function(i) { return i._type === _activityFilter; });
+  if (!items.length) {
+    list.innerHTML = '<div class="empty-state"><h3>Nothing yet.</h3><p>Activity appears here as FEN runs jobs, learns, and sends messages.</p></div>';
+    return;
+  }
+  list.innerHTML = items.map(function(item) {
+    var time = new Date(item.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    if (item._type === 'job_run') {
+      var statusCls = item.status === 'completed' ? 'sent' : item.status === 'failed' ? 'denied' : 'auto';
+      var body = item.status === 'failed' && item.error
+        ? item.error.slice(0,120)
+        : (item.output ? item.output.slice(0,120) + (item.output.length>120?'…':'') : '(no output)');
+      return '<div class="hist-row">' +
+        '<div class="hist-icon" style="background:var(--bg);font-size:13px">⚙</div>' +
+        '<div class="hist-body">' +
+          '<div class="hist-title">' + (item.job_name||'Scheduled job') + '</div>' +
+          '<div style="font-size:12px;color:var(--ink2);margin:2px 0;font-weight:300">' + body + '</div>' +
+          '<div class="hist-meta">' + time + '</div>' +
+        '</div>' +
+        '<span class="hist-status ' + statusCls + '">' + item.status + '</span>' +
+      '</div>';
+    }
+    if (item._type === 'memory_event') {
+      var actionColor = {created:'var(--green)',promoted:'var(--green)',updated:'var(--amber)',rejected:'var(--red)',security_flagged:'var(--red)'}[item.action] || 'var(--ink3)';
+      var afterVal = '';
+      if (item.after_value) {
+        try { var v = JSON.parse(item.after_value); afterVal = typeof v === 'string' ? v : JSON.stringify(v); } catch(e){ afterVal = String(item.after_value); }
+        afterVal = afterVal.slice(0,80);
+      }
+      return '<div class="hist-row">' +
+        '<div class="hist-icon" style="background:var(--bg);font-size:13px">🧠</div>' +
+        '<div class="hist-body">' +
+          '<div class="hist-title">Memory <span style="color:' + actionColor + '">' + item.action + '</span>' + (afterVal ? ' — ' + afterVal : '') + '</div>' +
+          '<div class="hist-meta">' + time + ' · ' + (item.actor_type||'system') + (item.reason ? ' · ' + item.reason.slice(0,60) : '') + '</div>' +
+        '</div>' +
+        '<span class="hist-status auto" style="text-transform:uppercase">' + (item.memory_layer||'core') + '</span>' +
+      '</div>';
+    }
+    if (item._type === 'outbound_action') {
+      var statusCls2 = item.status === 'sent' ? 'sent' : item.status === 'failed' ? 'denied' : 'auto';
+      return '<div class="hist-row">' +
+        '<div class="hist-icon" style="background:var(--bg);font-size:13px">📤</div>' +
+        '<div class="hist-body">' +
+          '<div class="hist-title">' + item.action_type + ' → ' + (item.target_key||'') + '</div>' +
+          '<div class="hist-meta">' + time + '</div>' +
+        '</div>' +
+        '<span class="hist-status ' + statusCls2 + '">' + item.status + '</span>' +
+      '</div>';
+    }
+    return '';
+  }).join('');
+}
+
+/* ═══ CONNECTORS ═══ */
+var PROVIDER_ICONS = {
+  gmail:   '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4C2.9 4 2 4.9 2 6v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l10 7 10-7" stroke="currentColor" stroke-width="1.5"/></svg>',
+  gdrive:  '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 19l4-8 4 4 4-8 5 12H2z"/><path d="M2 19h20"/></svg>',
+  slack:   '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 2a2.5 2.5 0 000 5H17V4.5A2.5 2.5 0 0014.5 2z"/><path d="M14.5 9.5H7a2.5 2.5 0 000 5h7.5a2.5 2.5 0 000-5z"/><path d="M22 12a2.5 2.5 0 00-2.5-2.5H17V14.5h2.5A2.5 2.5 0 0022 12z"/><path d="M14.5 17H17a2.5 2.5 0 000-5H7a2.5 2.5 0 000 5h7.5z"/></svg>',
+  hubspot: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="17" cy="7" r="3"/><circle cx="7" cy="12" r="3"/><circle cx="17" cy="17" r="3"/><path d="M10 12h4M14 9l-4 5.5"/></svg>',
+};
+var PROVIDER_LABELS = { gmail: 'Gmail', gdrive: 'Google Drive', slack: 'Slack', hubspot: 'HubSpot' };
+
+function connectorFlash(msg, ok) {
+  var el = document.getElementById('connector-flash');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok ? 'var(--green-bg, #f0fdf4)' : '#fff1f2';
+  el.style.color = ok ? 'var(--green, #16a34a)' : '#b91c1c';
+  el.style.border = ok ? '.5px solid #bbf7d0' : '.5px solid #fecaca';
+  setTimeout(function(){ el.style.display = 'none'; }, 5000);
+}
+
+function loadConnectors() {
+  if (!WORKER_ID) return;
+  api('GET', '/connectors?worker_id=' + WORKER_ID).then(function(data) {
+    renderGrants(data.grants || []);
+    renderCatalogue(data.catalogue || []);
+  }).catch(function(e) {
+    document.getElementById('grants-list').innerHTML = '<div class="empty-state"><h3>Error loading connectors.</h3></div>';
+  });
+
+  // Handle post-OAuth redirect flash
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('connector_connected')) {
+    connectorFlash('Connected ' + (PROVIDER_LABELS[params.get('connector_connected')] || params.get('connector_connected')) + ' successfully.', true);
+    history.replaceState({}, '', window.location.pathname);
+  }
+  if (params.get('connector_error')) {
+    connectorFlash('Connection failed: ' + params.get('connector_error'), false);
+    history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+function renderGrants(grants) {
+  var el = document.getElementById('grants-list');
+  if (!grants.length) {
+    el.innerHTML = '<div class="empty-state"><h3>No connected sources yet.</h3><p>Connect a provider below to let FEN learn from your data.</p></div>';
+    return;
+  }
+  el.innerHTML = grants.map(function(g) {
+    var icon = PROVIDER_ICONS[g.provider] || '';
+    var label = PROVIDER_LABELS[g.provider] || g.provider;
+    var statusDot = g.status === 'connected'
+      ? '<span style="color:var(--green,#16a34a)">●</span>'
+      : '<span style="color:#ef4444">●</span>';
+    var syncBadge = g.last_sync_status === 'error'
+      ? '<span style="color:#ef4444;font-size:11px"> Sync error</span>'
+      : g.last_synced_at
+        ? '<span style="color:var(--ink3);font-size:11px"> Last synced ' + timeAgo(g.last_synced_at) + '</span>'
+        : '<span style="color:var(--ink3);font-size:11px"> Never synced</span>';
+    var syncCount = g.last_sync_count != null ? '<span style="color:var(--ink3);font-size:11px"> · ' + g.last_sync_count + ' items</span>' : '';
+    var syncToggle = '<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--ink2)">' +
+      '<input type="checkbox" ' + (g.sync_enabled ? 'checked' : '') + ' onchange="toggleConnectorSync(\'' + g.provider + '\',this.checked)" style="cursor:pointer"> Auto-sync</label>';
+
+    return '<div style="background:var(--card);border:.5px solid var(--rule2);padding:18px 20px;margin-bottom:12px;display:flex;align-items:flex-start;gap:14px">' +
+      '<div style="color:var(--ink2);flex-shrink:0;margin-top:2px">' + icon + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14px;font-weight:500;margin-bottom:4px">' + statusDot + ' ' + label +
+          (g.connected_email ? ' <span style="color:var(--ink3);font-size:12px;font-weight:400">(' + escJs(g.connected_email) + ')</span>' : '') + '</div>' +
+        '<div style="margin-bottom:10px">' + syncBadge + syncCount + '</div>' +
+        (g.last_sync_status === 'error' && g.last_sync_error
+          ? '<div style="font-size:11px;color:#b91c1c;margin-bottom:10px;font-family:\'DM Mono\',monospace">' + escJs(g.last_sync_error) + '</div>'
+          : '') +
+        '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+          syncToggle +
+          '<button class="ac-btn edit" style="font-size:11px;padding:5px 12px" onclick="syncConnector(\'' + g.provider + '\')">Sync now</button>' +
+          '<button class="ac-btn" style="font-size:11px;padding:5px 12px" onclick="toggleSyncRuns(\'' + g.provider + '\',this)">History</button>' +
+          '<button class="ac-btn" style="font-size:11px;padding:5px 12px;color:#b91c1c;border-color:#fecaca" onclick="disconnectConnector(\'' + g.provider + '\',\'' + escJs(label) + '\')">Disconnect</button>' +
+        '</div>' +
+        '<div id="sync-runs-' + g.provider + '" style="display:none;margin-top:14px"></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderCatalogue(catalogue) {
+  var el = document.getElementById('catalogue-list');
+  if (!catalogue.length) {
+    el.innerHTML = '<div class="empty-state"><h3>All available providers are connected.</h3></div>';
+    return;
+  }
+  el.innerHTML = catalogue.map(function(p) {
+    var icon = PROVIDER_ICONS[p.provider] || '';
+    return '<div style="background:var(--card);border:.5px solid var(--rule2);padding:18px 20px;margin-bottom:12px;display:flex;align-items:center;gap:14px">' +
+      '<div style="color:var(--ink2);flex-shrink:0">' + icon + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-size:14px;font-weight:500;margin-bottom:2px">' + escJs(p.label) + '</div>' +
+        '<div style="font-size:12px;color:var(--ink3)">Read-only · email summaries synced into FEN\'s memory</div>' +
+      '</div>' +
+      '<button class="ac-btn approve" style="white-space:nowrap" onclick="connectProvider(\'' + p.provider + '\')">Connect</button>' +
+    '</div>';
+  }).join('');
+}
+
+function connectProvider(provider) {
+  if (!WORKER_ID) return;
+  var supported = ['gmail', 'gdrive', 'slack', 'hubspot'];
+  if (supported.indexOf(provider) > -1) {
+    window.location.href = '/connectors/connect/' + provider + '?worker_id=' + encodeURIComponent(WORKER_ID);
+  }
+}
+
+function syncConnector(provider) {
+  if (!WORKER_ID) return;
+  connectorFlash('Syncing ' + (PROVIDER_LABELS[provider] || provider) + '…', true);
+  api('POST', '/connectors/' + provider + '/sync', { worker_id: WORKER_ID }).then(function(data) {
+    if (data && !data.error) {
+      connectorFlash('Sync complete: ' + (data.ingested || 0) + ' items ingested' + (data.candidates ? ', ' + data.candidates + ' candidates' : '') + '.', true);
+    } else {
+      connectorFlash('Sync failed: ' + (data && data.error ? data.error : 'unknown error'), false);
+    }
+    loadConnectors();
+  }).catch(function(e) { connectorFlash('Sync failed.', false); });
+}
+
+function toggleConnectorSync(provider, enabled) {
+  if (!WORKER_ID) return;
+  api('PATCH', '/connectors/' + provider, { worker_id: WORKER_ID, sync_enabled: enabled })
+    .then(function() { loadConnectors(); })
+    .catch(function() { connectorFlash('Failed to update sync setting.', false); loadConnectors(); });
+}
+
+function disconnectConnector(provider, label) {
+  if (!confirm('Disconnect ' + label + '? This will remove the OAuth token and stop all syncs. Synced memory items are not deleted.')) return;
+  api('DELETE', '/connectors/' + provider + '?worker_id=' + encodeURIComponent(WORKER_ID)).then(function() {
+    connectorFlash(label + ' disconnected.', true);
+    loadConnectors();
+  }).catch(function() { connectorFlash('Failed to disconnect.', false); });
+}
+
+function toggleSyncRuns(provider, btn) {
+  var el = document.getElementById('sync-runs-' + provider);
+  if (!el) return;
+  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = '<div style="font-size:12px;color:var(--ink3)">Loading…</div>';
+  api('GET', '/connectors/' + provider + '/runs?worker_id=' + encodeURIComponent(WORKER_ID)).then(function(rows) {
+    if (!rows || !rows.length) { el.innerHTML = '<div style="font-size:12px;color:var(--ink3)">No sync runs yet.</div>'; return; }
+    el.innerHTML = '<div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);font-family:\'DM Mono\',monospace;margin-bottom:8px">Sync runs</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+      '<tr style="color:var(--ink3)"><th style="text-align:left;padding:4px 0;font-weight:400">Started</th><th style="text-align:left;padding:4px 0;font-weight:400">Trigger</th><th style="text-align:right;padding:4px 0;font-weight:400">Items</th><th style="text-align:right;padding:4px 0;font-weight:400">Status</th></tr>' +
+      rows.map(function(r) {
+        var st = r.status === 'ok' ? 'color:var(--green,#16a34a)' : r.status === 'error' ? 'color:#ef4444' : 'color:var(--ink3)';
+        var started = new Date(r.started_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        var dur = r.finished_at ? Math.round((new Date(r.finished_at).getTime()-new Date(r.started_at).getTime())/1000)+'s' : '…';
+        return '<tr style="border-top:.5px solid var(--rule)">' +
+          '<td style="padding:5px 0">' + started + ' <span style="color:var(--ink3)">(' + dur + ')</span></td>' +
+          '<td style="padding:5px 0;color:var(--ink3)">' + (r.trigger||'') + '</td>' +
+          '<td style="padding:5px 0;text-align:right">' + (r.items_ingested != null ? r.items_ingested : '—') + '</td>' +
+          '<td style="padding:5px 0;text-align:right;' + st + '">' + r.status + (r.error_message ? ' · ' + escJs(r.error_message.slice(0,40)) : '') + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</table>';
+  }).catch(function() { el.innerHTML = '<div style="font-size:12px;color:#ef4444">Failed to load runs.</div>'; });
+}
+
+function escJs(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function timeAgo(iso) {
+  var d = new Date(iso);
+  var s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 60) return s + 's ago';
+  if (s < 3600) return Math.floor(s/60) + 'm ago';
+  if (s < 86400) return Math.floor(s/3600) + 'h ago';
+  return Math.floor(s/86400) + 'd ago';
+}
+
 /* ═══ SIGN OUT ═══ */
 function signOut() {
   localStorage.removeItem('fen_token');
@@ -975,10 +1927,16 @@ function signOut() {
 }
 
 (function() {
-  // Restore view from localStorage
-  var v = localStorage.getItem('rvw');
-  if (v) { localStorage.removeItem('rvw'); showView(v); var t = document.getElementById('nav-' + v); if(t) t.classList.add('active'); }
-  else { document.getElementById('nav-today').classList.add('active'); }
+  // Auto-navigate to connectors view on post-OAuth redirect
+  var _initParams = new URLSearchParams(window.location.search);
+  if (_initParams.get('connector_connected') || _initParams.get('connector_error')) {
+    showView('connectors');
+  } else {
+    // Restore view from localStorage
+    var v = localStorage.getItem('rvw');
+    if (v) { localStorage.removeItem('rvw'); showView(v); var t = document.getElementById('nav-' + v); if(t) t.classList.add('active'); }
+    else { document.getElementById('nav-today').classList.add('active'); }
+  }
 
   applyProfile({
     name: localStorage.getItem('fen_user_name') || '',
@@ -1007,6 +1965,12 @@ function signOut() {
 
   // Load real actions
   loadActions();
+
+  // Load pending candidates badge after worker is ready
+  setTimeout(function() {
+    if (WORKER_ID) loadCandidates();
+    else setTimeout(function(){ if(WORKER_ID) loadCandidates(); }, 2000);
+  }, 1200);
 })();
 
 
@@ -1065,6 +2029,108 @@ document.getElementById('ob-input') && document.getElementById('ob-input').addEv
 checkFirstVisit()
 updateMemCount()
 checkGmailStatus()
+
+/* ═══ WAITLIST ═══ */
+var ADMIN_SECRET = localStorage.getItem('fen_admin_secret') || ''
+var wlFilter = 'pending'
+
+function getAdminSecret() {
+  if (ADMIN_SECRET) return ADMIN_SECRET
+  var s = prompt('Enter admin password:')
+  if (!s) return null
+  ADMIN_SECRET = s
+  localStorage.setItem('fen_admin_secret', s)
+  return s
+}
+
+function setWaitlistFilter(f) {
+  wlFilter = f
+  document.querySelectorAll('#waitlist-filter .ac-btn').forEach(function(b) { b.classList.remove('active') })
+  var btn = document.getElementById('wl-filter-' + f)
+  if (btn) btn.classList.add('active')
+  renderWaitlistRows(window._wlRows || [])
+}
+
+function loadWaitlist() {
+  var secret = getAdminSecret()
+  if (!secret) return
+  var el = document.getElementById('waitlist-list')
+  if (el) el.innerHTML = '<div class="empty-state"><p>Loading…</p></div>'
+  fetch('/admin/waitlist', { headers: { 'x-admin-secret': secret } })
+    .then(function(r) {
+      if (r.status === 401) {
+        ADMIN_SECRET = ''
+        localStorage.removeItem('fen_admin_secret')
+        if (el) el.innerHTML = '<div class="empty-state"><p>Wrong password.</p></div>'
+        return
+      }
+      return r.json()
+    })
+    .then(function(data) {
+      if (!data) return
+      window._wlRows = data.rows || []
+      var pending = (data.rows || []).filter(function(r) { return r.status === 'pending' }).length
+      var badge = document.getElementById('waitlist-badge')
+      if (badge) { badge.textContent = pending; badge.style.display = pending ? 'inline' : 'none'; }
+      renderWaitlistRows(window._wlRows)
+    })
+    .catch(function() { if (el) el.innerHTML = '<div class="empty-state"><p>Error loading waitlist.</p></div>' })
+}
+
+function renderWaitlistRows(rows) {
+  var el = document.getElementById('waitlist-list')
+  if (!el) return
+  var filtered = rows.filter(function(r) {
+    if (wlFilter === 'all') return true
+    return r.status === wlFilter
+  })
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty-state"><p>No ' + wlFilter + ' requests.</p></div>'
+    return
+  }
+  el.innerHTML = filtered.map(function(r) {
+    var statusColor = r.status === 'accepted' ? 'var(--green,#16a34a)' : r.status === 'rejected' ? '#ef4444' : '#B07B1A'
+    var actions = r.status === 'pending'
+      ? '<button class="ac-btn approve" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'accepted\')" style="font-size:11px;padding:5px 12px">Accept</button>' +
+        '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'rejected\')" style="font-size:11px;padding:5px 12px;color:#b91c1c;border-color:#fecaca">Reject</button>'
+      : r.status === 'accepted'
+        ? '<button class="ac-btn" onclick="wlNotify(\'' + escJs(r.phone) + '\',\'' + escJs(r.name||'') + '\',\'' + escJs(r.email||'') + '\')" style="font-size:11px;padding:5px 12px">Resend invite</button>' +
+          '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'pending\')" style="font-size:11px;padding:5px 12px">Revoke</button>'
+        : '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'accepted\')" style="font-size:11px;padding:5px 12px">Accept</button>'
+    return '<div style="background:var(--card);border:.5px solid var(--rule2);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14px;font-weight:500">' + escJs(r.name || 'Unknown') + ' <span style="color:var(--ink3);font-size:12px;font-weight:400">' + escJs(r.phone) + '</span></div>' +
+        (r.email ? '<div style="font-size:12px;color:var(--ink3);margin-top:2px">' + escJs(r.email) + '</div>' : '') +
+        '<div style="font-size:11px;color:var(--ink3);margin-top:4px">' + timeAgo(r.submitted_at) + ' · <span style="color:' + statusColor + '">' + r.status + '</span></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-shrink:0">' + actions + '</div>' +
+    '</div>'
+  }).join('')
+}
+
+function wlUpdate(phone, status) {
+  var secret = getAdminSecret()
+  if (!secret) return
+  fetch('/admin/waitlist/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+    body: JSON.stringify({ phone: phone, status: status })
+  }).then(function() { loadWaitlist() })
+    .catch(function() { alert('Update failed.') })
+}
+
+function wlNotify(phone, name, email) {
+  var secret = getAdminSecret()
+  if (!secret) return
+  if (!email) { alert('No email on file for this user.'); return }
+  fetch('/admin/waitlist/notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+    body: JSON.stringify({ phone: phone, name: name, email: email })
+  }).then(function(r) { return r.json() })
+    .then(function(d) { alert(d.ok ? 'Invite sent to ' + email : 'Failed: ' + (d.error || 'unknown')) })
+    .catch(function() { alert('Failed to send invite.') })
+}
 </script>
 </body>
 </html>

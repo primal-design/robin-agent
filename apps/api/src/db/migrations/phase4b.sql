@@ -12,6 +12,8 @@ ALTER TABLE scheduled_jobs
   ADD COLUMN IF NOT EXISTS last_completed_at   TIMESTAMPTZ;
 
 ALTER TABLE scheduled_jobs
+  DROP CONSTRAINT IF EXISTS sj_exec_mode_check;
+ALTER TABLE scheduled_jobs
   ADD CONSTRAINT sj_exec_mode_check
     CHECK (execution_mode IN ('script_only', 'script_plus_agent', 'agent_only'));
 
@@ -73,6 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_oa_run     ON outbound_actions (job_run_id);
 ALTER TABLE outbound_actions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE outbound_actions FORCE  ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS oa_tenant_isolation ON outbound_actions;
 CREATE POLICY oa_tenant_isolation ON outbound_actions
   USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
 

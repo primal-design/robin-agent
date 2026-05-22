@@ -55,20 +55,6 @@ function appBaseUrl(req: any) {
   return process.env.PUBLIC_APP_URL || `${req.protocol}://${req.get('host')}`
 }
 
-async function sendWhatsAppCode(phone: string, code: string) {
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_WHATSAPP_FROM) throw new Error('Twilio WhatsApp is not configured')
-  const twilio = (await import('twilio')).default
-  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  await client.messages.create({ from: process.env.TWILIO_WHATSAPP_FROM, to: `whatsapp:${phone}`, body: `Your FEN sign-in code is: ${code}. Expires in 10 minutes.` })
-}
-
-async function sendSMSCode(phone: string, code: string) {
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_SMS_FROM) throw new Error('Twilio SMS is not configured')
-  const twilio = (await import('twilio')).default
-  const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  await client.messages.create({ from: process.env.TWILIO_SMS_FROM, to: phone, body: `Your FEN sign-in code is: ${code}. Expires in 10 minutes.` })
-}
-
 async function sendTelegramCode(phone: string, code: string) {
   // Telegram requires a chat_id — we look it up from a stored mapping or inform the user to message the bot first
   const chatId = process.env[`TELEGRAM_CHAT_${phone.replace(/[^0-9]/g, '')}`]
@@ -115,26 +101,17 @@ router.post('/auth/send-code', async (req, res, next) => {
     await db.query(`DELETE FROM auth_codes WHERE phone=$1`, [phone])
     await db.query(`INSERT INTO auth_codes (phone, code) VALUES ($1, $2)`, [phone, code])
 
-    const channel: string = req.body.channel || 'whatsapp'
+    const channel: string = req.body.channel || 'email'
     const failures: string[] = []
 
-    // Try requested channel first
-    if (channel === 'sms') {
-      try { await sendSMSCode(phone, code); return res.json({ ok: true, delivery: 'sms' }) } catch (e) { failures.push(`sms: ${e instanceof Error ? e.message : String(e)}`) }
-    } else if (channel === 'telegram') {
+    if (channel === 'telegram') {
       try { await sendTelegramCode(phone, code); return res.json({ ok: true, delivery: 'telegram' }) } catch (e) { failures.push(`telegram: ${e instanceof Error ? e.message : String(e)}`) }
-    } else if (channel === 'email') {
+    } else {
+      // Default: email
       if (email) {
         try { await sendEmailCode(email, code); return res.json({ ok: true, delivery: 'email', email }) } catch (e) { failures.push(`email: ${e instanceof Error ? e.message : String(e)}`) }
       } else {
         return res.status(400).json({ error: 'email_required', message: 'No email on file. Add your email to use this option.' })
-      }
-    } else {
-      // Default: WhatsApp, fall back to SMS, then email
-      try { await sendWhatsAppCode(phone, code); return res.json({ ok: true, delivery: 'whatsapp' }) } catch (e) { failures.push(`whatsapp: ${e instanceof Error ? e.message : String(e)}`) }
-      try { await sendSMSCode(phone, code); return res.json({ ok: true, delivery: 'sms' }) } catch (e) { failures.push(`sms: ${e instanceof Error ? e.message : String(e)}`) }
-      if (email) {
-        try { await sendEmailCode(email, code); return res.json({ ok: true, delivery: 'email', email }) } catch (e) { failures.push(`email: ${e instanceof Error ? e.message : String(e)}`) }
       }
     }
 

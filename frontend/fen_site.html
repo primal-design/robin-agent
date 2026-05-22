@@ -610,13 +610,12 @@ textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);li
       <div class="si-step" id="si-step-1">
         <div class="si-eyebrow">Verify</div>
         <h2 class="si-title serif">Enter the <em>6-digit code.</em></h2>
-        <p class="si-hint" id="si-sent-hint">Sent via WhatsApp.</p>
+        <p class="si-hint" id="si-sent-hint">Code sent via email.</p>
         <input id="si-otp" class="si-inp si-code" type="number" placeholder="000000"/>
         <!-- Fallback channels — only shown if user needs them -->
         <div class="si-fallback" id="si-fallback">
           <p class="si-fallback-label">Didn't get it?</p>
           <div class="si-fallback-opts">
-            <button class="si-fallback-btn" onclick="siResend('sms')">Send via SMS</button>
             <button class="si-fallback-btn" onclick="siResend('email')">Send to email</button>
             <button class="si-fallback-btn" onclick="siResend('telegram')">Send via Telegram</button>
           </div>
@@ -1064,7 +1063,7 @@ function siGoogleSignIn() {
 function siResend(ch) {
   var phone = localStorage.getItem('fen_signin_phone') || '';
   if (!phone) { siShowStep(0); return; }
-  var labels = { sms: 'SMS', email: 'email', telegram: 'Telegram' };
+  var labels = { email: 'email', telegram: 'Telegram' };
   var label = labels[ch] || ch;
   // Disable all fallback buttons while sending
   var btns = document.querySelectorAll('.si-fallback-btn');
@@ -1090,7 +1089,7 @@ function siStep1() {
   var phone = tel.value.trim();
   var b0 = document.getElementById('si-btn-0'); if (b0) b0.disabled = true;
   localStorage.setItem('fen_signin_phone', phone);
-  api('POST', '/auth/send-code', { phone: phone, channel: 'whatsapp' }).then(function(data) {
+  api('POST', '/auth/send-code', { phone: phone, channel: 'email' }).then(function(data) {
     if (data && data.error === 'not_accepted') {
       var err = document.getElementById('si-error');
       if (err) { err.textContent = "This number doesn't have access yet."; err.style.display = 'block'; }
@@ -1099,8 +1098,8 @@ function siStep1() {
     }
     var err = document.getElementById('si-error');
     if (err) err.style.display = 'none';
-    var delivery = (data && data.delivery) || 'whatsapp';
-    var deliveryLabel = { whatsapp: 'WhatsApp', sms: 'SMS', email: 'email', telegram: 'Telegram' }[delivery] || delivery;
+    var delivery = (data && data.delivery) || 'email';
+    var deliveryLabel = { email: 'email', telegram: 'Telegram' }[delivery] || delivery;
     var h = document.getElementById('si-sent-hint');
     if (h) h.textContent = 'Code sent via ' + deliveryLabel + '.';
     siShowStep(1);

@@ -40,23 +40,27 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
     const { db } = await import('../db/client.js')
     await db.query(`UPDATE waitlist SET status=$1 WHERE phone=$2`, [status, phone])
 
-    // If accepting, try to notify them via WhatsApp
+    // If accepting, notify via email
     if (status === 'accepted') {
       try {
-        const row = await db.query(`SELECT name FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
-        const name = row.rows[0]?.name || 'there'
-        if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM) {
-          const twilio = (await import('twilio')).default
-          const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-          const appUrl = process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'
-          await client.messages.create({
-            from: process.env.TWILIO_WHATSAPP_FROM,
-            to: `whatsapp:${phone}`,
-            body: `Hey ${name}! 🎉 You're in — FEN is ready for you.\n\nSign in here: ${appUrl}/frontend/fen_site.html`
+        const row = await db.query(`SELECT name, email FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+        const name  = row.rows[0]?.name  || 'there'
+        const email = row.rows[0]?.email || ''
+        if (email && process.env.RESEND_API_KEY) {
+          const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
+          await fetch('https://api.resend.com/emails', {
+            method:  'POST',
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from:    process.env.AUTH_EMAIL_FROM || 'FEN <no-reply@robin-agent.onrender.com>',
+              to:      email,
+              subject: "You're in — FEN is ready for you",
+              text:    `Hey ${name}!\n\nYou've been accepted. Sign in here:\n${appUrl}/frontend/fen_site.html\n\n— The FEN team`,
+            }),
           })
         }
       } catch (e) {
-        console.warn('[admin] WhatsApp notify failed:', e instanceof Error ? e.message : e)
+        console.warn('[admin] email notify failed:', e instanceof Error ? e.message : e)
       }
     }
 
@@ -67,18 +71,20 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
 router.post('/admin/waitlist/notify', async (req, res, next) => {
   if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' })
   try {
-    const { phone, name } = req.body
+    const { phone, name, email } = req.body
     if (!phone) return res.status(400).json({ error: 'phone_required' })
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_WHATSAPP_FROM) {
-      return res.status(502).json({ error: 'twilio_not_configured' })
-    }
-    const twilio = (await import('twilio')).default
-    const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-    const appUrl = process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'
-    await client.messages.create({
-      from: process.env.TWILIO_WHATSAPP_FROM,
-      to: `whatsapp:${phone}`,
-      body: `Hey ${name || 'there'}! 🎉 Your FEN access is ready.\n\nSign in here: ${appUrl}/frontend/fen_site.html`
+    if (!email)  return res.status(400).json({ error: 'email_required' })
+    if (!process.env.RESEND_API_KEY) return res.status(502).json({ error: 'email_not_configured' })
+    const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
+    await fetch('https://api.resend.com/emails', {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from:    process.env.AUTH_EMAIL_FROM || 'FEN <no-reply@robin-agent.onrender.com>',
+        to:      email,
+        subject: "You're in — FEN is ready for you",
+        text:    `Hey ${name || 'there'}!\n\nYour FEN access is ready. Sign in here:\n${appUrl}/frontend/fen_site.html\n\n— The FEN team`,
+      }),
     })
     res.json({ ok: true })
   } catch (err) { next(err) }

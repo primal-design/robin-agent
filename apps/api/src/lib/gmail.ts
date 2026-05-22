@@ -85,6 +85,40 @@ export async function sendEmail(tokens: any, { to, subject, body, threadId }: { 
   await gmail.users.messages.send({ userId: 'me', requestBody: { raw: encoded, ...(threadId ? { threadId } : {}) } })
 }
 
+// Read-only auth URL for connector grants (no send/modify scopes)
+export function getConnectorAuthUrl(state: string, redirectUri: string) {
+  const client = new google.auth.OAuth2(
+    env.gmailClientId,
+    env.gmailClientSecret,
+    redirectUri
+  )
+  return client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    state,
+    scope: ['https://www.googleapis.com/auth/gmail.readonly'],
+  })
+}
+
+// Refresh an expired access token using the stored refresh token.
+// Returns the updated token set; caller must persist the new access_token + expiry.
+export async function refreshConnectorTokens(
+  refreshToken: string,
+  redirectUri: string
+): Promise<{ access_token: string; expiry_date: number }> {
+  const client = new google.auth.OAuth2(
+    env.gmailClientId,
+    env.gmailClientSecret,
+    redirectUri
+  )
+  client.setCredentials({ refresh_token: refreshToken })
+  const { credentials } = await client.refreshAccessToken()
+  return {
+    access_token: credentials.access_token ?? '',
+    expiry_date:  credentials.expiry_date ?? (Date.now() + 3600 * 1000),
+  }
+}
+
 export async function getEmailProfile(tokens: any) {
   const gmail = gmailClient(tokens)
   const p = await gmail.users.getProfile({ userId: 'me' })

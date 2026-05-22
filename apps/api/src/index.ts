@@ -4,12 +4,16 @@ import { createApp } from './app.js'
 import { ensureParaTables } from './memory/para.js'
 import './queues/worker.js'
 import { runDataRetention } from './jobs/dataRetention.js'
-import { startDispatcher } from './services/scheduler.js'
+import { startDispatcher }        from './services/scheduler.js'
+import { startConnectorScheduler } from './services/connectorScheduler.js'
+import { startEmbeddingWorker }    from './services/embeddingWorker.js'
 
 assertRequired()
 
 ensureParaTables().catch(err => console.warn('PARA tables init failed:', err))
 startDispatcher().catch(err => console.warn('[scheduler] dispatcher start failed:', err))
+startConnectorScheduler()
+startEmbeddingWorker()
 
 const app = createApp()
 

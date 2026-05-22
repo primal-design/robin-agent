@@ -132,6 +132,32 @@ export async function requireEditor(req: Request, res: Response, next: NextFunct
   }
 }
 
+// assertTenantAccess — verify that a phone number has access to a given tenant.
+// Checks via users+memberships first; falls back to allowing platform editors
+// on the DEFAULT_TENANT when memberships are not yet populated (single-tenant setup).
+// Returns true if access is granted, false otherwise.
+export async function assertTenantAccess(phone: string, tenantId: string): Promise<boolean> {
+  // Primary check: explicit membership
+  const memberRes = await pool.query(
+    `SELECT 1 FROM memberships m JOIN users u ON u.id = m.user_id
+     WHERE u.phone_e164 = $1 AND m.tenant_id = $2 LIMIT 1`,
+    [phone, tenantId]
+  )
+  if (memberRes.rows.length > 0) return true
+
+  // Fallback: allow platform-level editors access to DEFAULT_TENANT only.
+  // This covers single-tenant deployments where memberships are not populated.
+  const defaultTenantId = process.env.DEFAULT_TENANT_ID ?? ''
+  if (tenantId !== defaultTenantId) return false
+
+  const waitlistRes = await pool.query(
+    `SELECT role FROM waitlist WHERE phone = $1
+     AND role IN ('admin', 'editor', 'owner') LIMIT 1`,
+    [phone]
+  )
+  return waitlistRes.rows.length > 0
+}
+
 export function phoneFromBearer(authorization = '') {
   const token = authorization.replace(/^Bearer\s+/i, '').trim()
   if (!token) return ''
