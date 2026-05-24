@@ -86,74 +86,85 @@ export function verifyRtToken(raw: string): { phone: string; type: string } | nu
 
 // ── Token extraction — accepts both formats ───────────────────────────────────
 
-function extractPhone(authorization: string): string | null {
+function extractIdentity(authorization: string): string | null {
   const token = authorization.replace(/^Bearer\s+/i, '').trim()
   if (!token) return null
   if (token.startsWith('rt_')) return verifyRtToken(token)?.phone ?? null
   return verifySessionToken(token)?.phone ?? null
 }
 
+// Role lookup that handles both phone-based and email-based identities.
+// Email identities are stored as "email:user@example.com" in the token's phone field.
+async function getRoleByIdentity(identity: string): Promise<string> {
+  try {
+    if (identity.startsWith('email:')) {
+      const email = identity.slice(6)
+      const r = await pool.query(`SELECT role FROM waitlist WHERE LOWER(email)=$1 LIMIT 1`, [email])
+      return r.rows[0]?.role || 'user'
+    }
+    const r = await pool.query(`SELECT role FROM waitlist WHERE phone=$1 LIMIT 1`, [identity])
+    return r.rows[0]?.role || 'user'
+  } catch {
+    return 'user'
+  }
+}
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const phone = extractPhone(req.headers.authorization || '')
-  if (!phone) return res.status(401).json({ error: 'authentication_required' })
-  req.actor = { phone, role: 'user' }
+  const identity = extractIdentity(req.headers.authorization || '')
+  if (!identity) return res.status(401).json({ error: 'authentication_required' })
+  req.actor = { phone: identity, role: 'user' }
   next()
 }
 
-// Looks up role from DB and attaches to req.actor; falls back to 'user' if lookup fails
 export async function requireAuthWithRole(req: Request, res: Response, next: NextFunction) {
-  const phone = extractPhone(req.headers.authorization || '')
-  if (!phone) return res.status(401).json({ error: 'authentication_required' })
-  try {
-    const r = await pool.query(`SELECT role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
-    req.actor = { phone, role: r.rows[0]?.role || 'user' }
-  } catch {
-    req.actor = { phone, role: 'user' }
-  }
+  const identity = extractIdentity(req.headers.authorization || '')
+  if (!identity) return res.status(401).json({ error: 'authentication_required' })
+  const role = await getRoleByIdentity(identity)
+  req.actor = { phone: identity, role }
   next()
 }
 
-// Require admin or editor role for mutating dashboard routes
 export async function requireEditor(req: Request, res: Response, next: NextFunction) {
-  const phone = extractPhone(req.headers.authorization || '')
-  if (!phone) return res.status(401).json({ error: 'authentication_required' })
-  try {
-    const r = await pool.query(`SELECT role FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
-    const role: string = r.rows[0]?.role || 'user'
-    if (!['admin', 'editor', 'owner'].includes(role)) {
-      return res.status(403).json({ error: 'insufficient_permission', required: 'editor' })
-    }
-    req.actor = { phone, role }
-    next()
-  } catch (err) {
-    next(err)
+  const identity = extractIdentity(req.headers.authorization || '')
+  if (!identity) return res.status(401).json({ error: 'authentication_required' })
+  const role = await getRoleByIdentity(identity)
+  if (!['admin', 'editor', 'owner'].includes(role)) {
+    return res.status(403).json({ error: 'insufficient_permission', required: 'editor' })
   }
+  req.actor = { phone: identity, role }
+  next()
 }
 
-// assertTenantAccess — verify that a phone number has access to a given tenant.
-// Checks via users+memberships first; falls back to allowing platform editors
-// on the DEFAULT_TENANT when memberships are not yet populated (single-tenant setup).
-// Returns true if access is granted, false otherwise.
-export async function assertTenantAccess(phone: string, tenantId: string): Promise<boolean> {
-  // Primary check: explicit membership
+// assertTenantAccess — verify that an identity has access to a given tenant.
+export async function assertTenantAccess(identity: string, tenantId: string): Promise<boolean> {
+  const defaultTenantId = process.env.DEFAULT_TENANT_ID ?? ''
+
+  if (identity.startsWith('email:')) {
+    // Email-based identities: check waitlist role for default tenant access
+    if (tenantId !== defaultTenantId) return false
+    const email = identity.slice(6)
+    const r = await pool.query(
+      `SELECT 1 FROM waitlist WHERE LOWER(email)=$1 AND role IN ('admin','editor','owner') LIMIT 1`,
+      [email]
+    )
+    return r.rows.length > 0
+  }
+
+  // Phone-based: explicit membership check first
   const memberRes = await pool.query(
     `SELECT 1 FROM memberships m JOIN users u ON u.id = m.user_id
      WHERE u.phone_e164 = $1 AND m.tenant_id = $2 LIMIT 1`,
-    [phone, tenantId]
+    [identity, tenantId]
   )
   if (memberRes.rows.length > 0) return true
 
-  // Fallback: allow platform-level editors access to DEFAULT_TENANT only.
-  // This covers single-tenant deployments where memberships are not populated.
-  const defaultTenantId = process.env.DEFAULT_TENANT_ID ?? ''
+  // Fallback: platform-level editors on DEFAULT_TENANT
   if (tenantId !== defaultTenantId) return false
-
   const waitlistRes = await pool.query(
-    `SELECT role FROM waitlist WHERE phone = $1
-     AND role IN ('admin', 'editor', 'owner') LIMIT 1`,
-    [phone]
+    `SELECT role FROM waitlist WHERE phone = $1 AND role IN ('admin','editor','owner') LIMIT 1`,
+    [identity]
   )
   return waitlistRes.rows.length > 0
 }

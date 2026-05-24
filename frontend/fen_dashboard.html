@@ -451,15 +451,8 @@ nav.sb-nav{padding:12px 0;flex:1}
   <div class="view-top">
     <div><h1 class="view-title serif">Action history</h1><div class="view-sub">Everything FEN has done — approved, denied, or auto-handled.</div></div>
   </div>
-  <div class="card"><div class="card-label">This week</div><div class="card-body" style="font-size:13px">23 actions · 19 approved · 2 denied · 2 auto</div></div>
-  <div style="margin-top:20px">
-    <!-- history loaded dynamically -->
-    <div class="hist-row"><div class="hist-icon" style="background:var(--redl)">🚫</div><div class="hist-body"><div class="hist-title">Meeting invite to Mike — Thursday 4pm</div><div class="hist-meta">Yesterday 16:02 · You denied</div></div><span class="hist-status denied">Denied</span></div>
-    <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">📧</div><div class="hist-body"><div class="hist-title">Response to Sophie — confirmed Thursday 10am</div><div class="hist-meta">Yesterday 14:30 · You approved</div></div><span class="hist-status sent">Sent</span></div>
-    <div class="hist-row"><div class="hist-icon" style="background:var(--ambl)">📋</div><div class="hist-body"><div class="hist-title">Meeting brief — Sophie / Design review</div><div class="hist-meta">Yesterday 09:00 · Auto-prepared</div></div><span class="hist-status auto">Auto</span></div>
-    <div class="hist-row"><div class="hist-icon" style="background:var(--greenl)">📧</div><div class="hist-body"><div class="hist-title">New business intro to Pixel Agency</div><div class="hist-meta">Mon 11:45 · You approved · edited draft</div></div><span class="hist-status sent">Sent</span></div>
-    <div class="hist-row"><div class="hist-icon" style="background:var(--redl)">🚫</div><div class="hist-body"><div class="hist-title">Invoice chase — Greenfield LLC</div><div class="hist-meta">Mon 10:00 · You denied (handling manually)</div></div><span class="hist-status denied">Denied</span></div>
-  </div>
+  <div id="history-summary" class="card" style="display:none"><div class="card-label">This week</div><div id="history-summary-body" class="card-body" style="font-size:13px"></div></div>
+  <div id="history-list" style="margin-top:20px"><div class="empty-state"><h3>Loading…</h3></div></div>
 </div>
 
 <!-- SETTINGS / PERMISSIONS VIEW -->
@@ -912,6 +905,7 @@ function showView(id) {
   if (id === 'activity') { loadActivity(); }
   if (id === 'workers')     { loadWorkers(); }
   if (id === 'connectors')  { loadConnectors(); }
+  if (id === 'history')     { loadHistory(); }
   if (id === 'limits')      { loadLimits(); }
   if (id === 'waitlist')    { loadWaitlist(); }
 }
@@ -1680,6 +1674,69 @@ function loadActivity() {
   });
 }
 
+function loadHistory() {
+  if (!WORKER_ID) { setTimeout(loadHistory, 400); return; }
+  api('GET', '/activity?worker_id=' + WORKER_ID + '&limit=100').then(function(data) {
+    if (!data) return;
+    var items = data.items || data;
+    var list = document.getElementById('history-list');
+    var summary = document.getElementById('history-summary');
+    var summaryBody = document.getElementById('history-summary-body');
+    if (!list) return;
+    if (!items.length) {
+      list.innerHTML = '<div class="empty-state"><h3>Nothing yet.</h3><p>Activity appears here as FEN runs jobs, learns, and sends messages.</p></div>';
+      if (summary) summary.style.display = 'none';
+      return;
+    }
+    var now = new Date();
+    var weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    var weekItems = items.filter(function(i) { return new Date(i.created_at) > weekAgo; });
+    var jobRuns = weekItems.filter(function(i) { return i._type === 'job_run'; });
+    var completed = jobRuns.filter(function(i) { return i.status === 'completed'; }).length;
+    var failed = jobRuns.filter(function(i) { return i.status === 'failed'; }).length;
+    var memEvents = weekItems.filter(function(i) { return i._type === 'memory_event'; }).length;
+    if (summary && summaryBody && weekItems.length) {
+      summaryBody.textContent = weekItems.length + ' events this week · ' + completed + ' jobs completed' + (failed ? ' · ' + failed + ' failed' : '') + (memEvents ? ' · ' + memEvents + ' memory events' : '');
+      summary.style.display = '';
+    }
+    list.innerHTML = items.map(function(item) {
+      var time = new Date(item.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      if (item._type === 'job_run') {
+        var statusCls = item.status === 'completed' ? 'sent' : item.status === 'failed' ? 'denied' : 'auto';
+        var body = item.status === 'failed' && item.error
+          ? item.error.slice(0,120)
+          : (item.output ? item.output.slice(0,120) + (item.output.length>120?'…':'') : '(no output)');
+        return '<div class="hist-row">' +
+          '<div class="hist-icon" style="background:var(--bg);font-size:13px">⚙</div>' +
+          '<div class="hist-body">' +
+            '<div class="hist-title">' + (item.job_name||'Scheduled job') + '</div>' +
+            '<div style="font-size:12px;color:var(--ink2);margin:2px 0;font-weight:300">' + body + '</div>' +
+            '<div class="hist-meta">' + time + '</div>' +
+          '</div>' +
+          '<span class="hist-status ' + statusCls + '">' + item.status + '</span>' +
+        '</div>';
+      }
+      if (item._type === 'memory_event') {
+        var actionColor = {created:'var(--green)',promoted:'var(--green)',updated:'var(--amber)',rejected:'var(--red)',security_flagged:'var(--red)'}[item.action] || 'var(--ink3)';
+        var afterVal = '';
+        if (item.after_value) {
+          try { var v = JSON.parse(item.after_value); afterVal = typeof v === 'string' ? v : JSON.stringify(v); } catch(e){ afterVal = String(item.after_value); }
+          afterVal = afterVal.slice(0,80);
+        }
+        return '<div class="hist-row">' +
+          '<div class="hist-icon" style="background:var(--bg);font-size:13px">🧠</div>' +
+          '<div class="hist-body">' +
+            '<div class="hist-title" style="color:' + actionColor + '">' + (item.action||'memory') + (item.memory_key ? ' · ' + item.memory_key : '') + '</div>' +
+            (afterVal ? '<div style="font-size:12px;color:var(--ink2);margin:2px 0;font-weight:300">' + afterVal + '</div>' : '') +
+            '<div class="hist-meta">' + time + '</div>' +
+          '</div>' +
+        '</div>';
+      }
+      return '<div class="hist-row"><div class="hist-body"><div class="hist-title">' + (item.action||item._type||'event') + '</div><div class="hist-meta">' + time + '</div></div></div>';
+    }).join('');
+  });
+}
+
 function renderActivity() {
   var list = document.getElementById('activity-list');
   if (!list) return;
@@ -1764,7 +1821,7 @@ function connectorFlash(msg, ok) {
 }
 
 function loadConnectors() {
-  if (!WORKER_ID) return;
+  if (!WORKER_ID) { setTimeout(loadConnectors, 400); return; }
   api('GET', '/connectors?worker_id=' + WORKER_ID).then(function(data) {
     renderGrants(data.grants || []);
     renderCatalogue(data.catalogue || []);
@@ -2090,17 +2147,18 @@ function renderWaitlistRows(rows) {
   }
   el.innerHTML = filtered.map(function(r) {
     var statusColor = r.status === 'accepted' ? 'var(--green,#16a34a)' : r.status === 'rejected' ? '#ef4444' : '#B07B1A'
+    var email = r.email || ''
     var actions = r.status === 'pending'
-      ? '<button class="ac-btn approve" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'accepted\')" style="font-size:11px;padding:5px 12px">Accept</button>' +
-        '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'rejected\')" style="font-size:11px;padding:5px 12px;color:#b91c1c;border-color:#fecaca">Reject</button>'
+      ? '<button class="ac-btn approve" onclick="wlUpdate(\'' + escJs(email) + '\',\'accepted\')" style="font-size:11px;padding:5px 12px">Accept</button>' +
+        '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(email) + '\',\'rejected\')" style="font-size:11px;padding:5px 12px;color:#b91c1c;border-color:#fecaca">Reject</button>'
       : r.status === 'accepted'
-        ? '<button class="ac-btn" onclick="wlNotify(\'' + escJs(r.phone) + '\',\'' + escJs(r.name||'') + '\',\'' + escJs(r.email||'') + '\')" style="font-size:11px;padding:5px 12px">Resend invite</button>' +
-          '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'pending\')" style="font-size:11px;padding:5px 12px">Revoke</button>'
-        : '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(r.phone) + '\',\'accepted\')" style="font-size:11px;padding:5px 12px">Accept</button>'
+        ? '<button class="ac-btn" onclick="wlNotify(\'' + escJs(r.name||'') + '\',\'' + escJs(email) + '\')" style="font-size:11px;padding:5px 12px">Resend invite</button>' +
+          '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(email) + '\',\'pending\')" style="font-size:11px;padding:5px 12px">Revoke</button>'
+        : '<button class="ac-btn" onclick="wlUpdate(\'' + escJs(email) + '\',\'accepted\')" style="font-size:11px;padding:5px 12px">Accept</button>'
     return '<div style="background:var(--card);border:.5px solid var(--rule2);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px">' +
       '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:14px;font-weight:500">' + escJs(r.name || 'Unknown') + ' <span style="color:var(--ink3);font-size:12px;font-weight:400">' + escJs(r.phone) + '</span></div>' +
-        (r.email ? '<div style="font-size:12px;color:var(--ink3);margin-top:2px">' + escJs(r.email) + '</div>' : '') +
+        '<div style="font-size:14px;font-weight:500">' + escJs(r.name || 'Unknown') + '</div>' +
+        '<div style="font-size:12px;color:var(--ink3);margin-top:2px">' + escJs(email || '—') + '</div>' +
         '<div style="font-size:11px;color:var(--ink3);margin-top:4px">' + timeAgo(r.submitted_at) + ' · <span style="color:' + statusColor + '">' + r.status + '</span></div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0">' + actions + '</div>' +
@@ -2108,25 +2166,25 @@ function renderWaitlistRows(rows) {
   }).join('')
 }
 
-function wlUpdate(phone, status) {
+function wlUpdate(email, status) {
   var secret = getAdminSecret()
   if (!secret) return
   fetch('/admin/waitlist/update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
-    body: JSON.stringify({ phone: phone, status: status })
+    body: JSON.stringify({ email: email, status: status })
   }).then(function() { loadWaitlist() })
     .catch(function() { alert('Update failed.') })
 }
 
-function wlNotify(phone, name, email) {
+function wlNotify(name, email) {
   var secret = getAdminSecret()
   if (!secret) return
   if (!email) { alert('No email on file for this user.'); return }
   fetch('/admin/waitlist/notify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
-    body: JSON.stringify({ phone: phone, name: name, email: email })
+    body: JSON.stringify({ name: name, email: email })
   }).then(function(r) { return r.json() })
     .then(function(d) { alert(d.ok ? 'Invite sent to ' + email : 'Failed: ' + (d.error || 'unknown')) })
     .catch(function() { alert('Failed to send invite.') })

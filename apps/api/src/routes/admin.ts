@@ -2,14 +2,12 @@ import { Router } from 'express'
 
 const router = Router()
 
-// Simple password guard via header or query
 function isAuthorized(req: any) {
   const secret = process.env.ADMIN_SECRET || 'fen-admin-2026'
   const pw = req.headers['x-admin-secret'] || req.query.secret
   return pw === secret
 }
 
-// Client-side password check hits this lightweight route first
 router.post('/admin/auth', (req, res) => {
   const secret = process.env.ADMIN_SECRET || 'fen-admin-2026'
   if (req.body.password === secret) return res.json({ ok: true })
@@ -21,10 +19,10 @@ router.get('/admin/waitlist', async (req, res, next) => {
   try {
     const { db } = await import('../db/client.js')
     const result = await db.query(`
-      SELECT request_id, name, phone, email, role, status,
-             created_at AS submitted_at
+      SELECT request_id, name, email, role, status,
+             COALESCE(submitted_at, created_at) AS submitted_at
       FROM waitlist
-      ORDER BY created_at DESC
+      ORDER BY COALESCE(submitted_at, created_at) DESC
     `)
     res.json({ ok: true, rows: result.rows })
   } catch (err) { next(err) }
@@ -33,29 +31,28 @@ router.get('/admin/waitlist', async (req, res, next) => {
 router.post('/admin/waitlist/update', async (req, res, next) => {
   if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' })
   try {
-    const { phone, status } = req.body
-    if (!phone || !['accepted', 'rejected', 'pending'].includes(status)) {
+    const { email, status } = req.body
+    if (!email || !['accepted', 'rejected', 'pending'].includes(status)) {
       return res.status(400).json({ error: 'invalid_params' })
     }
     const { db } = await import('../db/client.js')
-    await db.query(`UPDATE waitlist SET status=$1 WHERE phone=$2`, [status, phone])
+    await db.query(`UPDATE waitlist SET status=$1 WHERE LOWER(email)=$2`, [status, email.toLowerCase()])
 
-    // If accepting, notify via email
     if (status === 'accepted') {
       try {
-        const row = await db.query(`SELECT name, email FROM waitlist WHERE phone=$1 LIMIT 1`, [phone])
+        const row = await db.query(`SELECT name, email FROM waitlist WHERE LOWER(email)=$1 LIMIT 1`, [email.toLowerCase()])
         const name  = row.rows[0]?.name  || 'there'
-        const email = row.rows[0]?.email || ''
-        if (email && process.env.RESEND_API_KEY) {
+        const email2 = row.rows[0]?.email || ''
+        if (email2 && process.env.RESEND_API_KEY) {
           const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
           await fetch('https://api.resend.com/emails', {
             method:  'POST',
             headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              from:    process.env.AUTH_EMAIL_FROM || 'FEN <no-reply@robin-agent.onrender.com>',
-              to:      email,
+              from:    process.env.AUTH_EMAIL_FROM || 'FEN <onboarding@resend.dev>',
+              to:      email2,
               subject: "You're in — FEN is ready for you",
-              text:    `Hey ${name}!\n\nYou've been accepted. Sign in here:\n${appUrl}/frontend/fen_site.html\n\n— The FEN team`,
+              text:    `Hey ${name}!\n\nYou've been accepted into FEN. Sign in here:\n${appUrl}/frontend/fen_site.html\n\n— The FEN team`,
             }),
           })
         }
@@ -71,16 +68,15 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
 router.post('/admin/waitlist/notify', async (req, res, next) => {
   if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' })
   try {
-    const { phone, name, email } = req.body
-    if (!phone) return res.status(400).json({ error: 'phone_required' })
-    if (!email)  return res.status(400).json({ error: 'email_required' })
+    const { name, email } = req.body
+    if (!email) return res.status(400).json({ error: 'email_required' })
     if (!process.env.RESEND_API_KEY) return res.status(502).json({ error: 'email_not_configured' })
     const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
     await fetch('https://api.resend.com/emails', {
       method:  'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from:    process.env.AUTH_EMAIL_FROM || 'FEN <no-reply@robin-agent.onrender.com>',
+        from:    process.env.AUTH_EMAIL_FROM || 'FEN <onboarding@resend.dev>',
         to:      email,
         subject: "You're in — FEN is ready for you",
         text:    `Hey ${name || 'there'}!\n\nYour FEN access is ready. Sign in here:\n${appUrl}/frontend/fen_site.html\n\n— The FEN team`,
