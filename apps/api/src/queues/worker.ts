@@ -305,20 +305,20 @@ function handleTelegramOnboarding(state: Record<string, unknown>, userMessage: s
   if (step === 1) {
     const updated = applyOnboardingAnswer(profile, 1, userMessage)
     setProfile(state, { ...updated, onboarding_step: 2 })
-    return onboardingQuestion(2, updated)
+    return `Got it, I'll keep that in mind!\n\nAre you doing this solo, with others, or is it work-related?`
   }
 
   if (step === 2) {
     const updated = applyOnboardingAnswer(profile, 2, userMessage)
     setProfile(state, { ...updated, onboarding_step: 3 })
-    return onboardingQuestion(3, updated)
+    return `Perfect. Last one — are you more of a morning person or do you get going later in the day?`
   }
 
   if (step === 3) {
     const updated = applyOnboardingAnswer(profile, 3, userMessage)
     setProfile(state, { ...updated, onboarding_completed: true })
     const name = updated.name ? ` ${updated.name.split(' ')[0]}` : ''
-    return `Perfect${name}, I'm all set. What can I help you with today?`
+    return `Great, all set${name}! I've got everything I need.\n\nSo — ${updated.main_goal || 'how can I help you today'}?`
   }
 
   return null
