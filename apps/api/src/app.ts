@@ -15,6 +15,7 @@ import chatRouter         from './routes/chat.js'
 import gmailRouter        from './routes/gmail.js'
 import authRouter         from './routes/auth.js'
 import adminRouter        from './routes/admin.js'
+import provisionRouter    from './routes/provision.js'
 import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } from './middleware/rateLimit.js'
 import toolsRouter from './routes/tools.js'
 import goalsRouter from './routes/goals.js'
@@ -22,6 +23,7 @@ import schedulerRouter from './routes/scheduler.js'
 import memoryRouter from './routes/memory.js'
 import activityRouter from './routes/activity.js'
 import connectorsRouter from './routes/connectors.js'
+import playbooksRouter  from './routes/playbooks.js'
 
 export function createApp() {
   const app = express()
@@ -100,6 +102,7 @@ export function createApp() {
   // ── Routes ────────────────────────────────────────────────────────────
   app.use('/', authRouter)
   app.use('/', adminRouter)
+  app.use('/', provisionRouter)
   app.use('/', agentRouter)
   app.use('/', toolsRouter)
   app.use('/', goalsRouter)
@@ -107,6 +110,7 @@ export function createApp() {
   app.use('/', memoryRouter)
   app.use('/', activityRouter)
   app.use('/', connectorsRouter)
+  app.use('/', playbooksRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
   app.use('/', approvalsRouter)

@@ -294,9 +294,17 @@ nav.sb-nav{padding:12px 0;flex:1}
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 4l4 4-4 4"/><circle cx="3" cy="8" r="1.5"/><circle cx="13" cy="8" r="1.5"/></svg>
       Connectors
     </div>
+    <div class="sb-link" onclick="showView('playbooks')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M6 6h4M6 9h4M6 12h2"/></svg>
+      Playbooks
+    </div>
     <div class="sb-link" onclick="showView('waitlist')">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="5" r="2.5"/><path d="M2 13c0-3 2.5-5 6-5s6 2 6 5"/></svg>
       Waitlist <span class="app-nav-badge" id="waitlist-badge" style="display:none"></span>
+    </div>
+    <div class="sb-link" onclick="showView('clients')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><path d="M5 7h6M5 10h4"/></svg>
+      Clients
     </div>
     <div class="sb-section">Config</div>
     <div class="sb-link" onclick="showView('limits')">
@@ -774,6 +782,81 @@ nav.sb-nav{padding:12px 0;flex:1}
   <div id="waitlist-list"><div class="empty-state"><p>Loading…</p></div></div>
 </div>
 
+<div class="view" id="view-clients">
+  <div class="view-top">
+    <div>
+      <div class="view-title">Clients</div>
+      <div class="view-sub">Provision and manage client workspaces</div>
+    </div>
+    <button class="ac-btn approve" onclick="showProvisionForm()">+ Provision client</button>
+  </div>
+
+  <!-- Provision form -->
+  <div id="provision-form" style="display:none;background:var(--card);border:.5px solid var(--rule2);padding:24px;margin-bottom:28px">
+    <div style="font-size:13px;font-weight:600;margin-bottom:16px">New client workspace</div>
+    <div style="display:grid;gap:12px;max-width:480px">
+      <div>
+        <label style="font-size:11px;color:var(--ink3);display:block;margin-bottom:4px">Full name</label>
+        <input id="prov-name" type="text" placeholder="e.g. Acme Ltd" style="width:100%;box-sizing:border-box;padding:9px 12px;background:var(--bg);border:.5px solid var(--rule2);color:var(--ink1);font-size:13px;font-family:inherit">
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--ink3);display:block;margin-bottom:4px">Email</label>
+        <input id="prov-email" type="email" placeholder="owner@client.com" style="width:100%;box-sizing:border-box;padding:9px 12px;background:var(--bg);border:.5px solid var(--rule2);color:var(--ink1);font-size:13px;font-family:inherit">
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="flex:1">
+          <label style="font-size:11px;color:var(--ink3);display:block;margin-bottom:4px">Plan</label>
+          <select id="prov-plan" style="width:100%;padding:9px 12px;background:var(--bg);border:.5px solid var(--rule2);color:var(--ink1);font-size:13px;font-family:inherit">
+            <option value="starter">Starter</option>
+            <option value="growth">Growth</option>
+            <option value="pro">Pro</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <label style="font-size:11px;color:var(--ink3);display:block;margin-bottom:4px">Type</label>
+          <select id="prov-type" style="width:100%;padding:9px 12px;background:var(--bg);border:.5px solid var(--rule2);color:var(--ink1);font-size:13px;font-family:inherit">
+            <option value="client">Client</option>
+            <option value="builder">Builder</option>
+            <option value="agency">Agency</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="prov-result" style="display:none;margin-top:16px;padding:12px 16px;background:var(--greenl,#f0fdf4);border:.5px solid var(--green,#16a34a);font-size:13px"></div>
+    <div id="prov-error" style="display:none;margin-top:16px;padding:12px 16px;background:#fef2f2;border:.5px solid #fecaca;font-size:13px;color:#b91c1c"></div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="ac-btn approve" id="prov-submit" onclick="submitProvision()">Provision workspace</button>
+      <button class="ac-btn" onclick="hideProvisionForm()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Client list -->
+  <div id="clients-list"><div class="empty-state"><p>Loading…</p></div></div>
+</div>
+
+<div class="view" id="view-playbooks">
+  <div class="view-top">
+    <div>
+      <div class="view-title">Playbooks</div>
+      <div class="view-sub">Official Fen workflows — install one to get started</div>
+    </div>
+  </div>
+  <div id="playbooks-list"><div class="empty-state"><p>Loading…</p></div></div>
+
+  <!-- Intake modal -->
+  <div id="intake-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center">
+    <div style="background:var(--card);border:.5px solid var(--rule2);padding:32px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto">
+      <div id="intake-title" style="font-size:15px;font-weight:600;margin-bottom:4px"></div>
+      <div id="intake-sub" style="font-size:12px;color:var(--ink3);margin-bottom:24px"></div>
+      <div id="intake-fields" style="display:grid;gap:14px"></div>
+      <div style="display:flex;gap:10px;margin-top:24px">
+        <button class="ac-btn approve" onclick="submitIntake()">Activate playbook</button>
+        <button class="ac-btn" onclick="closeIntake()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </div><!-- end main -->
 </div><!-- end shell -->
 
@@ -908,6 +991,7 @@ function showView(id) {
   if (id === 'history')     { loadHistory(); }
   if (id === 'limits')      { loadLimits(); }
   if (id === 'waitlist')    { loadWaitlist(); }
+  if (id === 'clients')     { loadClients(); }
 }
 
 /* ═══ DATE ═══ */
@@ -921,6 +1005,7 @@ function showView(id) {
   document.getElementById('view-' + id).classList.add('on');
   document.querySelector('.sb-link[onclick="showView(\'' + id + '\')"]').classList.add('on');
   window.scrollTo({ top: 0 });
+  if (id === 'playbooks') loadPlaybooks();
 }
 
 /* ═══ ACTION CARDS ═══ */
@@ -2188,6 +2273,243 @@ function wlNotify(name, email) {
   }).then(function(r) { return r.json() })
     .then(function(d) { alert(d.ok ? 'Invite sent to ' + email : 'Failed: ' + (d.error || 'unknown')) })
     .catch(function() { alert('Failed to send invite.') })
+}
+
+/* ═══ CLIENTS / PROVISIONING ═══ */
+
+function showProvisionForm() {
+  var f = document.getElementById('provision-form')
+  if (f) { f.style.display = 'block'; document.getElementById('prov-name').focus() }
+  document.getElementById('prov-result').style.display = 'none'
+  document.getElementById('prov-error').style.display = 'none'
+}
+
+function hideProvisionForm() {
+  var f = document.getElementById('provision-form')
+  if (f) f.style.display = 'none'
+  document.getElementById('prov-name').value = ''
+  document.getElementById('prov-email').value = ''
+}
+
+function submitProvision() {
+  var secret = getAdminSecret()
+  if (!secret) return
+  var name  = (document.getElementById('prov-name').value || '').trim()
+  var email = (document.getElementById('prov-email').value || '').trim()
+  var plan  = document.getElementById('prov-plan').value
+  var type  = document.getElementById('prov-type').value
+  if (!name || !email) { alert('Name and email are required.'); return }
+  var btn = document.getElementById('prov-submit')
+  if (btn) { btn.disabled = true; btn.textContent = 'Provisioning…' }
+  document.getElementById('prov-result').style.display = 'none'
+  document.getElementById('prov-error').style.display = 'none'
+  fetch('/admin/provision', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+    body: JSON.stringify({ name: name, email: email, plan: plan, type: type })
+  }).then(function(r) { return r.json() })
+    .then(function(d) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Provision workspace' }
+      if (!d.ok) {
+        var errEl = document.getElementById('prov-error')
+        errEl.style.display = 'block'
+        errEl.textContent = d.error || 'Provision failed'
+        return
+      }
+      var resEl = document.getElementById('prov-result')
+      resEl.style.display = 'block'
+      resEl.innerHTML = '<strong>Workspace created</strong> for ' + escJs(name) + ' (' + escJs(email) + ').'
+        + (d.email_sent ? ' Sign-in email sent.' : ' No email sent — copy link: <a href="' + escJs(d.magic_url) + '" target="_blank" style="color:var(--ink1)">sign-in link</a>')
+        + '<br><small style="color:var(--ink3)">Tenant: ' + d.tenant_id + ' · Worker: ' + d.worker_id + '</small>'
+      document.getElementById('prov-name').value = ''
+      document.getElementById('prov-email').value = ''
+      loadClients()
+    })
+    .catch(function(e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Provision workspace' }
+      var errEl = document.getElementById('prov-error')
+      errEl.style.display = 'block'
+      errEl.textContent = 'Request failed'
+    })
+}
+
+function loadClients() {
+  var secret = getAdminSecret()
+  if (!secret) return
+  var el = document.getElementById('clients-list')
+  if (el) el.innerHTML = '<div class="empty-state"><p>Loading…</p></div>'
+  fetch('/admin/clients', { headers: { 'x-admin-secret': secret } })
+    .then(function(r) {
+      if (r.status === 401) {
+        ADMIN_SECRET = ''; localStorage.removeItem('fen_admin_secret')
+        if (el) el.innerHTML = '<div class="empty-state"><p>Wrong password.</p></div>'
+        return null
+      }
+      return r.json()
+    })
+    .then(function(data) {
+      if (!data) return
+      renderClients(data.clients || [])
+    })
+    .catch(function() { if (el) el.innerHTML = '<div class="empty-state"><p>Error loading clients.</p></div>' })
+}
+
+function renderClients(clients) {
+  var el = document.getElementById('clients-list')
+  if (!el) return
+  if (!clients.length) { el.innerHTML = '<div class="empty-state"><p>No clients provisioned yet.</p></div>'; return }
+  el.innerHTML = clients.map(function(c) {
+    var subColor = c.sub_status === 'active' ? 'var(--green,#16a34a)' : c.sub_status === 'canceled' ? '#ef4444' : '#B07B1A'
+    var subLabel = c.sub_status || 'no subscription'
+    var provDate = c.provisioned_at ? timeAgo(c.provisioned_at) : '—'
+    var stripeBtn = c.stripe_customer_id
+      ? '<a href="https://dashboard.stripe.com/customers/' + escJs(c.stripe_customer_id) + '" target="_blank" class="ac-btn" style="font-size:11px;padding:5px 12px;text-decoration:none">Stripe</a>'
+      : '<button class="ac-btn" onclick="clientCheckout(\'' + escJs(c.id) + '\')" style="font-size:11px;padding:5px 12px">Send payment link</button>'
+    return '<div style="background:var(--card);border:.5px solid var(--rule2);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px">'
+      + '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:14px;font-weight:500">' + escJs(c.name) + '</div>'
+        + '<div style="font-size:12px;color:var(--ink3);margin-top:2px">' + escJs(c.email || '—') + '</div>'
+        + '<div style="font-size:11px;color:var(--ink3);margin-top:4px">'
+          + provDate + ' · ' + escJs(c.plan) + ' · <span style="color:' + subColor + '">' + escJs(subLabel) + '</span>'
+          + ' · ' + c.worker_count + ' worker' + (c.worker_count !== 1 ? 's' : '')
+        + '</div>'
+      + '</div>'
+      + '<div style="display:flex;gap:8px;flex-shrink:0">' + stripeBtn + '</div>'
+    + '</div>'
+  }).join('')
+}
+
+function clientCheckout(tenantId) {
+  var secret = getAdminSecret()
+  if (!secret) return
+  fetch('/admin/clients/' + tenantId + '/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+    body: JSON.stringify({})
+  }).then(function(r) { return r.json() })
+    .then(function(d) {
+      if (d.url) { window.open(d.url, '_blank') }
+      else alert('Error: ' + (d.error || 'unknown'))
+    })
+    .catch(function() { alert('Failed to create checkout link.') })
+}
+
+/* ═══ PLAYBOOKS ═══ */
+var _activeIntake = null;
+
+function loadPlaybooks() {
+  var wid = currentWorkerId();
+  if (!wid) { document.getElementById('playbooks-list').innerHTML = '<div class="empty-state"><p>Select a worker to see playbooks.</p></div>'; return; }
+  api('GET', '/playbooks?worker_id=' + wid).then(function(r) { return r.json(); }).then(function(d) {
+    renderPlaybooks(d.playbooks || []);
+  }).catch(function() { document.getElementById('playbooks-list').innerHTML = '<div class="empty-state"><p>Could not load playbooks.</p></div>'; });
+}
+
+function renderPlaybooks(playbooks) {
+  var categories = { travel:'Travel', productivity:'Productivity', sales:'Sales', finance:'Finance', communication:'Communication' };
+  var groups = {};
+  playbooks.forEach(function(p) { if (!groups[p.category]) groups[p.category] = []; groups[p.category].push(p); });
+
+  var html = '';
+  Object.keys(categories).forEach(function(cat) {
+    if (!groups[cat]) return;
+    html += '<div style="margin-bottom:32px"><div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px">' + categories[cat] + '</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">';
+    groups[cat].forEach(function(p) {
+      var installed = p.install && p.install.status !== 'paused';
+      var status = p.install ? p.install.status : null;
+      html += '<div style="background:var(--card);border:.5px solid var(--rule2);padding:20px">';
+      html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px">';
+      html += '<div style="font-size:18px">' + p.icon + '</div>';
+      if (installed) html += '<span style="font-size:10px;padding:2px 8px;background:rgba(16,185,129,.12);color:var(--green);border-radius:20px">' + (status === 'active' ? 'Active' : 'Setup needed') + '</span>';
+      html += '</div>';
+      html += '<div style="font-size:14px;font-weight:600;margin-bottom:6px">' + p.name + '</div>';
+      html += '<div style="font-size:12px;color:var(--ink3);margin-bottom:14px;line-height:1.5">' + p.description + '</div>';
+      if (p.needs && p.needs.length) {
+        html += '<div style="font-size:11px;color:var(--ink3);margin-bottom:12px"><strong>Needs:</strong> ' + p.needs.join(', ') + '</div>';
+      }
+      html += '<div style="font-size:11px;color:var(--ink3);margin-bottom:14px"><strong>Creates:</strong> ' + p.outputContract.slice(0,3).join(', ') + (p.outputContract.length > 3 ? '…' : '') + '</div>';
+      if (!installed) {
+        html += '<button class="ac-btn approve" style="width:100%" onclick="installPlaybook(\'' + p.id + '\')">Install</button>';
+      } else if (status === 'pending_intake') {
+        html += '<button class="ac-btn approve" style="width:100%" onclick="openIntake(' + JSON.stringify(p).replace(/'/g, '&#39;') + ')">Complete setup</button>';
+      } else {
+        html += '<button class="ac-btn" style="width:100%;font-size:11px" onclick="pausePlaybook(\'' + p.id + '\')">Pause</button>';
+      }
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  document.getElementById('playbooks-list').innerHTML = html || '<div class="empty-state"><p>No playbooks found.</p></div>';
+}
+
+function installPlaybook(id) {
+  var wid = currentWorkerId();
+  if (!wid) return alert('Select a worker first.');
+  api('POST', '/playbooks/' + id + '/install', { worker_id: wid })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) return alert(d.error || 'Install failed.');
+      // Find playbook and open intake
+      api('GET', '/playbooks/' + id + '?worker_id=' + wid).then(function(r) { return r.json(); }).then(function(d2) {
+        openIntake(d2.playbook);
+      });
+    });
+}
+
+function openIntake(playbook) {
+  _activeIntake = playbook;
+  document.getElementById('intake-title').textContent = playbook.icon + ' ' + playbook.name;
+  document.getElementById('intake-sub').textContent = 'Answer a few questions so Fen can set this up for you.';
+  var fields = '';
+  (playbook.intake || []).forEach(function(q) {
+    fields += '<div>';
+    fields += '<label style="font-size:11px;color:var(--ink3);display:block;margin-bottom:5px">' + q.question + (q.required ? '' : ' <em>(optional)</em>') + '</label>';
+    if (q.type === 'select' && q.options) {
+      fields += '<select id="intake-' + q.key + '" style="width:100%;padding:9px 12px;background:var(--bg);border:.5px solid var(--rule2);color:var(--ink1);font-size:13px;font-family:inherit">';
+      q.options.forEach(function(o) { fields += '<option>' + o + '</option>'; });
+      fields += '</select>';
+    } else {
+      fields += '<input id="intake-' + q.key + '" type="' + (q.type === 'number' ? 'number' : 'text') + '" style="width:100%;box-sizing:border-box;padding:9px 12px;background:var(--bg);border:.5px solid var(--rule2);color:var(--ink1);font-size:13px;font-family:inherit">';
+    }
+    fields += '</div>';
+  });
+  document.getElementById('intake-fields').innerHTML = fields;
+  var modal = document.getElementById('intake-modal');
+  modal.style.display = 'flex';
+}
+
+function closeIntake() {
+  document.getElementById('intake-modal').style.display = 'none';
+  _activeIntake = null;
+}
+
+function submitIntake() {
+  if (!_activeIntake) return;
+  var wid = currentWorkerId();
+  var answers = {};
+  (_activeIntake.intake || []).forEach(function(q) {
+    var el = document.getElementById('intake-' + q.key);
+    if (el) answers[q.key] = el.value;
+  });
+  api('POST', '/playbooks/' + _activeIntake.id + '/intake', { worker_id: wid, answers: answers })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) return alert(d.error || 'Activation failed.');
+      closeIntake();
+      loadPlaybooks();
+    });
+}
+
+function pausePlaybook(id) {
+  var wid = currentWorkerId();
+  api('DELETE', '/playbooks/' + id + '/install?worker_id=' + wid, {})
+    .then(function() { loadPlaybooks(); });
+}
+
+function currentWorkerId() {
+  return typeof _selectedWorkerId !== 'undefined' ? _selectedWorkerId : WORKER_ID;
 }
 </script>
 </body>
