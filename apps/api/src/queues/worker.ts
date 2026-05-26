@@ -6,6 +6,12 @@ import { handleComplianceCommand } from '../services/compliance.js'
 import { audit } from '../services/audit.js'
 import { updateEpisodicSummary } from '../services/episodic.js'
 import { dispatchScheduledWork, registerOutboundAction, markOutboundSent } from '../services/scheduler.js'
+import {
+  getProfile, setProfile, seedProfileFromSignup,
+  onboardingQuestion, applyOnboardingAnswer,
+  buildProfileContext, inferFromMessage,
+  detectGdprRequest, formatProfileForUser,
+} from '../memory/profile.js'
 
 function redisConnection() {
   if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
@@ -37,7 +43,7 @@ export const fenWorker = new Worker(
         message?: {
           text?: string
           chat: { id: number }
-          from?: { id: number }
+          from?: { id: number; first_name?: string }
         }
       }
     }
@@ -49,10 +55,10 @@ export const fenWorker = new Worker(
     if (!text || !chatId) return
 
     const tenantLookup = await pool.query(
-      'SELECT tenant_id FROM workers WHERE id = $1',
+      'SELECT get_tenant_for_worker($1) AS tenant_id',
       [workerId]
     )
-    if (!tenantLookup.rows[0]) {
+    if (!tenantLookup.rows[0]?.tenant_id) {
       console.error(`[Queue] No tenant found for worker ${workerId}`)
       return
     }
@@ -61,21 +67,30 @@ export const fenWorker = new Worker(
 
     await audit({ tenantId, action: 'job_started', actor: 'queue', target: workerId, metadata: { job_id: job.id } })
 
+    const firstName = String(payload.message?.from?.first_name || '').trim()
+
     return withTenant(tenantId, async (client) => {
       let convRes = await client.query(
-        `SELECT id FROM conversations
+        `SELECT id, state FROM conversations
          WHERE tenant_id = $1 AND worker_id = $2 AND external_user_id = $3 AND channel = 'telegram'`,
         [tenantId, workerId, externalUserId]
       )
       if (!convRes.rows.length) {
         convRes = await client.query(
           `INSERT INTO conversations (tenant_id, worker_id, external_user_id, channel)
-           VALUES ($1, $2, $3, 'telegram') RETURNING id`,
+           VALUES ($1, $2, $3, 'telegram') RETURNING id, state`,
           [tenantId, workerId, externalUserId]
         )
       }
 
       const conversationId = convRes.rows[0].id as string
+      const convState: Record<string, unknown> = convRes.rows[0].state ?? {}
+
+      // Seed profile from Telegram display name on very first message
+      const profile = getProfile(convState)
+      if (!profile.created_at && firstName) {
+        seedProfileFromSignup(convState, firstName)
+      }
 
       await client.query(
         `INSERT INTO messages (tenant_id, conversation_id, direction, content)
@@ -90,7 +105,39 @@ export const fenWorker = new Worker(
         return
       }
 
-      const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: text })
+      // ── GDPR commands ─────────────────────────────────────────────────────
+      const gdprRequest = detectGdprRequest(text)
+      if (gdprRequest === 'view') {
+        const reply = formatProfileForUser(getProfile(convState))
+        await sendTelegram(chatId, reply)
+        return
+      }
+      if (gdprRequest === 'delete') {
+        Object.keys(convState).forEach(k => delete convState[k])
+        await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
+        await client.query(`DELETE FROM messages WHERE conversation_id = $1`, [conversationId])
+        await sendTelegram(chatId, `Done. I've deleted everything — your profile, conversation history, all of it.\n\nYou can start fresh whenever you're ready.`)
+        return
+      }
+
+      // ── Onboarding flow ───────────────────────────────────────────────────
+      const onboardingReply = handleTelegramOnboarding(convState, text)
+      if (onboardingReply) {
+        await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
+        await client.query(
+          `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'outbound', $3)`,
+          [tenantId, conversationId, onboardingReply]
+        )
+        await sendTelegram(chatId, onboardingReply)
+        return
+      }
+
+      // ── Passive profile inference ─────────────────────────────────────────
+      const updatedProfile = inferFromMessage(getProfile(convState), text)
+      setProfile(convState, updatedProfile)
+
+      const userProfileCtx = buildProfileContext(getProfile(convState))
+      const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: text, userProfileCtx: userProfileCtx || undefined })
 
       if ((result.status === 'sent' || result.status === 'sent_with_notify') && result.message) {
         await client.query(
@@ -124,6 +171,9 @@ export const fenWorker = new Worker(
         await sendTelegram(chatId, `Your message is being reviewed. A human will approve and send it shortly.`)
         await audit({ tenantId, action: 'approval_created', actor: 'runtime', target: conversationId, metadata: { channel: 'telegram' }, client })
       }
+
+      // Persist updated profile state
+      await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
     })
   },
   { connection: redisConnection() }
@@ -237,6 +287,41 @@ async function runScheduledJob(data: ScheduledJobData) {
     )
     throw err // re-throw so BullMQ retries
   }
+}
+
+function handleTelegramOnboarding(state: Record<string, unknown>, userMessage: string): string | null {
+  const profile = getProfile(state)
+  if (profile.onboarding_completed) return null
+
+  const step = profile.onboarding_step ?? 0
+
+  if (step === 0) {
+    const name = profile.name ? ` ${profile.name.split(' ')[0]}` : ''
+    const q1 = onboardingQuestion(1, profile)
+    setProfile(state, { ...profile, onboarding_step: 1 })
+    return `Hey${name}! I'm Fen, your AI assistant. Just three quick questions so I can help you properly.\n\n${q1}`
+  }
+
+  if (step === 1) {
+    const updated = applyOnboardingAnswer(profile, 1, userMessage)
+    setProfile(state, { ...updated, onboarding_step: 2 })
+    return onboardingQuestion(2, updated)
+  }
+
+  if (step === 2) {
+    const updated = applyOnboardingAnswer(profile, 2, userMessage)
+    setProfile(state, { ...updated, onboarding_step: 3 })
+    return onboardingQuestion(3, updated)
+  }
+
+  if (step === 3) {
+    const updated = applyOnboardingAnswer(profile, 3, userMessage)
+    setProfile(state, { ...updated, onboarding_completed: true })
+    const name = updated.name ? ` ${updated.name.split(' ')[0]}` : ''
+    return `Perfect${name}, I'm all set. What can I help you with today?`
+  }
+
+  return null
 }
 
 async function sendTelegram(chatId: number, text: string) {

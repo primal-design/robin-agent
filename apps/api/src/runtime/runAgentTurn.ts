@@ -43,6 +43,7 @@ export interface AgentTurnInput {
   workerId:       string
   conversationId: string
   inboundText:    string
+  userProfileCtx?: string
 }
 
 export async function runAgentTurn(input: AgentTurnInput) {
@@ -88,6 +89,11 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const searchBlock = renderSearchContext(hydrated.searchContext)
   if (searchBlock) {
     systemPrompt += `\n\n## Relevant Business Context\nThe following information was retrieved from your knowledge base and may be relevant to the current message:\n\n${searchBlock}`
+  }
+
+  // ── User profile (Telegram onboarding / GDPR profile) ────────────────────
+  if (input.userProfileCtx) {
+    systemPrompt += `\n\n${input.userProfileCtx}`
   }
 
   // ── Conversation history ──────────────────────────────────────────────────
