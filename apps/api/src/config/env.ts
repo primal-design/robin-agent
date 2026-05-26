@@ -51,6 +51,11 @@ export const env = {
   hubspotClientId:          process.env.HUBSPOT_CLIENT_ID ?? '',
   hubspotClientSecret:      process.env.HUBSPOT_CLIENT_SECRET ?? '',
   voyageKey:                process.env.VOYAGE_API_KEY ?? '',
+  // Model routing
+  modelFast:      process.env.FEN_MODEL_FAST      ?? 'claude-haiku-4-5-20251001',
+  modelReasoning: process.env.FEN_MODEL_REASONING ?? 'claude-sonnet-4-6',
+  modelDeep:      process.env.FEN_MODEL_DEEP      ?? 'claude-opus-4-7',
+  modelDefault:   process.env.FEN_MODEL_DEFAULT   ?? 'claude-sonnet-4-6',
 }
 
 export function assertRequired() {

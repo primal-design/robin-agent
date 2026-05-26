@@ -14,6 +14,7 @@ import { proposeMemoryCandidate } from '../services/memoryLearning.js'
 import type { WorkerManifest } from '../workers/manifestTypes.js'
 import { env } from '../config/env.js'
 import { audit } from '../services/audit.js'
+import { classifyTurn, selectModelTier, getModelForTier, maxTokensForTier } from './modelRouter.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -55,13 +56,22 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const manifest        = workerRes.rows[0].manifest as WorkerManifest
   const runtimeOverride = workerRes.rows[0].runtime_prompt_override as string | null
 
+  // ── Model Router ─────────────────────────────────────────────────────────
+  const classification = await classifyTurn({
+    inboundText,
+    userProfileCtx: input.userProfileCtx,
+  })
+  const modelTier = selectModelTier(classification)
+  const model     = getModelForTier(modelTier)
+  const maxTokens = maxTokensForTier(modelTier)
+
   // ── Memory (MemoryHydrator) ───────────────────────────────────────────────
   const hydrated = await hydrateMemory({
     client,
     tenantId,
     conversationId,
     taskPrompt:    inboundText,
-    includeSearch: true,
+    includeSearch: classification.requiresMemorySearch,
   })
   const memory = flattenCoreMemory(hydrated.coreMemory)
 
@@ -125,7 +135,7 @@ export async function runAgentTurn(input: AgentTurnInput) {
 
   await audit({
     tenantId, action: 'agent_called', actor: 'runtime', target: conversationId,
-    metadata: { model: 'claude-haiku-4-5-20251001', history_length: history.length, tools: allowedTools.map(t => t.id) },
+    metadata: { model, model_tier: modelTier, route: classification.route, complexity: classification.complexity, history_length: history.length, tools: allowedTools.map(t => t.id) },
     client,
   })
 
@@ -140,8 +150,8 @@ export async function runAgentTurn(input: AgentTurnInput) {
     : ''
 
   const createParams: Anthropic.MessageCreateParamsNonStreaming = {
-    model:      'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
+    model,
+    max_tokens: maxTokens,
     system:     systemPrompt + toolInstruction + CONFIDENCE_INSTRUCTION + MEMORY_LEARN_INSTRUCTION,
     messages:   userMessages,
     ...(hasTools ? { tools: anthropicTools } : {}),
@@ -175,8 +185,8 @@ export async function runAgentTurn(input: AgentTurnInput) {
 
     // Second call with tool results
     const secondResponse = await anthropic.messages.create({
-      model:      'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      model,
+      max_tokens: maxTokens,
       system:     systemPrompt + CONFIDENCE_INSTRUCTION,
       tools:      anthropicTools,
       messages:   [
@@ -248,6 +258,23 @@ export async function runAgentTurn(input: AgentTurnInput) {
         .catch((e) => console.error('[goals] progress update failed:', e.message))
     }
   }
+
+  // ── Usage logging ────────────────────────────────────────────────────────
+  const inputTokens  = firstResponse.usage?.input_tokens  ?? 0
+  const outputTokens = firstResponse.usage?.output_tokens ?? 0
+  client.query(
+    `INSERT INTO usage_events (tenant_id, event_type, quantity, metadata)
+     VALUES ($1, 'agent_turn', 1, $2)`,
+    [tenantId, JSON.stringify({
+      route:        classification.route,
+      complexity:   classification.complexity,
+      model_tier:   modelTier,
+      model,
+      input_tokens:  inputTokens,
+      output_tokens: outputTokens,
+      conversation_id: conversationId,
+    })]
+  ).catch(() => {}) // fire-and-forget, never crash main flow
 
   // ── Trust engine ──────────────────────────────────────────────────────────
   const metadata       = extractMetadata(text, isFirstMessage)
