@@ -39,12 +39,13 @@ const CONFIDENCE_INSTRUCTION = `\n\nAfter your reply, on a new line write exactl
 const MEMORY_LEARN_INSTRUCTION = `\n\nIf the user stated a durable business fact (company name, location, product, industry, preference), you MUST append this on a new line after your reply:\nMEMORY_LEARN: key=value | reason\nExample: MEMORY_LEARN: business_location=London | user stated location\nOnly one per turn. Do not mention it to the user.`
 
 export interface AgentTurnInput {
-  client:         PoolClient
-  tenantId:       string
-  workerId:       string
-  conversationId: string
-  inboundText:    string
+  client:          PoolClient
+  tenantId:        string
+  workerId:        string
+  conversationId:  string
+  inboundText:     string
   userProfileCtx?: string
+  classification?: import('./modelRouter.js').FenTurnClassification
 }
 
 export async function runAgentTurn(input: AgentTurnInput) {
@@ -56,11 +57,8 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const manifest        = workerRes.rows[0].manifest as WorkerManifest
   const runtimeOverride = workerRes.rows[0].runtime_prompt_override as string | null
 
-  // ── Model Router ─────────────────────────────────────────────────────────
-  const classification = await classifyTurn({
-    inboundText,
-    userProfileCtx: input.userProfileCtx,
-  })
+  // ── Model Router (classification done before withTenant — passed in) ─────
+  const classification = input.classification ?? await classifyTurn({ inboundText, userProfileCtx: input.userProfileCtx })
   const modelTier = selectModelTier(classification)
   const model     = getModelForTier(modelTier)
   const maxTokens = maxTokensForTier(modelTier)

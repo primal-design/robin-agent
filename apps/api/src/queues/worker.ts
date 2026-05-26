@@ -12,6 +12,7 @@ import {
   buildProfileContext, inferFromMessage,
   detectGdprRequest, formatProfileForUser,
 } from '../memory/profile.js'
+import { classifyTurn } from '../runtime/modelRouter.js'
 
 function redisConnection() {
   if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
@@ -68,6 +69,9 @@ export const fenWorker = new Worker(
     await audit({ tenantId, action: 'job_started', actor: 'queue', target: workerId, metadata: { job_id: job.id } })
 
     const firstName = String(payload.message?.from?.first_name || '').trim()
+
+    // Classify outside withTenant — avoids holding a DB connection during the API call
+    const classification = await classifyTurn({ inboundText: text }).catch(() => undefined)
 
     return withTenant(tenantId, async (client) => {
       let convRes = await client.query(
@@ -137,7 +141,7 @@ export const fenWorker = new Worker(
       setProfile(convState, updatedProfile)
 
       const userProfileCtx = buildProfileContext(getProfile(convState))
-      const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: text, userProfileCtx: userProfileCtx || undefined })
+      const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: text, userProfileCtx: userProfileCtx || undefined, classification })
 
       if ((result.status === 'sent' || result.status === 'sent_with_notify') && result.message) {
         await client.query(

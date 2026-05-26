@@ -99,12 +99,18 @@ export async function classifyTurn(params: {
   contextLines.push(`Message: ${inboundText}`)
 
   try {
-    const res = await ai().messages.create({
-      model:      env.modelFast,   // always use fast model for classifier
-      max_tokens: 256,
-      system:     CLASSIFIER_SYSTEM,
-      messages:   [{ role: 'user', content: contextLines.join('\n') }],
-    })
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('classifier timeout')), 5000)
+    )
+    const res = await Promise.race([
+      ai().messages.create({
+        model:      env.modelFast,
+        max_tokens: 256,
+        system:     CLASSIFIER_SYSTEM,
+        messages:   [{ role: 'user', content: contextLines.join('\n') }],
+      }),
+      timeout,
+    ])
 
     const raw = res.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
