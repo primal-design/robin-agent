@@ -207,12 +207,12 @@ export async function runAgentTurn(input: AgentTurnInput) {
       )
     )
 
-    // Second call with tool results
+    // Second call with tool results — no tools passed so Claude must reply with text,
+    // not chain another tool call (which would leave rawText empty and send nothing).
     const secondResponse = await anthropic.messages.create({
       model,
       max_tokens: maxTokens,
       system:     systemPrompt + CONFIDENCE_INSTRUCTION,
-      tools:      anthropicTools,
       messages:   [
         ...userMessages,
         { role: 'assistant', content: firstResponse.content },
