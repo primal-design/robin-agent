@@ -16,6 +16,7 @@ import gmailRouter        from './routes/gmail.js'
 import authRouter         from './routes/auth.js'
 import adminRouter        from './routes/admin.js'
 import provisionRouter    from './routes/provision.js'
+import channelsRouter     from './routes/channels.js'
 import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } from './middleware/rateLimit.js'
 import toolsRouter from './routes/tools.js'
 import goalsRouter from './routes/goals.js'
@@ -103,6 +104,7 @@ export function createApp() {
   app.use('/', authRouter)
   app.use('/', adminRouter)
   app.use('/', provisionRouter)
+  app.use('/', channelsRouter)
   app.use('/', agentRouter)
   app.use('/', toolsRouter)
   app.use('/', goalsRouter)

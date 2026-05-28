@@ -6,6 +6,8 @@ import { handleComplianceCommand } from '../services/compliance.js'
 import { audit } from '../services/audit.js'
 import { updateEpisodicSummary } from '../services/episodic.js'
 import { dispatchScheduledWork, registerOutboundAction, markOutboundSent } from '../services/scheduler.js'
+import { decryptToken } from '../lib/encrypt.js'
+import { sendTelegram } from '../lib/telegram.js'
 import {
   getProfile, setProfile, seedProfileFromSignup,
   onboardingQuestion, applyOnboardingAnswer,
@@ -38,7 +40,13 @@ export const fenWorker = new Worker(
       return
     }
 
-    // ── Telegram message ──────────────────────────────────────────────────────
+    // ── Multi-tenant channel message (dedicated bot per client) ──────────────
+    if (job.name === 'telegram_channel_message') {
+      await handleChannelMessage(job.data as ChannelMessageData)
+      return
+    }
+
+    // ── Demo bot (shared @fen_ai_bot, single-tenant) ──────────────────────────
     if (job.name !== 'telegram_message') return
 
     const { workerId, payload } = job.data as {
@@ -330,12 +338,102 @@ function handleTelegramOnboarding(state: Record<string, unknown>, userMessage: s
   return null
 }
 
-async function sendTelegram(chatId: number, text: string) {
-  const token = process.env.TELEGRAM_BOT_TOKEN
-  if (!token) return
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
+// ── Multi-tenant channel message handler ─────────────────────────────────────
+
+interface ChannelMessageData {
+  channelId:      string
+  tenantId:       string
+  workerId:       string
+  chatId:         number
+  externalUserId: string
+  text:           string
+  firstName:      string
+  encryptedToken: string
+}
+
+async function handleChannelMessage(data: ChannelMessageData) {
+  const { channelId, tenantId, workerId, chatId, externalUserId, text, firstName, encryptedToken } = data
+  const botToken = decryptToken(encryptedToken)
+
+  const reply = async (msg: string) => sendTelegram(chatId, msg, botToken)
+
+  await audit({ tenantId, action: 'job_started', actor: 'queue', target: workerId, metadata: { channel_id: channelId } })
+
+  return withTenant(tenantId, async (client) => {
+    // Get or create conversation — keyed by channel_id + external_user_id
+    let convRes = await client.query(
+      `SELECT id, state FROM conversations
+       WHERE tenant_id = $1 AND worker_id = $2 AND external_user_id = $3 AND channel_id = $4`,
+      [tenantId, workerId, externalUserId, channelId]
+    )
+    if (!convRes.rows.length) {
+      convRes = await client.query(
+        `INSERT INTO conversations (tenant_id, worker_id, external_user_id, channel, channel_id)
+         VALUES ($1, $2, $3, 'telegram', $4) RETURNING id, state`,
+        [tenantId, workerId, externalUserId, channelId]
+      )
+    }
+
+    const conversationId = convRes.rows[0].id as string
+    const convState: Record<string, unknown> = convRes.rows[0].state ?? {}
+
+    // Seed profile from first name
+    const profile = getProfile(convState)
+    if (!profile.created_at && firstName) seedProfileFromSignup(convState, firstName)
+
+    await client.query(
+      `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'inbound', $3)`,
+      [tenantId, conversationId, text]
+    )
+
+    // Compliance / GDPR
+    const complianceReply = await handleComplianceCommand(text, client, conversationId, tenantId)
+    if (complianceReply) { await reply(complianceReply); return }
+
+    const gdprRequest = detectGdprRequest(text)
+    if (gdprRequest === 'view') { await reply(formatProfileForUser(getProfile(convState))); return }
+    if (gdprRequest === 'delete') {
+      Object.keys(convState).forEach(k => delete convState[k])
+      await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
+      await client.query(`DELETE FROM messages WHERE conversation_id = $1`, [conversationId])
+      await reply(`Done. I've deleted everything — your profile, conversation history, all of it.\n\nYou can start fresh whenever you're ready.`)
+      return
+    }
+
+    // Onboarding
+    const onboardingReply = handleTelegramOnboarding(convState, text)
+    if (onboardingReply) {
+      await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
+      await client.query(`INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'outbound', $3)`, [tenantId, conversationId, onboardingReply])
+      await reply(onboardingReply)
+      return
+    }
+
+    // Passive inference + agent turn
+    const updatedProfile = inferFromMessage(getProfile(convState), text)
+    setProfile(convState, updatedProfile)
+
+    const userProfileCtx = buildProfileContext(getProfile(convState))
+    const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: text, userProfileCtx: userProfileCtx || undefined })
+
+    if ((result.status === 'sent' || result.status === 'sent_with_notify') && result.message) {
+      await client.query(
+        `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'outbound', $3)`,
+        [tenantId, conversationId, result.message]
+      )
+      const { alreadySent, actionId } = await registerOutboundAction({
+        client, tenantId, conversationId,
+        actionType: 'telegram_message', targetKey: String(chatId),
+        payload: { text: result.message },
+      })
+      if (!alreadySent) {
+        await reply(result.message)
+        await markOutboundSent({ client, actionId })
+      }
+    }
+
+    // Update state + episodic summary
+    await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
+    updateEpisodicSummary(client, conversationId, text, '').catch(() => {})
   })
 }

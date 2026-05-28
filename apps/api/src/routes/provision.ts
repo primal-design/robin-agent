@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import crypto from 'crypto'
 import { pool } from '../db/pool.js'
+import { encryptToken } from '../lib/encrypt.js'
+import { getBotInfo, registerWebhook } from '../lib/telegram.js'
 
 const router = Router()
 
@@ -47,10 +49,11 @@ async function sendProvisionEmail(email: string, name: string, magicUrl: string)
 router.post('/admin/provision', async (req, res, next) => {
   if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' })
   try {
-    const name  = String(req.body.name  || '').trim()
-    const email = String(req.body.email || '').trim().toLowerCase()
-    const plan  = String(req.body.plan  || 'starter')
-    const type  = (['client', 'builder', 'agency'].includes(req.body.type) ? req.body.type : 'client') as string
+    const name          = String(req.body.name          || '').trim()
+    const email         = String(req.body.email         || '').trim().toLowerCase()
+    const plan          = String(req.body.plan          || 'starter')
+    const type          = (['client', 'builder', 'agency'].includes(req.body.type) ? req.body.type : 'client') as string
+    const telegramToken = String(req.body.telegram_bot_token || '').trim()
 
     if (!name || !email) return res.status(400).json({ error: 'name and email required' })
 
@@ -97,6 +100,31 @@ router.post('/admin/provision', async (req, res, next) => {
       ]
     )
     const workerId: string = workerRes.rows[0].id
+
+    // Create Telegram channel if token provided
+    let telegramChannel: { channel_id: string; bot_username: string } | null = null
+    if (telegramToken) {
+      try {
+        const botInfo        = await getBotInfo(telegramToken)
+        const webhookSecret  = crypto.randomBytes(32).toString('hex')
+        const channelRes     = await pool.query(`
+          INSERT INTO worker_channels
+            (tenant_id, worker_id, channel_type, external_id, display_name, encrypted_config, public_config)
+          VALUES ($1, $2, 'telegram', $3, $4, $5, $6)
+          RETURNING id
+        `, [
+          tenantId, workerId, String(botInfo.id), `@${botInfo.username}`,
+          JSON.stringify({ bot_token: encryptToken(telegramToken), webhook_secret: encryptToken(webhookSecret) }),
+          JSON.stringify({ bot_username: botInfo.username, mode: 'dedicated_bot' }),
+        ])
+        const channelId = channelRes.rows[0].id as string
+        const base      = appBaseUrl(req)
+        await registerWebhook(telegramToken, `${base}/webhooks/telegram/${channelId}/${webhookSecret}`, webhookSecret)
+        telegramChannel = { channel_id: channelId, bot_username: botInfo.username }
+      } catch (e) {
+        console.warn('[provision] Telegram channel setup failed:', e instanceof Error ? e.message : e)
+      }
+    }
 
     // Find or create user
     const userRes = await pool.query(
@@ -155,6 +183,7 @@ router.post('/admin/provision', async (req, res, next) => {
       stripe_customer_id: stripeCustomerId,
       magic_url: magicUrl,
       email_sent: emailSent,
+      telegram_channel: telegramChannel,
     })
   } catch (err) { next(err) }
 })
