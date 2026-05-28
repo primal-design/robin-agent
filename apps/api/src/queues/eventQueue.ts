@@ -1,7 +1,11 @@
 import { Queue } from 'bullmq'
 
 function redisConnection() {
-  if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
+  const url = process.env.REDIS_URL
+  if (url) {
+    const tls = url.startsWith('rediss://') ? { tls: { rejectUnauthorized: false } } : {}
+    return { url, ...tls }
+  }
   return { host: process.env.REDIS_HOST ?? 'localhost', port: 6379 }
 }
 

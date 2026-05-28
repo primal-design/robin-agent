@@ -14,7 +14,12 @@ import {
 } from '../memory/profile.js'
 
 function redisConnection() {
-  if (process.env.REDIS_URL) return { url: process.env.REDIS_URL }
+  const url = process.env.REDIS_URL
+  if (url) {
+    // rediss:// requires TLS — ioredis needs it explicit for Upstash
+    const tls = url.startsWith('rediss://') ? { tls: { rejectUnauthorized: false } } : {}
+    return { url, ...tls }
+  }
   return { host: process.env.REDIS_HOST ?? 'localhost', port: 6379 }
 }
 
