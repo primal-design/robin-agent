@@ -24,12 +24,12 @@ export async function updateEpisodicSummary(
     const existing = await getEpisodicSummary(client, conversationId)
 
     const prompt = existing
-      ? `Prior summary: ${existing}\n\nNew exchange:\nUser: ${userMessage}\nAgent: ${agentReply}\n\nWrite an updated summary in 2-3 sentences. Cover what has been discussed, any decisions made, and relevant context for future turns. Plain text only.`
-      : `User: ${userMessage}\nAgent: ${agentReply}\n\nSummarise this exchange in 2-3 sentences. Cover what was discussed and any decisions or outcomes. Plain text only.`
+      ? `Prior summary: ${existing}\n\nNew exchange:\nUser: ${userMessage}\nAgent: ${agentReply}\n\nUpdate the summary. Keep ALL specific facts — names, dates, places, numbers, preferences. Add any new facts from this exchange. Remove nothing important. 6-8 sentences max. Plain text only.`
+      : `User: ${userMessage}\nAgent: ${agentReply}\n\nSummarise this exchange. Capture every specific fact mentioned — names, dates, places, numbers, preferences, decisions. 4-6 sentences. Plain text only.`
 
     const res = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 200,
+      max_tokens: 400,
       messages: [{ role: 'user', content: prompt }],
     })
 

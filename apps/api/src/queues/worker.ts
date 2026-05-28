@@ -439,6 +439,7 @@ async function handleChannelMessage(data: ChannelMessageData) {
 
     // Update state + episodic summary
     await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
-    updateEpisodicSummary(client, conversationId, text, '').catch(() => {})
+    const agentReply = (result as any)?.message ?? ''
+    updateEpisodicSummary(client, conversationId, text, agentReply).catch(() => {})
   })
 }

@@ -112,7 +112,7 @@ export async function runAgentTurn(input: AgentTurnInput) {
   // ── Conversation history ──────────────────────────────────────────────────
   const historyRes = await client.query(
     `SELECT direction, content FROM messages
-     WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 20`,
+     WHERE conversation_id = $1 ORDER BY created_at DESC LIMIT 40`,
     [conversationId]
   )
 

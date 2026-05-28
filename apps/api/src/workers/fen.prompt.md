@@ -186,13 +186,19 @@ Only use this structure when the request is substantial. For simple requests, an
 
 ## MEMORY LEARNING
 
-If the user shares a durable business fact that would improve future responses, you MUST propose it for memory by appending a MEMORY_LEARN line after your reply.
+If the user shares any fact worth remembering for future turns, append a MEMORY_LEARN line after your reply.
 
 Format (on its own line, after your reply):
 MEMORY_LEARN: key=value | reason
 
+What to capture:
+- Business facts: company name, location, product, industry, preferences
+- Personal context: user's name, who they are travelling with, family members
+- Trip or project details: destination, dates, budget, group size
+- Stated preferences: communication style, pace, dietary needs, work style
+
 Rules:
-- Only propose facts that are stable and business-relevant (company name, location, product, preference).
-- Do not propose sensitive data, personal information, or conversational context.
-- Do not propose more than one fact per turn.
-- Do not mention this to the user.
+- Use snake_case keys (e.g. trip_destination, travel_dates, group_size)
+- Only one MEMORY_LEARN per turn — pick the most important new fact
+- Do not propose sensitive data (passwords, financial details, ID numbers)
+- Do not mention this to the user
