@@ -7,7 +7,7 @@ import { audit } from '../services/audit.js'
 import { updateEpisodicSummary } from '../services/episodic.js'
 import { dispatchScheduledWork, registerOutboundAction, markOutboundSent } from '../services/scheduler.js'
 import { decryptToken } from '../lib/encrypt.js'
-import { sendTelegram } from '../lib/telegram.js'
+import { sendTelegram, sendTyping } from '../lib/telegram.js'
 import {
   getProfile, setProfile, seedProfileFromSignup,
   onboardingQuestion, applyOnboardingAnswer,
@@ -78,6 +78,7 @@ export const fenWorker = new Worker(
 
     const tenantId = tenantLookup.rows[0].tenant_id as string
 
+    sendTyping(chatId).catch(() => {})
     await audit({ tenantId, action: 'job_started', actor: 'queue', target: workerId, metadata: { job_id: job.id } })
 
     const firstName = String(payload.message?.from?.first_name || '').trim()
@@ -151,7 +152,10 @@ export const fenWorker = new Worker(
       setProfile(convState, updatedProfile)
 
       const userProfileCtx = buildProfileContext(getProfile(convState))
+      // Keep typing indicator alive for longer agent turns (refreshes every 4s)
+      const typingInterval = setInterval(() => sendTyping(chatId).catch(() => {}), 4000)
       const result = await runAgentTurn({ client, tenantId, workerId, conversationId, inboundText: text, userProfileCtx: userProfileCtx || undefined })
+      clearInterval(typingInterval)
 
       if ((result.status === 'sent' || result.status === 'sent_with_notify') && result.message) {
         await client.query(
@@ -357,6 +361,7 @@ async function handleChannelMessage(data: ChannelMessageData) {
 
   const reply = async (msg: string) => sendTelegram(chatId, msg, botToken)
 
+  sendTyping(chatId, botToken).catch(() => {})
   await audit({ tenantId, action: 'job_started', actor: 'queue', target: workerId, metadata: { channel_id: channelId } })
 
   return withTenant(tenantId, async (client) => {

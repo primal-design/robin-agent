@@ -1,5 +1,15 @@
 import { env } from '../config/env.js'
 
+export async function sendTyping(chatId: number, botToken?: string): Promise<void> {
+  const token = botToken || env.telegramBotToken
+  if (!token) return
+  await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ chat_id: chatId, action: 'typing' }),
+  }).catch(() => {})
+}
+
 export async function sendTelegram(chatId: number, text: string, botToken?: string): Promise<void> {
   const token = botToken || env.telegramBotToken
   if (!token) { console.warn('[telegram] no bot token — cannot send'); return }
