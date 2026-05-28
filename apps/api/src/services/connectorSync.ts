@@ -1,4 +1,5 @@
 import { pool }                                       from '../db/pool.js'
+import { withTenant }                                from '../db/withTenant.js'
 import { listEmails }                                from '../lib/gmail.js'
 import { refreshConnectorTokens }                    from '../lib/gmail.js'
 import { listDriveFiles, exportFileContent,
@@ -89,8 +90,6 @@ export async function syncGmailConnector(params: SyncParams): Promise<SyncResult
     }
 
     // ── Group by sender for consolidated search rows ──────────────────────────
-    // Instead of one row per email, build one search row per unique sender.
-    // This keeps business_memory_search as a knowledge layer, not a mailbox mirror.
     const bySender = new Map<string, typeof emails>()
     for (const email of emails) {
       const senderEmail = extractEmail(email.from || '')
@@ -100,92 +99,87 @@ export async function syncGmailConnector(params: SyncParams): Promise<SyncResult
       bySender.set(senderEmail, list)
     }
 
-    for (const [senderEmail, msgs] of bySender.entries()) {
-      const displayFrom = msgs[0].from || senderEmail
-      const subjects    = msgs.map(m => m.subject || '(no subject)').slice(0, 5)
-      const snippets    = msgs.map(m => m.snippet).filter(Boolean).slice(0, 3)
+    // ── All tenant data writes inside withTenant (sets app.current_tenant for RLS) ──
+    await withTenant(tenantId, async (client) => {
+      for (const [senderEmail, msgs] of bySender.entries()) {
+        const displayFrom = msgs[0].from || senderEmail
+        const subjects    = msgs.map(m => m.subject || '(no subject)').slice(0, 5)
+        const snippets    = msgs.map(m => m.snippet).filter(Boolean).slice(0, 3)
 
-      const title = `Email contact: ${displayFrom}`
-      const content = [
-        `Contact: ${displayFrom}`,
-        `Emails: ${msgs.length} in recent sync`,
-        `Recent subjects: ${subjects.join(' | ')}`,
-        snippets.length ? `Snippets: ${snippets.join(' … ')}` : '',
-      ].filter(Boolean).join('\n')
+        const title = `Email contact: ${displayFrom}`
+        const content = [
+          `Contact: ${displayFrom}`,
+          `Emails: ${msgs.length} in recent sync`,
+          `Recent subjects: ${subjects.join(' | ')}`,
+          snippets.length ? `Snippets: ${snippets.join(' … ')}` : '',
+        ].filter(Boolean).join('\n')
 
-      const sourceRef = `gmail:sender:${senderEmail}`
+        const sourceRef = `gmail:sender:${senderEmail}`
 
-      const { rows } = await pool.query(
-        `INSERT INTO business_memory_search
-           (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
-         VALUES ($1, 'integration', $2, $3, $4, $5, now())
-         ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
-           title                = EXCLUDED.title,
-           content              = EXCLUDED.content,
-           metadata             = EXCLUDED.metadata,
-           embedding_queued_at  = now(),
-           updated_at           = now()
-         RETURNING id`,
-        [
-          tenantId,
-          sourceRef,
-          title,
-          content,
-          JSON.stringify({
-            provider:     'gmail',
-            sender_email: senderEmail,
-            email_count:  msgs.length,
-            worker_id:    workerId,
-          }),
-        ]
-      )
-      if (rows.length) ingested++
-
-      // ── Candidate: frequent senders (>= 3 emails) ────────────────────────────
-      if (msgs.length >= 3) {
-        const candidateKey = `frequent_contact:${senderEmail}`
-
-        // Dedupe: tenant + source_type + source_ref + key + non-rejected status
-        const existing = await pool.query(
-          `SELECT id FROM business_memory_candidates
-           WHERE tenant_id=$1
-             AND source_type='integration'
-             AND source_ref='gmail'
-             AND proposed_memory_key=$2
-             AND status IN ('pending','approved','promoted')
-           LIMIT 1`,
-          [tenantId, candidateKey]
+        const { rows } = await client.query(
+          `INSERT INTO business_memory_search
+             (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
+           VALUES ($1, 'integration', $2, $3, $4, $5, now())
+           ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
+             title                = EXCLUDED.title,
+             content              = EXCLUDED.content,
+             metadata             = EXCLUDED.metadata,
+             embedding_queued_at  = now(),
+             updated_at           = now()
+           RETURNING id`,
+          [
+            tenantId,
+            sourceRef,
+            title,
+            content,
+            JSON.stringify({
+              provider:     'gmail',
+              sender_email: senderEmail,
+              email_count:  msgs.length,
+              worker_id:    workerId,
+            }),
+          ]
         )
-        if (!existing.rows.length) {
-          await pool.query(
-            `INSERT INTO business_memory_candidates
-               (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
-                proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
-             VALUES ($1, 'core', $2, $3, $4, 'integration', 'gmail', $5, 'low', true)`,
-            [
-              tenantId,
-              candidateKey,
-              JSON.stringify({ sender: displayFrom, email: senderEmail, email_count: msgs.length, provider: 'gmail' }),
-              `Frequent Gmail contact: ${displayFrom} (${msgs.length} emails in last sync)`,
-              `${displayFrom} (${senderEmail}) appeared ${msgs.length} times in the recent Gmail sync. Consider noting as a frequent contact.`,
-            ]
+        if (rows.length) ingested++
+
+        if (msgs.length >= 3) {
+          const candidateKey = `frequent_contact:${senderEmail}`
+          const existing = await client.query(
+            `SELECT id FROM business_memory_candidates
+             WHERE tenant_id=$1
+               AND source_type='integration'
+               AND source_ref='gmail'
+               AND proposed_memory_key=$2
+               AND status IN ('pending','approved','promoted')
+             LIMIT 1`,
+            [tenantId, candidateKey]
           )
-          candidates++
+          if (!existing.rows.length) {
+            await client.query(
+              `INSERT INTO business_memory_candidates
+                 (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
+                  proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
+               VALUES ($1, 'core', $2, $3, $4, 'integration', 'gmail', $5, 'low', true)`,
+              [
+                tenantId,
+                candidateKey,
+                JSON.stringify({ sender: displayFrom, email: senderEmail, email_count: msgs.length, provider: 'gmail' }),
+                `Frequent Gmail contact: ${displayFrom} (${msgs.length} emails in last sync)`,
+                `${displayFrom} (${senderEmail}) appeared ${msgs.length} times in the recent Gmail sync. Consider noting as a frequent contact.`,
+              ]
+            )
+            candidates++
+          }
         }
       }
-    }
 
-    // ── Log sync event ────────────────────────────────────────────────────────
-    await pool.query(
-      `INSERT INTO business_memory_events
-         (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
-       VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'gmail', $3)`,
-      [
-        tenantId,
-        `Gmail sync: ${ingested} contacts updated, ${candidates} candidates created`,
-        `grant:${grantId}`,
-      ]
-    )
+      await client.query(
+        `INSERT INTO business_memory_events
+           (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
+         VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'gmail', $3)`,
+        [tenantId, `Gmail sync: ${ingested} contacts updated, ${candidates} candidates created`, `grant:${grantId}`]
+      )
+    })
 
     await finaliseRun(runId, 'ok', ingested, candidates)
     await updateGrant(grantId, 'ok', ingested, null)
@@ -195,12 +189,12 @@ export async function syncGmailConnector(params: SyncParams): Promise<SyncResult
     const message = err instanceof Error ? err.message : String(err)
     console.error(`[connectorSync/gmail] ${message}`)
 
-    await pool.query(
+    withTenant(tenantId, (client) => client.query(
       `INSERT INTO business_memory_events
          (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
        VALUES ($1, 'search', 'sync_failed', $2, 'integration', 'gmail', $3)`,
       [tenantId, `Gmail sync error: ${message}`, `grant:${grantId}`]
-    )
+    )).catch(() => {/* non-fatal */})
 
     await finaliseRun(runId, 'error', ingested, candidates, message)
     await updateGrant(grantId, 'error', ingested, message)
@@ -242,107 +236,112 @@ export async function syncSlackConnector(params: SyncParams): Promise<SyncResult
     const sevenDaysAgo = String(Math.floor((Date.now() - 7 * 86400 * 1000) / 1000))
     const weekKey      = isoWeekKey(new Date())
 
+    // ── Resolve display names before entering the transaction ────────────────
+    type ChannelData = {
+      channel:  (typeof channels)[number]
+      content:  string
+      sourceRef: string
+    }
+    const channelData: ChannelData[] = []
+
     for (const channel of channels) {
       const messages = await getChannelHistory(token, channel.id, sevenDaysAgo, 80)
       if (!messages.length) continue
 
-      // Resolve up to 10 unique user IDs for display names (best-effort)
       const uniqueUsers = [...new Set(messages.map(m => m.user).filter(Boolean))].slice(0, 10)
       const nameMap = new Map<string, string>()
       for (const uid of uniqueUsers) {
         nameMap.set(uid, await resolveDisplayName(token, uid))
       }
 
-      // Build a windowed summary (not a message mirror)
       const msgLines = messages.slice(0, 30).map(m => {
         const who  = nameMap.get(m.user) || m.username || 'unknown'
         const text = m.text.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 120)
         return `[${who}]: ${text}`
       })
 
-      const title     = `Slack #${channel.name} — week ${weekKey}`
-      const content   = [
-        `Channel: #${channel.name}`,
-        channel.topic   ? `Topic: ${channel.topic}`   : '',
-        channel.purpose ? `Purpose: ${channel.purpose}` : '',
-        `Messages (${messages.length} in last 7 days):`,
-        msgLines.join('\n'),
-      ].filter(Boolean).join('\n')
-
-      const sourceRef = `slack:channel:${channel.id}:week:${weekKey}`
-
-      await pool.query(
-        `INSERT INTO business_memory_search
-           (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
-         VALUES ($1, 'integration', $2, $3, $4, $5, now())
-         ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
-           title               = EXCLUDED.title,
-           content             = EXCLUDED.content,
-           metadata            = EXCLUDED.metadata,
-           embedding_queued_at = now(),
-           updated_at          = now()`,
-        [
-          tenantId,
-          sourceRef,
-          title,
-          content.slice(0, 4000),
-          JSON.stringify({
-            provider:      'slack',
-            channel_id:    channel.id,
-            channel_name:  channel.name,
-            week:          weekKey,
-            message_count: messages.length,
-            worker_id:     workerId,
-            sync_run_id:   runId,
-          }),
-        ]
-      )
-      ingested++
-
-      // Candidate: channels whose name suggests decisions or announcements
-      const SIGNAL_NAMES = /\b(decision|announce|strategy|policy|process|handbook|docs|important|key-info)\b/i
-      const isSignal = SIGNAL_NAMES.test(channel.name) || SIGNAL_NAMES.test(channel.purpose)
-      if (isSignal) {
-        const candidateKey = `slack_channel:${channel.id}`
-        const existing = await pool.query(
-          `SELECT id FROM business_memory_candidates
-           WHERE tenant_id=$1
-             AND source_type='integration'
-             AND source_ref='slack'
-             AND proposed_memory_key=$2
-             AND status IN ('pending','approved','promoted')
-           LIMIT 1`,
-          [tenantId, candidateKey]
-        )
-        if (!existing.rows.length) {
-          await pool.query(
-            `INSERT INTO business_memory_candidates
-               (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
-                proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
-             VALUES ($1, 'search', $2, $3, $4, 'integration', 'slack', $5, 'low', true)`,
-            [
-              tenantId,
-              candidateKey,
-              JSON.stringify({ channel_id: channel.id, channel_name: channel.name, provider: 'slack' }),
-              content.slice(0, 300),
-              `Slack #${channel.name} appears to contain team decisions or announcements — may be worth noting as business context.`,
-            ]
-          )
-          candidates++
-        }
-      }
+      channelData.push({
+        channel,
+        content: [
+          `Channel: #${channel.name}`,
+          channel.topic   ? `Topic: ${channel.topic}`     : '',
+          channel.purpose ? `Purpose: ${channel.purpose}` : '',
+          `Messages (${messages.length} in last 7 days):`,
+          msgLines.join('\n'),
+        ].filter(Boolean).join('\n'),
+        sourceRef: `slack:channel:${channel.id}:week:${weekKey}`,
+      })
     }
 
-    await pool.query(
-      `INSERT INTO business_memory_events
-         (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
-       VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'slack', $3)`,
-      [
-        tenantId,
-        `Slack sync: ${ingested} channels updated, ${candidates} candidates created`,
-        `grant:${grantId}`,
-      ]
-    )
+    // ── All tenant data writes inside withTenant ──────────────────────────────
+    await withTenant(tenantId, async (client) => {
+      for (const { channel, content, sourceRef } of channelData) {
+        await client.query(
+          `INSERT INTO business_memory_search
+             (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
+           VALUES ($1, 'integration', $2, $3, $4, $5, now())
+           ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
+             title               = EXCLUDED.title,
+             content             = EXCLUDED.content,
+             metadata            = EXCLUDED.metadata,
+             embedding_queued_at = now(),
+             updated_at          = now()`,
+          [
+            tenantId,
+            sourceRef,
+            `Slack #${channel.name} — week ${weekKey}`,
+            content.slice(0, 4000),
+            JSON.stringify({
+              provider:      'slack',
+              channel_id:    channel.id,
+              channel_name:  channel.name,
+              week:          weekKey,
+              worker_id:     workerId,
+              sync_run_id:   runId,
+            }),
+          ]
+        )
+        ingested++
+
+        const SIGNAL_NAMES = /\b(decision|announce|strategy|policy|process|handbook|docs|important|key-info)\b/i
+        if (SIGNAL_NAMES.test(channel.name) || SIGNAL_NAMES.test(channel.purpose)) {
+          const candidateKey = `slack_channel:${channel.id}`
+          const existing = await client.query(
+            `SELECT id FROM business_memory_candidates
+             WHERE tenant_id=$1
+               AND source_type='integration'
+               AND source_ref='slack'
+               AND proposed_memory_key=$2
+               AND status IN ('pending','approved','promoted')
+             LIMIT 1`,
+            [tenantId, candidateKey]
+          )
+          if (!existing.rows.length) {
+            await client.query(
+              `INSERT INTO business_memory_candidates
+                 (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
+                  proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
+               VALUES ($1, 'search', $2, $3, $4, 'integration', 'slack', $5, 'low', true)`,
+              [
+                tenantId,
+                candidateKey,
+                JSON.stringify({ channel_id: channel.id, channel_name: channel.name, provider: 'slack' }),
+                content.slice(0, 300),
+                `Slack #${channel.name} appears to contain team decisions or announcements — may be worth noting as business context.`,
+              ]
+            )
+            candidates++
+          }
+        }
+      }
+
+      await client.query(
+        `INSERT INTO business_memory_events
+           (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
+         VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'slack', $3)`,
+        [tenantId, `Slack sync: ${ingested} channels updated, ${candidates} candidates created`, `grant:${grantId}`]
+      )
+    })
 
     await finaliseRun(runId, 'ok', ingested, candidates)
     await updateGrant(grantId, 'ok', ingested, null)
@@ -352,12 +351,12 @@ export async function syncSlackConnector(params: SyncParams): Promise<SyncResult
     const message = err instanceof Error ? err.message : String(err)
     console.error(`[connectorSync/slack] ${message}`)
 
-    await pool.query(
+    withTenant(tenantId, (client) => client.query(
       `INSERT INTO business_memory_events
          (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
        VALUES ($1, 'search', 'sync_failed', $2, 'integration', 'slack', $3)`,
       [tenantId, `Slack sync error: ${message}`, `grant:${grantId}`]
-    )
+    )).catch(() => {/* non-fatal */})
 
     await finaliseRun(runId, 'error', ingested, candidates, message)
     await updateGrant(grantId, 'error', ingested, message)
@@ -425,92 +424,100 @@ export async function syncGdriveConnector(params: SyncParams): Promise<SyncResul
       return { ingested: 0, candidates: 0 }
     }
 
+    // ── Export file contents before entering the transaction ─────────────────
+    type FileData = {
+      file:     (typeof files)[number]
+      body:     string
+      content:  string
+      sourceRef: string
+    }
+    const fileData: FileData[] = []
     for (const file of files) {
       const content = await exportFileContent(freshTokens, file)
-
-      const title     = `Google Drive: ${file.name}`
-      const sourceRef = `gdrive:file:${file.id}`
-      const body      = content.length > 0
-        ? content
-        : `File: ${file.name}\nType: ${file.mimeType}\nModified: ${file.modifiedTime}`
-
-      await pool.query(
-        `INSERT INTO business_memory_search
-           (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
-         VALUES ($1, 'integration', $2, $3, $4, $5, now())
-         ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
-           title               = EXCLUDED.title,
-           content             = EXCLUDED.content,
-           metadata            = EXCLUDED.metadata,
-           embedding_queued_at = now(),
-           updated_at          = now()`,
-        [
-          tenantId,
-          sourceRef,
-          title,
-          body,
-          JSON.stringify({
-            provider:      'gdrive',
-            file_id:       file.id,
-            file_name:     file.name,
-            mime_type:     file.mimeType,
-            modified_time: file.modifiedTime,
-            web_view_link: file.webViewLink,
-            owner_email:   file.ownerEmail,
-            worker_id:     workerId,
-            sync_run_id:   runId,
-          }),
-        ]
-      )
-      ingested++
-
-      // Candidate: Google Docs with substantial content (>400 chars) — good business facts
-      if (
-        file.mimeType === 'application/vnd.google-apps.document' &&
-        content.length > 400
-      ) {
-        const candidateKey = `gdrive_doc:${file.id}`
-
-        const existing = await pool.query(
-          `SELECT id FROM business_memory_candidates
-           WHERE tenant_id=$1
-             AND source_type='integration'
-             AND source_ref='gdrive'
-             AND proposed_memory_key=$2
-             AND status IN ('pending','approved','promoted')
-           LIMIT 1`,
-          [tenantId, candidateKey]
-        )
-        if (!existing.rows.length) {
-          const preview = content.slice(0, 300).replace(/\s+/g, ' ')
-          await pool.query(
-            `INSERT INTO business_memory_candidates
-               (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
-                proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
-             VALUES ($1, 'search', $2, $3, $4, 'integration', 'gdrive', $5, 'low', true)`,
-            [
-              tenantId,
-              candidateKey,
-              JSON.stringify({ file_id: file.id, name: file.name, provider: 'gdrive', web_link: file.webViewLink }),
-              preview,
-              `Google Doc "${file.name}" contains substantial content that may be useful as business context.`,
-            ]
-          )
-          candidates++
-        }
-      }
+      fileData.push({
+        file,
+        body: content.length > 0
+          ? content
+          : `File: ${file.name}\nType: ${file.mimeType}\nModified: ${file.modifiedTime}`,
+        content,
+        sourceRef: `gdrive:file:${file.id}`,
+      })
     }
 
-    await pool.query(
-      `INSERT INTO business_memory_events
-         (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
-       VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'gdrive', $3)`,
-      [
-        tenantId,
-        `Google Drive sync: ${ingested} files updated, ${candidates} candidates created`,
-        `grant:${grantId}`,
-      ]
-    )
+    // ── All tenant data writes inside withTenant ──────────────────────────────
+    await withTenant(tenantId, async (client) => {
+      for (const { file, body, content, sourceRef } of fileData) {
+        await client.query(
+          `INSERT INTO business_memory_search
+             (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
+           VALUES ($1, 'integration', $2, $3, $4, $5, now())
+           ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
+             title               = EXCLUDED.title,
+             content             = EXCLUDED.content,
+             metadata            = EXCLUDED.metadata,
+             embedding_queued_at = now(),
+             updated_at          = now()`,
+          [
+            tenantId,
+            sourceRef,
+            `Google Drive: ${file.name}`,
+            body,
+            JSON.stringify({
+              provider:      'gdrive',
+              file_id:       file.id,
+              file_name:     file.name,
+              mime_type:     file.mimeType,
+              modified_time: file.modifiedTime,
+              web_view_link: file.webViewLink,
+              owner_email:   file.ownerEmail,
+              worker_id:     workerId,
+              sync_run_id:   runId,
+            }),
+          ]
+        )
+        ingested++
+
+        if (
+          file.mimeType === 'application/vnd.google-apps.document' &&
+          content.length > 400
+        ) {
+          const candidateKey = `gdrive_doc:${file.id}`
+          const existing = await client.query(
+            `SELECT id FROM business_memory_candidates
+             WHERE tenant_id=$1
+               AND source_type='integration'
+               AND source_ref='gdrive'
+               AND proposed_memory_key=$2
+               AND status IN ('pending','approved','promoted')
+             LIMIT 1`,
+            [tenantId, candidateKey]
+          )
+          if (!existing.rows.length) {
+            await client.query(
+              `INSERT INTO business_memory_candidates
+                 (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
+                  proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
+               VALUES ($1, 'search', $2, $3, $4, 'integration', 'gdrive', $5, 'low', true)`,
+              [
+                tenantId,
+                candidateKey,
+                JSON.stringify({ file_id: file.id, name: file.name, provider: 'gdrive', web_link: file.webViewLink }),
+                content.slice(0, 300).replace(/\s+/g, ' '),
+                `Google Doc "${file.name}" contains substantial content that may be useful as business context.`,
+              ]
+            )
+            candidates++
+          }
+        }
+      }
+
+      await client.query(
+        `INSERT INTO business_memory_events
+           (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
+         VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'gdrive', $3)`,
+        [tenantId, `Google Drive sync: ${ingested} files updated, ${candidates} candidates created`, `grant:${grantId}`]
+      )
+    })
 
     await finaliseRun(runId, 'ok', ingested, candidates)
     await updateGrant(grantId, 'ok', ingested, null)
@@ -520,12 +527,12 @@ export async function syncGdriveConnector(params: SyncParams): Promise<SyncResul
     const message = err instanceof Error ? err.message : String(err)
     console.error(`[connectorSync/gdrive] ${message}`)
 
-    await pool.query(
+    withTenant(tenantId, (client) => client.query(
       `INSERT INTO business_memory_events
          (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
        VALUES ($1, 'search', 'sync_failed', $2, 'integration', 'gdrive', $3)`,
       [tenantId, `Google Drive sync error: ${message}`, `grant:${grantId}`]
-    )
+    )).catch(() => {/* non-fatal */})
 
     await finaliseRun(runId, 'error', ingested, candidates, message)
     await updateGrant(grantId, 'error', ingested, message)
@@ -552,216 +559,137 @@ export async function syncHubspotConnector(params: SyncParams): Promise<SyncResu
     const freshTokens = await ensureFreshTokensForProvider(params, 'hubspot')
     const token = freshTokens.access_token
 
-    // ── Companies ─────────────────────────────────────────────────────────────
+    // ── Fetch all external data before entering the transaction ───────────────
     const companies = await listHubspotCompanies(token, 50)
+    const deals     = await listHubspotDeals(token, 50)
+    const contacts  = await listHubspotContacts(token, 100)
 
-    for (const company of companies) {
-      if (!company.name) continue
+    // ── All tenant data writes inside withTenant ──────────────────────────────
+    await withTenant(tenantId, async (client) => {
+      for (const company of companies) {
+        if (!company.name) continue
 
-      const sourceRef = `hubspot:company:${company.id}`
-      const lines = [
-        `Company: ${company.name}`,
-        company.domain           ? `Domain: ${company.domain}`                     : '',
-        company.industry         ? `Industry: ${company.industry}`                 : '',
-        company.city || company.country
-          ? `Location: ${[company.city, company.country].filter(Boolean).join(', ')}` : '',
-        company.numberOfEmployees ? `Employees: ${company.numberOfEmployees}`      : '',
-        company.phone            ? `Phone: ${company.phone}`                        : '',
-      ].filter(Boolean)
+        const sourceRef = `hubspot:company:${company.id}`
+        const lines = [
+          `Company: ${company.name}`,
+          company.domain            ? `Domain: ${company.domain}`                      : '',
+          company.industry          ? `Industry: ${company.industry}`                  : '',
+          company.city || company.country
+            ? `Location: ${[company.city, company.country].filter(Boolean).join(', ')}` : '',
+          company.numberOfEmployees ? `Employees: ${company.numberOfEmployees}`        : '',
+          company.phone             ? `Phone: ${company.phone}`                         : '',
+        ].filter(Boolean)
 
-      await pool.query(
-        `INSERT INTO business_memory_search
-           (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
-         VALUES ($1, 'integration', $2, $3, $4, $5, now())
-         ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
-           title               = EXCLUDED.title,
-           content             = EXCLUDED.content,
-           metadata            = EXCLUDED.metadata,
-           embedding_queued_at = now(),
-           updated_at          = now()`,
-        [
-          tenantId,
-          sourceRef,
-          `HubSpot company: ${company.name}`,
-          lines.join('\n'),
-          JSON.stringify({
-            provider:   'hubspot',
-            company_id: company.id,
-            name:       company.name,
-            domain:     company.domain,
-            industry:   company.industry,
-            worker_id:  workerId,
-            sync_run_id: runId,
-          }),
-        ]
-      )
-      ingested++
-
-      // Candidate: named company with domain — likely a key account
-      if (company.domain) {
-        const candidateKey = `hubspot_company:${company.id}`
-        const existing = await pool.query(
-          `SELECT id FROM business_memory_candidates
-           WHERE tenant_id=$1
-             AND source_type='integration'
-             AND source_ref='hubspot'
-             AND proposed_memory_key=$2
-             AND status IN ('pending','approved','promoted')
-           LIMIT 1`,
-          [tenantId, candidateKey]
+        await client.query(
+          `INSERT INTO business_memory_search
+             (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
+           VALUES ($1, 'integration', $2, $3, $4, $5, now())
+           ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
+             title               = EXCLUDED.title,
+             content             = EXCLUDED.content,
+             metadata            = EXCLUDED.metadata,
+             embedding_queued_at = now(),
+             updated_at          = now()`,
+          [
+            tenantId, sourceRef, `HubSpot company: ${company.name}`, lines.join('\n'),
+            JSON.stringify({ provider: 'hubspot', company_id: company.id, name: company.name, domain: company.domain, industry: company.industry, worker_id: workerId, sync_run_id: runId }),
+          ]
         )
-        if (!existing.rows.length) {
-          await pool.query(
-            `INSERT INTO business_memory_candidates
-               (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
-                proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
-             VALUES ($1, 'core', $2, $3, $4, 'integration', 'hubspot', $5, 'low', true)`,
-            [
-              tenantId,
-              candidateKey,
-              JSON.stringify({ company_id: company.id, name: company.name, domain: company.domain, provider: 'hubspot' }),
-              lines.join('\n').slice(0, 300),
-              `HubSpot company "${company.name}" (${company.domain}) may be a key business contact or client.`,
-            ]
+        ingested++
+
+        if (company.domain) {
+          const candidateKey = `hubspot_company:${company.id}`
+          const existing = await client.query(
+            `SELECT id FROM business_memory_candidates WHERE tenant_id=$1 AND source_type='integration' AND source_ref='hubspot' AND proposed_memory_key=$2 AND status IN ('pending','approved','promoted') LIMIT 1`,
+            [tenantId, candidateKey]
           )
-          candidates++
+          if (!existing.rows.length) {
+            await client.query(
+              `INSERT INTO business_memory_candidates (tenant_id, target_layer, proposed_memory_key, proposed_memory_value, proposed_content, source_type, source_ref, reason, risk_level, requires_approval) VALUES ($1, 'core', $2, $3, $4, 'integration', 'hubspot', $5, 'low', true)`,
+              [tenantId, candidateKey, JSON.stringify({ company_id: company.id, name: company.name, domain: company.domain, provider: 'hubspot' }), lines.join('\n').slice(0, 300), `HubSpot company "${company.name}" (${company.domain}) may be a key business contact or client.`]
+            )
+            candidates++
+          }
         }
       }
-    }
 
-    // ── Deals ──────────────────────────────────────────────────────────────────
-    const deals = await listHubspotDeals(token, 50)
+      for (const deal of deals) {
+        if (!deal.name) continue
 
-    for (const deal of deals) {
-      if (!deal.name) continue
+        const sourceRef = `hubspot:deal:${deal.id}`
+        const amountStr = deal.amount ? `£${Number(deal.amount).toLocaleString()}` : ''
+        const lines = [
+          `Deal: ${deal.name}`,
+          deal.stage     ? `Stage: ${deal.stage}`         : '',
+          amountStr      ? `Amount: ${amountStr}`          : '',
+          deal.closeDate ? `Close date: ${deal.closeDate}` : '',
+          deal.pipeline  ? `Pipeline: ${deal.pipeline}`    : '',
+        ].filter(Boolean)
 
-      const sourceRef = `hubspot:deal:${deal.id}`
-      const amountStr = deal.amount ? `£${Number(deal.amount).toLocaleString()}` : ''
-      const lines = [
-        `Deal: ${deal.name}`,
-        deal.stage     ? `Stage: ${deal.stage}`         : '',
-        amountStr      ? `Amount: ${amountStr}`          : '',
-        deal.closeDate ? `Close date: ${deal.closeDate}` : '',
-        deal.pipeline  ? `Pipeline: ${deal.pipeline}`    : '',
-      ].filter(Boolean)
-
-      await pool.query(
-        `INSERT INTO business_memory_search
-           (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
-         VALUES ($1, 'integration', $2, $3, $4, $5, now())
-         ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
-           title               = EXCLUDED.title,
-           content             = EXCLUDED.content,
-           metadata            = EXCLUDED.metadata,
-           embedding_queued_at = now(),
-           updated_at          = now()`,
-        [
-          tenantId,
-          sourceRef,
-          `HubSpot deal: ${deal.name}`,
-          lines.join('\n'),
-          JSON.stringify({
-            provider:    'hubspot',
-            deal_id:     deal.id,
-            name:        deal.name,
-            stage:       deal.stage,
-            amount:      deal.amount,
-            close_date:  deal.closeDate,
-            pipeline:    deal.pipeline,
-            worker_id:   workerId,
-            sync_run_id: runId,
-          }),
-        ]
-      )
-      ingested++
-
-      // Candidate: deal with a value or in a notable stage
-      const isSignificant = (deal.amount && Number(deal.amount) > 0) ||
-        /\b(closed_won|proposal|contract|negotiat)\b/i.test(deal.stage ?? '')
-      if (isSignificant) {
-        const candidateKey = `hubspot_deal:${deal.id}`
-        const existing = await pool.query(
-          `SELECT id FROM business_memory_candidates
-           WHERE tenant_id=$1
-             AND source_type='integration'
-             AND source_ref='hubspot'
-             AND proposed_memory_key=$2
-             AND status IN ('pending','approved','promoted')
-           LIMIT 1`,
-          [tenantId, candidateKey]
+        await client.query(
+          `INSERT INTO business_memory_search
+             (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
+           VALUES ($1, 'integration', $2, $3, $4, $5, now())
+           ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
+             title               = EXCLUDED.title,
+             content             = EXCLUDED.content,
+             metadata            = EXCLUDED.metadata,
+             embedding_queued_at = now(),
+             updated_at          = now()`,
+          [
+            tenantId, sourceRef, `HubSpot deal: ${deal.name}`, lines.join('\n'),
+            JSON.stringify({ provider: 'hubspot', deal_id: deal.id, name: deal.name, stage: deal.stage, amount: deal.amount, close_date: deal.closeDate, pipeline: deal.pipeline, worker_id: workerId, sync_run_id: runId }),
+          ]
         )
-        if (!existing.rows.length) {
-          await pool.query(
-            `INSERT INTO business_memory_candidates
-               (tenant_id, target_layer, proposed_memory_key, proposed_memory_value,
-                proposed_content, source_type, source_ref, reason, risk_level, requires_approval)
-             VALUES ($1, 'core', $2, $3, $4, 'integration', 'hubspot', $5, 'low', true)`,
-            [
-              tenantId,
-              candidateKey,
-              JSON.stringify({ deal_id: deal.id, name: deal.name, stage: deal.stage, amount: deal.amount, provider: 'hubspot' }),
-              lines.join('\n').slice(0, 300),
-              `HubSpot deal "${deal.name}" is in stage "${deal.stage}"${amountStr ? ` with value ${amountStr}` : ''} — may be relevant business context.`,
-            ]
+        ingested++
+
+        const isSignificant = (deal.amount && Number(deal.amount) > 0) ||
+          /\b(closed_won|proposal|contract|negotiat)\b/i.test(deal.stage ?? '')
+        if (isSignificant) {
+          const candidateKey = `hubspot_deal:${deal.id}`
+          const existing = await client.query(
+            `SELECT id FROM business_memory_candidates WHERE tenant_id=$1 AND source_type='integration' AND source_ref='hubspot' AND proposed_memory_key=$2 AND status IN ('pending','approved','promoted') LIMIT 1`,
+            [tenantId, candidateKey]
           )
-          candidates++
+          if (!existing.rows.length) {
+            await client.query(
+              `INSERT INTO business_memory_candidates (tenant_id, target_layer, proposed_memory_key, proposed_memory_value, proposed_content, source_type, source_ref, reason, risk_level, requires_approval) VALUES ($1, 'core', $2, $3, $4, 'integration', 'hubspot', $5, 'low', true)`,
+              [tenantId, candidateKey, JSON.stringify({ deal_id: deal.id, name: deal.name, stage: deal.stage, amount: deal.amount, provider: 'hubspot' }), lines.join('\n').slice(0, 300), `HubSpot deal "${deal.name}" is in stage "${deal.stage}"${amountStr ? ` with value ${amountStr}` : ''} — may be relevant business context.`]
+            )
+            candidates++
+          }
         }
       }
-    }
 
-    // ── Contacts snapshot ─────────────────────────────────────────────────────
-    const contacts = await listHubspotContacts(token, 100)
+      if (contacts.length) {
+        const contactLines = contacts.slice(0, 50).map(c => {
+          const name    = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown'
+          const details = [c.jobTitle, c.company].filter(Boolean).join(' @ ')
+          return details ? `${name} (${details})` : name
+        })
+        const contactContent = [`HubSpot contacts (${contacts.length} total, top ${Math.min(50, contacts.length)} shown):`, ...contactLines].join('\n')
+        await client.query(
+          `INSERT INTO business_memory_search
+             (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
+           VALUES ($1, 'integration', 'hubspot:contacts:snapshot', 'HubSpot contacts snapshot', $2, $3, now())
+           ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
+             title               = EXCLUDED.title,
+             content             = EXCLUDED.content,
+             metadata            = EXCLUDED.metadata,
+             embedding_queued_at = now(),
+             updated_at          = now()`,
+          [tenantId, contactContent, JSON.stringify({ provider: 'hubspot', contact_count: contacts.length, worker_id: workerId, sync_run_id: runId })]
+        )
+        ingested++
+      }
 
-    if (contacts.length) {
-      const contactLines = contacts.slice(0, 50).map(c => {
-        const name    = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || 'Unknown'
-        const details = [c.jobTitle, c.company].filter(Boolean).join(' @ ')
-        return details ? `${name} (${details})` : name
-      })
-
-      const sourceRef = 'hubspot:contacts:snapshot'
-      const content   = [
-        `HubSpot contacts (${contacts.length} total, top ${Math.min(50, contacts.length)} shown):`,
-        ...contactLines,
-      ].join('\n')
-
-      await pool.query(
-        `INSERT INTO business_memory_search
-           (tenant_id, source_type, source_ref, title, content, metadata, embedding_queued_at)
-         VALUES ($1, 'integration', $2, $3, $4, $5, now())
-         ON CONFLICT (tenant_id, source_type, source_ref) DO UPDATE SET
-           title               = EXCLUDED.title,
-           content             = EXCLUDED.content,
-           metadata            = EXCLUDED.metadata,
-           embedding_queued_at = now(),
-           updated_at          = now()`,
-        [
-          tenantId,
-          sourceRef,
-          `HubSpot contacts snapshot`,
-          content,
-          JSON.stringify({
-            provider:      'hubspot',
-            contact_count: contacts.length,
-            worker_id:     workerId,
-            sync_run_id:   runId,
-          }),
-        ]
+      await client.query(
+        `INSERT INTO business_memory_events
+           (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
+         VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'hubspot', $3)`,
+        [tenantId, `HubSpot sync: ${companies.length} companies, ${deals.length} deals, ${contacts.length} contacts — ${ingested} items updated, ${candidates} candidates created`, `grant:${grantId}`]
       )
-      ingested++
-    }
-
-    // ── Log sync event ─────────────────────────────────────────────────────────
-    await pool.query(
-      `INSERT INTO business_memory_events
-         (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
-       VALUES ($1, 'search', 'sync_completed', $2, 'integration', 'hubspot', $3)`,
-      [
-        tenantId,
-        `HubSpot sync: ${companies.length} companies, ${deals.length} deals, ${contacts.length} contacts — ${ingested} items updated, ${candidates} candidates created`,
-        `grant:${grantId}`,
-      ]
-    )
+    })
 
     await finaliseRun(runId, 'ok', ingested, candidates)
     await updateGrant(grantId, 'ok', ingested, null)
@@ -771,12 +699,12 @@ export async function syncHubspotConnector(params: SyncParams): Promise<SyncResu
     const message = err instanceof Error ? err.message : String(err)
     console.error(`[connectorSync/hubspot] ${message}`)
 
-    await pool.query(
+    withTenant(tenantId, (client) => client.query(
       `INSERT INTO business_memory_events
          (tenant_id, memory_layer, action, reason, actor_type, source_type, source_ref)
        VALUES ($1, 'search', 'sync_failed', $2, 'integration', 'hubspot', $3)`,
       [tenantId, `HubSpot sync error: ${message}`, `grant:${grantId}`]
-    )
+    )).catch(() => {/* non-fatal */})
 
     await finaliseRun(runId, 'error', ingested, candidates, message)
     await updateGrant(grantId, 'error', ingested, message)

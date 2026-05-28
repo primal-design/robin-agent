@@ -11,7 +11,7 @@ function normalizeEmail(email: string) {
 }
 
 function authSecret() {
-  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-fen-auth-secret'
+  return (process.env.FEN_AUTH_SECRET ?? process.env.ROBIN_AUTH_SECRET ?? process.env.SESSION_SECRET ?? process.env.TWILIO_AUTH_TOKEN) || 'dev-fen-auth-secret'
 }
 
 function signPayload(payload: string) {
@@ -230,12 +230,15 @@ router.post('/auth/dev-login', async (req, res, next) => {
     const email = normalizeEmail(req.body.email)
     if (!email) return res.status(400).json({ error: 'email_required' })
     const { db } = await import('../db/client.js')
-    await db.query(
-      `INSERT INTO waitlist (request_id, name, email, status, role)
-       VALUES ($1,$2,$3,'accepted','owner')
-       ON CONFLICT (LOWER(email)) DO UPDATE SET status='accepted'`,
-      [`DEV-${Date.now().toString(36)}`, req.body.name || 'Dev User', email]
-    )
+    const devExisting = await db.query(`SELECT id FROM waitlist WHERE LOWER(email)=$1 LIMIT 1`, [email])
+    if (devExisting.rows.length) {
+      await db.query(`UPDATE waitlist SET status='accepted' WHERE LOWER(email)=$1`, [email])
+    } else {
+      await db.query(
+        `INSERT INTO waitlist (request_id, name, email, status, role) VALUES ($1,$2,$3,'accepted','owner')`,
+        [`DEV-${Date.now().toString(36)}`, req.body.name || 'Dev User', email]
+      )
+    }
     const identity = `email:${email}`
     res.json({ ok: true, ...createSession(identity), name: req.body.name || 'Dev User', role: 'owner' })
   } catch (err) { next(err) }

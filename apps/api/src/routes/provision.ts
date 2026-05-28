@@ -17,7 +17,7 @@ function appBaseUrl(req: any) {
 }
 
 function makeMagicToken(email: string): string {
-  const authSecret = process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || 'dev-fen-auth-secret'
+  const authSecret = (process.env.FEN_AUTH_SECRET ?? process.env.ROBIN_AUTH_SECRET ?? process.env.SESSION_SECRET) || 'dev-fen-auth-secret'
   const MAGIC_TTL_MS = 1000 * 60 * 15
   const identity = `email:${email}`
   const payload = Buffer.from(JSON.stringify({ phone: identity, type: 'magic', exp: Date.now() + MAGIC_TTL_MS })).toString('base64url')

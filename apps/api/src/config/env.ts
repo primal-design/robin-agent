@@ -21,7 +21,7 @@ export const env = {
   gmailClientSecret:  process.env.GMAIL_CLIENT_SECRET ?? '',
   gmailRedirectUri:   process.env.GMAIL_REDIRECT_URI ?? 'https://fen-agent.onrender.com/email/callback',
   jwtSecret:          process.env.JWT_SECRET ?? 'dev-secret-change-me',
-  robinAuthSecret:    process.env.ROBIN_AUTH_SECRET ?? process.env.SESSION_SECRET ?? '',
+  robinAuthSecret:    process.env.FEN_AUTH_SECRET ?? process.env.ROBIN_AUTH_SECRET ?? process.env.SESSION_SECRET ?? '',
   adminToken:         process.env.ADMIN_TOKEN ?? '',
   youtubeKey:         process.env.YOUTUBE_API_KEY ?? '',
   apolloKey:          process.env.APOLLO_API_KEY ?? '',

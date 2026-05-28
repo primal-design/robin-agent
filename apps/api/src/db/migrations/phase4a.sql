@@ -88,12 +88,12 @@ ALTER TABLE business_memory_snapshots FORCE  ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS bmc_tenant_isolation ON business_memory_core;
 CREATE POLICY bmc_tenant_isolation ON business_memory_core
-  USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid);
 
 DROP POLICY IF EXISTS bms_tenant_isolation ON business_memory_search;
 CREATE POLICY bms_tenant_isolation ON business_memory_search
-  USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid);
 
 DROP POLICY IF EXISTS bmsnap_tenant_isolation ON business_memory_snapshots;
 CREATE POLICY bmsnap_tenant_isolation ON business_memory_snapshots
-  USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid);

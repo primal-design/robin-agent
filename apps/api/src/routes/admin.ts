@@ -44,7 +44,7 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
         const name  = row.rows[0]?.name  || 'there'
         const email2 = row.rows[0]?.email || ''
         if (email2 && process.env.RESEND_API_KEY) {
-          const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
+          const appUrl = process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'
           await fetch('https://api.resend.com/emails', {
             method:  'POST',
             headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
@@ -71,7 +71,7 @@ router.post('/admin/waitlist/notify', async (req, res, next) => {
     const { name, email } = req.body
     if (!email) return res.status(400).json({ error: 'email_required' })
     if (!process.env.RESEND_API_KEY) return res.status(502).json({ error: 'email_not_configured' })
-    const appUrl = process.env.PUBLIC_APP_URL || 'https://robin-agent.onrender.com'
+    const appUrl = process.env.PUBLIC_APP_URL || 'https://fen-agent.onrender.com'
     await fetch('https://api.resend.com/emails', {
       method:  'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },

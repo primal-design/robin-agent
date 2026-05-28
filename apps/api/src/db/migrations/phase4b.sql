@@ -77,7 +77,7 @@ ALTER TABLE outbound_actions FORCE  ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS oa_tenant_isolation ON outbound_actions;
 CREATE POLICY oa_tenant_isolation ON outbound_actions
-  USING (tenant_id = current_setting('app.current_tenant', true)::uuid);
+  USING (tenant_id = NULLIF(current_setting('app.current_tenant', true), '')::uuid);
 
 -- Disable RLS on scheduler tables (server-internal, not user data)
 ALTER TABLE scheduled_jobs DISABLE ROW LEVEL SECURITY;

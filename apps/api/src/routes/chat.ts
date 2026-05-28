@@ -12,7 +12,7 @@ function normalizePhone(phone: string) {
 }
 
 function authSecret() {
-  return process.env.ROBIN_AUTH_SECRET || process.env.SESSION_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-fen-auth-secret'
+  return (process.env.FEN_AUTH_SECRET ?? process.env.ROBIN_AUTH_SECRET ?? process.env.SESSION_SECRET ?? process.env.TWILIO_AUTH_TOKEN) || 'dev-fen-auth-secret'
 }
 
 function signPayload(payload: string) {
