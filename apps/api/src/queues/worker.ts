@@ -14,6 +14,14 @@ import {
   buildProfileContext, inferFromMessage,
   detectGdprRequest, formatProfileForUser,
 } from '../memory/profile.js'
+import { checkOutboundGuardrails, detectOptOutCommand, applyOptOutCommand } from '../services/outboundGuardrails.js'
+import {
+  createEnquiryFromRawInput, extractEnquiryFields,
+  computeFitScore, computeLeadScore,
+  applyExtractionToEnquiry, updateEnquiryStatus,
+  recordEnquiryEvent,
+} from '../services/enquiries.js'
+import { getServiceAreas, getDraftReplyContext, generateDraftReply } from '../services/enquiryReply.js'
 
 function redisConnection() {
   const url = process.env.REDIS_URL
@@ -37,6 +45,12 @@ export const fenWorker = new Worker(
     // ── Scheduled job execution ───────────────────────────────────────────────
     if (job.name === 'run_scheduled_job') {
       await runScheduledJob(job.data as ScheduledJobData)
+      return
+    }
+
+    // ── One-shot reminder delivery ────────────────────────────────────────────
+    if (job.name === 'send_reminder') {
+      await handleSendReminder(job.data as ReminderJobData)
       return
     }
 
@@ -120,6 +134,16 @@ export const fenWorker = new Worker(
         return
       }
 
+      // ── Opt-out / opt-in commands ─────────────────────────────────────────
+      const optCmd = detectOptOutCommand(text)
+      if (optCmd) {
+        const { state: updatedState, reply: optReply } = applyOptOutCommand(convState, optCmd)
+        Object.assign(convState, updatedState)
+        await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
+        await sendTelegram(chatId, optReply)
+        return
+      }
+
       // ── GDPR commands ─────────────────────────────────────────────────────
       const gdprRequest = detectGdprRequest(text)
       if (gdprRequest === 'view') {
@@ -133,6 +157,22 @@ export const fenWorker = new Worker(
         await client.query(`DELETE FROM messages WHERE conversation_id = $1`, [conversationId])
         await sendTelegram(chatId, `Done. I've deleted everything — your profile, conversation history, all of it.\n\nYou can start fresh whenever you're ready.`)
         return
+      }
+
+      // ── Enquiry capture ───────────────────────────────────────────────────
+      const enquiryTrigger = detectEnquiryTrigger(text)
+      if (enquiryTrigger) {
+        const enquiryReply = await handleEnquiryCapture({
+          client, tenantId, workerId, conversationId, chatId: String(chatId), text,
+        })
+        if (enquiryReply) {
+          await client.query(
+            `INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'outbound', $3)`,
+            [tenantId, conversationId, enquiryReply]
+          )
+          await sendTelegram(chatId, enquiryReply)
+          return
+        }
       }
 
       // ── Onboarding flow ───────────────────────────────────────────────────
@@ -227,6 +267,7 @@ async function runScheduledJob(data: ScheduledJobData) {
   try {
     await withTenant(tenantId, async (client) => {
       let output: string | null = null
+      let conversationId: string | null = null
 
       if (executionMode === 'script_only') {
         // No LLM — task text is the output directly (deterministic collector)
@@ -245,7 +286,7 @@ async function runScheduledJob(data: ScheduledJobData) {
             [tenantId, workerId]
           )
         }
-        const conversationId = convRes.rows[0].id as string
+        conversationId = convRes.rows[0].id as string
 
         await client.query(
           `INSERT INTO messages (tenant_id, conversation_id, direction, content)
@@ -269,6 +310,20 @@ async function runScheduledJob(data: ScheduledJobData) {
       }
 
       if (output && outputChatId) {
+        // Guardrail check — quiet hours, daily cap, opt-out
+        if (conversationId) {
+          const guard = await checkOutboundGuardrails(client, { tenantId, conversationId })
+          if (!guard.allowed) {
+            console.log(`[scheduler] guardrail suppressed job_run ${jobRunId}: ${guard.reason}`)
+            await pool.query(
+              `UPDATE job_runs SET status = 'completed', output = $1, completed_at = now(), finished_at = now() WHERE id = $2`,
+              [`[suppressed] ${guard.reason}`, jobRunId]
+            )
+            await pool.query(`UPDATE scheduled_jobs SET last_completed_at = now() WHERE id = $1`, [scheduledJobId])
+            return
+          }
+        }
+
         const { alreadySent, actionId } = await registerOutboundAction({
           client,
           tenantId,
@@ -342,6 +397,163 @@ function handleTelegramOnboarding(state: Record<string, unknown>, userMessage: s
   return null
 }
 
+// ── Enquiry capture helpers ───────────────────────────────────────────────────
+
+const ENQUIRY_TRIGGERS = [
+  'new enquiry:', 'enquiry:', 'lead:', 'new lead:',
+  'job:', 'new job:', 'customer:', 'new customer:',
+]
+
+export function detectEnquiryTrigger(text: string): boolean {
+  const lower = text.trim().toLowerCase()
+  return ENQUIRY_TRIGGERS.some(t => lower.startsWith(t))
+}
+
+async function handleEnquiryCapture(params: {
+  client:         import('pg').PoolClient
+  tenantId:       string
+  workerId:       string
+  conversationId: string
+  chatId:         string
+  text:           string
+}): Promise<string | null> {
+  const { client, tenantId, workerId, chatId, text } = params
+
+  try {
+    // 1. Create enquiry + customer
+    const { enquiryId, matchSuggestion } = await createEnquiryFromRawInput(client, {
+      tenantId,
+      workerId,
+      rawText:    text,
+      sourceType: 'telegram_manual',
+      chatId,
+    })
+
+    // 2. Extract fields + scores
+    const serviceAreas = await getServiceAreas(client, tenantId)
+    const extracted = await extractEnquiryFields(client, tenantId, text)
+    const { fitScore, serviceAreaMatch } = computeFitScore(extracted.customer_postcode, serviceAreas)
+    const leadScore = computeLeadScore(fitScore, extracted.urgency_score, extracted.value_score)
+
+    // 3. Save scores back to enquiry row
+    await applyExtractionToEnquiry(client, {
+      enquiryId,
+      tenantId,
+      extracted,
+      fitScore,
+      leadScore,
+      serviceAreaMatch,
+    })
+
+    // 4. Generate draft reply (fire async, save to enquiry)
+    const businessCtx = await getDraftReplyContext(client, tenantId)
+    const draftReply  = await generateDraftReply(client, {
+      tenantId,
+      enquiryId,
+      customerName:   extracted.customer_name,
+      summary:        extracted.summary || text,
+      missingDetails: extracted.missing_details as string[],
+      urgency:        extracted.urgency_score > 70 ? 'high' : 'normal',
+      businessCtx,
+    })
+
+    // Save draft + advance status to draft_ready
+    await client.query(
+      `UPDATE enquiries SET draft_reply = $1, updated_at = now() WHERE id = $2`,
+      [draftReply, enquiryId]
+    )
+    await updateEnquiryStatus(client, {
+      enquiryId,
+      tenantId,
+      newStatus: 'draft_ready',
+      actor:     'system',
+    })
+
+    // 5. Build confirmation reply
+    const name    = extracted.customer_name ?? 'Unknown'
+    const summary = extracted.summary || text.slice(0, 100)
+    const area    = serviceAreaMatch ? '✓' : '✗'
+    const missing = (extracted.missing_details as string[]).slice(0, 3).join(', ')
+    const scoreBreakdown = `Fit ${fitScore}×0.4 + Urgency ${extracted.urgency_score}×0.35 + Value ${extracted.value_score}×0.25 = ${leadScore}`
+
+    let reply = `Saved — ${name}\n${summary}\nScore: ${leadScore}  |  Area: ${area}\n`
+    if (missing) reply += `Missing: ${missing}\n`
+    reply += `\n${scoreBreakdown}\n\nDraft:\n"${draftReply}"\n\nReply "send", "snooze", or "handled".`
+
+    // 6. If customer match found, prepend suggestion
+    if (matchSuggestion) {
+      const prevName = matchSuggestion.existingCustomerName ?? 'this customer'
+      reply = `Heads up — ${prevName} has enquired before (${matchSuggestion.previousEnquiries} time${matchSuggestion.previousEnquiries === 1 ? '' : 's'}).\nReply "link" to connect, or "new" to keep separate.\n\n` + reply
+    }
+
+    await recordEnquiryEvent(client, {
+      enquiryId,
+      tenantId,
+      eventType: 'ALERT_SENT',
+      actor:     'system',
+      payload:   { channel: 'telegram', chat_id: chatId },
+    })
+
+    return reply
+  } catch (err) {
+    console.error('[enquiry] capture failed:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+// ── Reminder delivery handler ─────────────────────────────────────────────────
+
+interface ReminderJobData {
+  reminderId:     string
+  tenantId:       string
+  conversationId: string
+  chatId:         number
+  channelId:      string | null
+  message:        string
+}
+
+async function handleSendReminder(data: ReminderJobData) {
+  const { reminderId, tenantId, conversationId, chatId, channelId, message } = data
+
+  const client = await pool.connect()
+  try {
+    // Resolve bot token
+    let botToken: string | undefined
+    if (channelId) {
+      const chanRes = await client.query(
+        `SELECT encrypted_config FROM worker_channels WHERE id = $1 AND tenant_id = $2`,
+        [channelId, tenantId]
+      )
+      const enc = chanRes.rows[0]?.encrypted_config?.encrypted_token as string | undefined
+      if (enc) botToken = decryptToken(enc)
+    }
+
+    // Guardrail check
+    await client.query(`BEGIN`)
+    await client.query(`SET LOCAL app.current_tenant = '${tenantId}'`)
+    const guard = await checkOutboundGuardrails(client, { tenantId, conversationId })
+    await client.query(`COMMIT`)
+
+    if (!guard.allowed) {
+      console.log(`[reminder] suppressed ${reminderId}: ${guard.reason}`)
+      await pool.query(`UPDATE reminders SET status = 'failed' WHERE id = $1`, [reminderId])
+      return
+    }
+
+    const text = `Reminder: ${message}`
+    await sendTelegram(chatId, text, botToken)
+    await pool.query(`UPDATE reminders SET status = 'sent' WHERE id = $1`, [reminderId])
+
+    await audit({ tenantId, action: 'reminder_sent', actor: 'scheduler', target: conversationId, metadata: { reminder_id: reminderId } })
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {})
+    await pool.query(`UPDATE reminders SET status = 'failed' WHERE id = $1`, [reminderId])
+    throw err
+  } finally {
+    client.release()
+  }
+}
+
 // ── Multi-tenant channel message handler ─────────────────────────────────────
 
 interface ChannelMessageData {
@@ -395,6 +607,16 @@ async function handleChannelMessage(data: ChannelMessageData) {
     const complianceReply = await handleComplianceCommand(text, client, conversationId, tenantId)
     if (complianceReply) { await reply(complianceReply); return }
 
+    // Opt-out / opt-in commands
+    const optCmd = detectOptOutCommand(text)
+    if (optCmd) {
+      const { state: updatedState, reply: optReply } = applyOptOutCommand(convState, optCmd)
+      Object.assign(convState, updatedState)
+      await client.query(`UPDATE conversations SET state = $1 WHERE id = $2`, [JSON.stringify(convState), conversationId])
+      await reply(optReply)
+      return
+    }
+
     const gdprRequest = detectGdprRequest(text)
     if (gdprRequest === 'view') { await reply(formatProfileForUser(getProfile(convState))); return }
     if (gdprRequest === 'delete') {
@@ -403,6 +625,19 @@ async function handleChannelMessage(data: ChannelMessageData) {
       await client.query(`DELETE FROM messages WHERE conversation_id = $1`, [conversationId])
       await reply(`Done. I've deleted everything — your profile, conversation history, all of it.\n\nYou can start fresh whenever you're ready.`)
       return
+    }
+
+    // Enquiry capture
+    const channelEnquiryTrigger = detectEnquiryTrigger(text)
+    if (channelEnquiryTrigger) {
+      const enquiryReply = await handleEnquiryCapture({
+        client, tenantId, workerId, conversationId, chatId: String(chatId), text,
+      })
+      if (enquiryReply) {
+        await client.query(`INSERT INTO messages (tenant_id, conversation_id, direction, content) VALUES ($1, $2, 'outbound', $3)`, [tenantId, conversationId, enquiryReply])
+        await reply(enquiryReply)
+        return
+      }
     }
 
     // Onboarding
