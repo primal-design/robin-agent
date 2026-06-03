@@ -36,6 +36,14 @@ export function toAnthropicTool(tool: ToolManifest) {
       },
       required: ['query'],
     },
+    create_reminder: {
+      type: 'object',
+      properties: {
+        message:   { type: 'string', description: 'What to remind the user about' },
+        remind_at: { type: 'string', description: 'Full ISO 8601 datetime for the reminder, e.g. 2026-06-05T09:00:00. Compute this from the current_datetime in your context.' },
+      },
+      required: ['message', 'remind_at'],
+    },
   }
 
   return {

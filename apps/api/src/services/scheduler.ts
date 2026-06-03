@@ -121,6 +121,52 @@ export async function dispatchScheduledWork(): Promise<void> {
       )
     }
 
+    // ── Due reminders ─────────────────────────────────────────────────────────
+    const dueReminders = await client.query<{
+      id:              string
+      tenant_id:       string
+      conversation_id: string
+      chat_id:         string
+      channel_id:      string | null
+      message:         string
+    }>(
+      `SELECT id, tenant_id, conversation_id, chat_id, channel_id, message
+       FROM reminders
+       WHERE status = 'pending' AND remind_at <= now()
+       ORDER BY remind_at ASC
+       LIMIT 200
+       FOR UPDATE SKIP LOCKED`
+    )
+
+    for (const reminder of dueReminders.rows) {
+      await client.query(
+        `UPDATE reminders SET status = 'dispatched' WHERE id = $1`,
+        [reminder.id]
+      )
+      await fenQueue.add(
+        'send_reminder',
+        {
+          reminderId:     reminder.id,
+          tenantId:       reminder.tenant_id,
+          conversationId: reminder.conversation_id,
+          chatId:         Number(reminder.chat_id),
+          channelId:      reminder.channel_id,
+          message:        reminder.message,
+        },
+        {
+          jobId:            `reminder_${reminder.id}`,
+          attempts:         3,
+          backoff:          { type: 'exponential', delay: 5000 },
+          removeOnComplete: 50,
+          removeOnFail:     20,
+        }
+      )
+    }
+
+    if (dueReminders.rows.length > 0) {
+      console.log(`[scheduler] Dispatched ${dueReminders.rows.length} reminder(s)`)
+    }
+
     await client.query('COMMIT')
 
     if (due.rows.length > 0) {

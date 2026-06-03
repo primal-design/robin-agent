@@ -82,6 +82,11 @@ export async function runAgentTurn(input: AgentTurnInput) {
   const activeGoal = await getActiveGoal(client, conversationId)
   memory['active_goal'] = activeGoal ? formatGoalForPrompt(activeGoal) : ''
 
+  // ── Current datetime (needed for reminder scheduling) ────────────────────
+  const now = new Date()
+  memory['current_datetime'] = now.toISOString() + ' (' +
+    now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/London' }) + ')'
+
   // ── Prompt assembly ───────────────────────────────────────────────────────
   // Priority: runtime_prompt_override (dashboard) → fen.soul + fen.prompt (repo) → manifest legacy
   const filePrompt   = loadFilePrompt()

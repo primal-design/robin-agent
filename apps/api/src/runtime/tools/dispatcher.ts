@@ -47,5 +47,42 @@ export async function dispatchTool(
     }
   }
 
+  if (call.name === 'create_reminder') {
+    const message  = String(call.input.message  ?? '').trim()
+    const remindAt = String(call.input.remind_at ?? '').trim()
+
+    if (!message)  return { toolUseId: call.id, content: 'Reminder message is required.' }
+    if (!remindAt) return { toolUseId: call.id, content: 'remind_at datetime is required.' }
+
+    const remindDate = new Date(remindAt)
+    if (isNaN(remindDate.getTime())) {
+      return { toolUseId: call.id, content: `Invalid datetime: "${remindAt}". Use ISO 8601 format, e.g. 2026-06-05T09:00:00.` }
+    }
+    if (remindDate <= new Date()) {
+      return { toolUseId: call.id, content: 'remind_at must be in the future.' }
+    }
+
+    // Get chat_id and channel_id from conversation
+    const convRes = await client.query(
+      `SELECT external_user_id, channel_id FROM conversations WHERE id = $1`,
+      [conversationId]
+    )
+    const chatId    = Number(convRes.rows[0]?.external_user_id ?? 0)
+    const channelId = convRes.rows[0]?.channel_id ?? null
+
+    if (!chatId) return { toolUseId: call.id, content: 'Could not determine chat destination for this conversation.' }
+
+    await client.query(
+      `INSERT INTO reminders (tenant_id, conversation_id, chat_id, channel_id, message, remind_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [tenantId, conversationId, chatId, channelId, message, remindDate]
+    )
+
+    const formatted = remindDate.toLocaleString('en-GB', {
+      weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London',
+    })
+    return { toolUseId: call.id, content: `Reminder set for ${formatted}.` }
+  }
+
   return { toolUseId: call.id, content: `Tool "${call.name}" is not implemented.` }
 }
