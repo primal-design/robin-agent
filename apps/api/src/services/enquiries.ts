@@ -168,7 +168,8 @@ Return JSON only.`
     outputTokens = res.usage.output_tokens
     output = res.content.filter(b => b.type === 'text').map(b => (b as { type: 'text'; text: string }).text).join('').trim()
 
-    const parsed = JSON.parse(output) as ExtractedFields
+    const clean = output.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+    const parsed = JSON.parse(clean) as ExtractedFields
     return parsed
   } catch (err) {
     success = false
