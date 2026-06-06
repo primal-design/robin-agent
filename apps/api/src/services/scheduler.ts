@@ -122,6 +122,7 @@ export async function dispatchScheduledWork(): Promise<void> {
     }
 
     // ── Due reminders ─────────────────────────────────────────────────────────
+    // Use SECURITY DEFINER function to read across all tenants (bypasses RLS)
     const dueReminders = await client.query<{
       id:              string
       tenant_id:       string
@@ -129,16 +130,11 @@ export async function dispatchScheduledWork(): Promise<void> {
       chat_id:         string
       channel_id:      string | null
       message:         string
-    }>(
-      `SELECT id, tenant_id, conversation_id, chat_id, channel_id, message
-       FROM reminders
-       WHERE status = 'pending' AND remind_at <= now()
-       ORDER BY remind_at ASC
-       LIMIT 200
-       FOR UPDATE SKIP LOCKED`
-    )
+    }>(`SELECT * FROM get_due_reminders(200)`)
 
     for (const reminder of dueReminders.rows) {
+      // Set tenant context for the UPDATE so RLS is satisfied
+      await client.query(`SET LOCAL app.current_tenant = '${reminder.tenant_id}'`)
       await client.query(
         `UPDATE reminders SET status = 'dispatched' WHERE id = $1`,
         [reminder.id]
