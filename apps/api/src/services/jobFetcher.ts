@@ -177,54 +177,71 @@ interface RemotiveJob {
 async function fetchCVLibrary(keywords: string): Promise<NormalisedJob[]> {
   const apiKey = process.env.CV_LIBRARY_API_KEY
   if (!apiKey) {
-    console.warn('[jobFetcher] CV_LIBRARY_API_KEY not set — skipping')
+    console.warn('[jobFetcher] CV_LIBRARY_API_KEY not set — skipping cv_library')
     return []
   }
 
-  const url = new URL('https://www.cv-library.co.uk/api/jobs')
-  url.searchParams.set('q',       keywords)
-  url.searchParams.set('geo',     'uk')
-  url.searchParams.set('per_page','100')
-  url.searchParams.set('key',     apiKey)
+  const url = new URL('https://www.cv-library.co.uk/search-jobs-json')
+  url.searchParams.set('q',                keywords)
+  url.searchParams.set('geo',              'United Kingdom')
+  url.searchParams.set('distance',         '500')
+  url.searchParams.set('salarytype',       'annum')
+  url.searchParams.set('limit',            '100')
+  url.searchParams.set('order',            'date')
+  url.searchParams.set('description_full', '1')
+  url.searchParams.set('nohl',             '1')
+  url.searchParams.set('key',              apiKey)
 
-  const r = await fetch(url.toString(), {
-    headers: { Accept: 'application/json' },
-  })
+  const r = await fetch(url.toString())
   if (!r.ok) throw new Error(`CV-Library ${r.status}: ${await r.text().then(t => t.slice(0, 200))}`)
 
-  const data = await r.json() as { jobs?: CVLibraryJob[] } | CVLibraryJob[]
-  const jobs  = Array.isArray(data) ? data : (data.jobs ?? [])
+  const data = await r.json() as { jobs?: CVLibraryJob[]; total_entries?: number }
 
-  return jobs.map(j => ({
-    source:          'cv_library',
-    external_id:     String(j.id),
-    title:           j.title,
-    company:         j.company ?? null,
-    location:        j.location ?? null,
-    country:         'GB',
-    salary_min:      j.salary_from ? Math.round(j.salary_from) : null,
-    salary_max:      j.salary_to   ? Math.round(j.salary_to)   : null,
-    currency:        'GBP',
-    employment_type: j.type ?? null,
-    remote_type:     detectRemote(j.title + ' ' + (j.description ?? '')),
-    description:     j.description ?? null,
-    url:             j.url ?? null,
-    posted_at:       j.date ?? null,
-    raw_payload:     j,
-  }))
+  return (data.jobs ?? []).map(j => {
+    // Salary comes as "£40000 - £55000/annum" string — parse it
+    let salary_min: number | null = null
+    let salary_max: number | null = null
+    if (j.salary) {
+      const nums = j.salary.match(/[\d,]+/g)
+      if (nums?.[0]) salary_min = parseInt(nums[0].replace(/,/g, ''), 10)
+      if (nums?.[1]) salary_max = parseInt(nums[1].replace(/,/g, ''), 10)
+    }
+
+    const fullUrl = j.url
+      ? (j.url.startsWith('http') ? j.url : `https://www.cv-library.co.uk${j.url}`)
+      : null
+
+    return {
+      source:          'cv_library',
+      external_id:     String(j.id),
+      title:           j.title,
+      company:         j.agency?.title ?? null,
+      location:        j.location ?? null,
+      country:         'GB',
+      salary_min,
+      salary_max,
+      currency:        'GBP',
+      employment_type: j.type?.[0] ?? null,
+      remote_type:     detectRemote(j.title + ' ' + (j.description ?? '')),
+      description:     j.description ?? null,
+      url:             fullUrl,
+      posted_at:       j.posted ?? null,
+      raw_payload:     j,
+    }
+  })
 }
 
 interface CVLibraryJob {
-  id:           number | string
+  id:           string
   title:        string
-  company?:     string
-  location?:    string
-  salary_from?: number
-  salary_to?:   number
-  type?:        string
   description?: string
+  location?:    string
+  salary?:      string
+  type?:        string[]
   url?:         string
-  date?:        string
+  posted?:      string
+  expiry_date?: string
+  agency?:      { title: string; type: string; url: string }
 }
 
 // ── Totaljobs RSS ────────────────────────────────────────────────────────────
@@ -452,8 +469,9 @@ export async function embedNewJobs(): Promise<void> {
 
 export async function fetchAllJobs(keywords = 'software engineer developer'): Promise<void> {
   const sources = [
-    { name: 'adzuna', fn: () => fetchAdzuna(keywords) },
-    { name: 'reed',   fn: () => fetchReed(keywords) },
+    { name: 'adzuna',     fn: () => fetchAdzuna(keywords) },
+    { name: 'reed',      fn: () => fetchReed(keywords) },
+    { name: 'cv_library', fn: () => fetchCVLibrary(keywords) },
   ]
 
   for (const source of sources) {
