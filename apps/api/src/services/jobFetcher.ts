@@ -390,6 +390,221 @@ function parseRssItems(xml: string, source: string): NormalisedJob[] {
   return items
 }
 
+// ── Greenhouse ────────────────────────────────────────────────────────────────
+// Public job board API — no key needed. One request per company.
+
+const GREENHOUSE_COMPANIES: string[] = [
+  // UK Fintech / Banking
+  'monzo', 'revolut', 'wise', 'starlingbank', 'oaknorth',
+  'truelayer', 'modulr', 'railsr', 'form3', 'currencycloud',
+  // UK Tech
+  'deliveroo', 'gousto', 'cazoo', 'octopusenergy', 'bulb',
+  'depop', 'farfetch', 'asos', 'trainline', 'skyscanner',
+  'peakon', 'multiverse', 'improbable', 'tractable', 'cleo',
+  // UK Scale-ups
+  'yapily', 'coconut', 'marshmallow', 'zego', 'bought-by-many',
+  'habito', 'cuvva', 'wealthsimple', 'plaid', 'checkout',
+  // Global with strong UK presence
+  'spotify', 'google', 'amazon', 'meta', 'apple',
+  'palantir', 'datadog', 'snowflake', 'stripe', 'twilio',
+]
+
+async function fetchGreenhouse(): Promise<NormalisedJob[]> {
+  const results: NormalisedJob[] = []
+
+  for (const company of GREENHOUSE_COMPANIES) {
+    try {
+      const r = await fetch(
+        `https://boards-api.greenhouse.io/v1/boards/${company}/jobs?content=true`,
+        { headers: { Accept: 'application/json' } }
+      )
+      if (!r.ok) continue  // company slug invalid or no public board — skip silently
+
+      const data = await r.json() as { jobs?: GreenhouseJob[] }
+
+      for (const j of data.jobs ?? []) {
+        // Filter to UK-relevant locations
+        const loc = (j.location?.name ?? '').toLowerCase()
+        const isUK = loc.includes('uk') || loc.includes('united kingdom') ||
+                     loc.includes('london') || loc.includes('manchester') ||
+                     loc.includes('edinburgh') || loc.includes('bristol') ||
+                     loc.includes('remote') || loc === ''
+
+        if (!isUK) continue
+
+        results.push({
+          source:          'greenhouse',
+          external_id:     String(j.id),
+          title:           j.title,
+          company:         company.charAt(0).toUpperCase() + company.slice(1),
+          location:        j.location?.name ?? null,
+          country:         'GB',
+          salary_min:      null,
+          salary_max:      null,
+          currency:        'GBP',
+          employment_type: null,
+          remote_type:     detectRemote(j.title + ' ' + (j.location?.name ?? '') + ' ' + (j.content ?? '')),
+          description:     j.content ? j.content.replace(/<[^>]+>/g, '').slice(0, 5000) : null,
+          url:             j.absolute_url ?? null,
+          posted_at:       j.updated_at ?? null,
+          raw_payload:     { id: j.id, title: j.title, company, location: j.location },
+        })
+      }
+
+      // Small delay to avoid rate limiting across many companies
+      await new Promise(r => setTimeout(r, 100))
+    } catch {
+      // Skip failed company silently
+    }
+  }
+
+  return results
+}
+
+interface GreenhouseJob {
+  id:           number
+  title:        string
+  content?:     string
+  absolute_url?:string
+  updated_at?:  string
+  location?:    { name: string }
+}
+
+// ── Lever ─────────────────────────────────────────────────────────────────────
+// Public posting API — no key needed. One request per company.
+
+const LEVER_COMPANIES: string[] = [
+  // UK Fintech
+  'moneyboxapp', 'penfold', 'chip', 'ziglu', 'tickr',
+  'lendable', 'iwoca', 'funding-circle', 'liberis', 'uncapped',
+  // UK Tech
+  'babylonhealth', 'healios', 'accurx', 'doctorcare', 'kry',
+  'unmind', 'spill', 'oliva', 'kooth', 'ieso',
+  // UK Scale-ups
+  'bumble', 'hinge', 'smartpension', 'pensionbee', 'nutmeg',
+  'moneyfarm', 'investengine', 'freetrade', 'trading212',
+  // Global UK offices
+  'figma', 'notion', 'linear', 'vercel', 'supabase',
+  'netlify', 'cloudflare', 'hashicorp', 'confluent', 'dbt-labs',
+]
+
+async function fetchLever(): Promise<NormalisedJob[]> {
+  const results: NormalisedJob[] = []
+
+  for (const company of LEVER_COMPANIES) {
+    try {
+      const r = await fetch(
+        `https://api.lever.co/v0/postings/${company}?mode=json&limit=50`,
+        { headers: { Accept: 'application/json' } }
+      )
+      if (!r.ok) continue
+
+      const data = await r.json() as LeverJob[]
+
+      for (const j of Array.isArray(data) ? data : []) {
+        const loc = (j.categories?.location ?? '').toLowerCase()
+        const isUK = loc.includes('uk') || loc.includes('united kingdom') ||
+                     loc.includes('london') || loc.includes('manchester') ||
+                     loc.includes('remote') || loc === ''
+
+        if (!isUK) continue
+
+        const description = [
+          j.descriptionPlain,
+          j.lists?.map((l: { text: string; content: string }) => `${l.text}\n${l.content}`).join('\n'),
+        ].filter(Boolean).join('\n').slice(0, 5000)
+
+        results.push({
+          source:          'lever',
+          external_id:     j.id,
+          title:           j.text,
+          company:         company.charAt(0).toUpperCase() + company.slice(1),
+          location:        j.categories?.location ?? null,
+          country:         'GB',
+          salary_min:      null,
+          salary_max:      null,
+          currency:        'GBP',
+          employment_type: j.categories?.commitment ?? null,
+          remote_type:     detectRemote(j.text + ' ' + (j.categories?.location ?? '')),
+          description,
+          url:             j.hostedUrl ?? null,
+          posted_at:       j.createdAt ? new Date(j.createdAt).toISOString() : null,
+          raw_payload:     { id: j.id, text: j.text, company, categories: j.categories },
+        })
+      }
+
+      await new Promise(r => setTimeout(r, 100))
+    } catch {
+      // Skip failed company silently
+    }
+  }
+
+  return results
+}
+
+interface LeverJob {
+  id:                string
+  text:              string
+  hostedUrl?:        string
+  descriptionPlain?: string
+  createdAt?:        number
+  lists?:            { text: string; content: string }[]
+  categories?: {
+    location?:   string
+    commitment?: string
+    team?:       string
+  }
+}
+
+// ── Arbeitnow ─────────────────────────────────────────────────────────────────
+// Completely free, no key, good UK remote + tech coverage
+
+async function fetchArbeitnow(): Promise<NormalisedJob[]> {
+  const r = await fetch(
+    'https://www.arbeitnow.com/api/job-board-api?page=1',
+    { headers: { Accept: 'application/json' } }
+  )
+  if (!r.ok) throw new Error(`Arbeitnow ${r.status}`)
+
+  const data = await r.json() as { data?: ArbeitnowJob[] }
+
+  return (data.data ?? [])
+    .filter(j => {
+      const loc = (j.location ?? '').toLowerCase()
+      return loc.includes('uk') || loc.includes('united kingdom') ||
+             loc.includes('london') || loc.includes('remote') || j.remote
+    })
+    .map(j => ({
+      source:          'arbeitnow',
+      external_id:     j.slug,
+      title:           j.title,
+      company:         j.company_name ?? null,
+      location:        j.location ?? null,
+      country:         j.remote ? 'REMOTE' : 'GB',
+      salary_min:      null,
+      salary_max:      null,
+      currency:        'GBP',
+      employment_type: j.job_types?.[0] ?? null,
+      remote_type:     j.remote ? 'remote' : detectRemote(j.title + ' ' + (j.description ?? '')),
+      description:     j.description?.slice(0, 5000) ?? null,
+      url:             j.url ?? null,
+      posted_at:       j.created_at ?? null,
+      raw_payload:     j,
+    }))
+}
+
+interface ArbeitnowJob {
+  slug:          string
+  title:         string
+  company_name?: string
+  location?:     string
+  remote:        boolean
+  job_types?:    string[]
+  description?:  string
+  url?:          string
+  created_at?:   string
+}
+
 // ── Helper: detect remote type from text ─────────────────────────────────────
 
 function detectRemote(text: string): 'remote' | 'hybrid' | 'onsite' | null {
@@ -469,9 +684,12 @@ export async function embedNewJobs(): Promise<void> {
 
 export async function fetchAllJobs(keywords = 'software engineer developer'): Promise<void> {
   const sources = [
-    { name: 'adzuna',     fn: () => fetchAdzuna(keywords) },
-    { name: 'reed',      fn: () => fetchReed(keywords) },
+    { name: 'adzuna',      fn: () => fetchAdzuna(keywords) },
+    { name: 'reed',       fn: () => fetchReed(keywords) },
     { name: 'cv_library', fn: () => fetchCVLibrary(keywords) },
+    { name: 'greenhouse', fn: () => fetchGreenhouse() },
+    { name: 'lever',      fn: () => fetchLever() },
+    { name: 'arbeitnow',  fn: () => fetchArbeitnow() },
   ]
 
   for (const source of sources) {
