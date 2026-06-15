@@ -86,7 +86,8 @@ async function fetchReed(keywords: string, resultsPerPage = 100): Promise<Normal
   }
 
   const url = new URL('https://www.reed.co.uk/api/1.0/search')
-  url.searchParams.set('keywords',    keywords)
+  url.searchParams.set('keywords',      keywords)
+  url.searchParams.set('locationName',  'uk')
   url.searchParams.set('resultsToTake', String(resultsPerPage))
 
   const r = await fetch(url.toString(), {
@@ -453,7 +454,6 @@ export async function fetchAllJobs(keywords = 'software engineer developer'): Pr
   const sources = [
     { name: 'adzuna',        fn: () => fetchAdzuna(keywords) },
     { name: 'reed',          fn: () => fetchReed(keywords) },
-    { name: 'cv_library',    fn: () => fetchCVLibrary(keywords) },
     { name: 'totaljobs',     fn: () => fetchTotaljobs(keywords) },
     { name: 'guardian_jobs', fn: () => fetchGuardianJobs(keywords) },
     { name: 'nhs_jobs',      fn: () => fetchNHSJobs(keywords) },
