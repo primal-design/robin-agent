@@ -25,6 +25,9 @@ import memoryRouter from './routes/memory.js'
 import activityRouter from './routes/activity.js'
 import connectorsRouter from './routes/connectors.js'
 import playbooksRouter  from './routes/playbooks.js'
+import profileRouter   from './routes/profile.js'
+import jobsRouter      from './routes/jobs.js'
+import matchesRouter   from './routes/matches.js'
 
 export function createApp() {
   const app = express()
@@ -113,6 +116,9 @@ export function createApp() {
   app.use('/', activityRouter)
   app.use('/', connectorsRouter)
   app.use('/', playbooksRouter)
+  app.use('/', profileRouter)
+  app.use('/', jobsRouter)
+  app.use('/', matchesRouter)
   app.use('/', telegramRouter)
   app.use('/', billingRouter)
   app.use('/', approvalsRouter)

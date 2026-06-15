@@ -190,6 +190,19 @@ export async function startDispatcher(): Promise<void> {
       }
     )
     console.log('[scheduler] Dispatcher registered')
+
+    // Daily job digest — runs at 08:00 UTC every day
+    await fenQueue.add(
+      'daily_job_digest',
+      {},
+      {
+        repeat:           { pattern: '0 8 * * *' },
+        jobId:            'daily_job_digest',
+        removeOnComplete: 5,
+        removeOnFail:     3,
+      }
+    )
+    console.log('[scheduler] Daily job digest registered (08:00 UTC)')
   } catch (err) {
     console.error('[scheduler] Failed to start dispatcher:', err instanceof Error ? err.message : err)
   }

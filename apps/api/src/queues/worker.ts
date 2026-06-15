@@ -22,6 +22,7 @@ import {
   recordEnquiryEvent,
 } from '../services/enquiries.js'
 import { getServiceAreas, getDraftReplyContext, generateDraftReply } from '../services/enquiryReply.js'
+import { runDailyJobDigest } from '../services/jobDigest.js'
 
 function redisConnection() {
   const url = process.env.REDIS_URL
@@ -51,6 +52,12 @@ export const fenWorker = new Worker(
     // ── One-shot reminder delivery ────────────────────────────────────────────
     if (job.name === 'send_reminder') {
       await handleSendReminder(job.data as ReminderJobData)
+      return
+    }
+
+    // ── Daily job digest (fetch + match + Telegram) ───────────────────────────
+    if (job.name === 'daily_job_digest') {
+      await runDailyJobDigest()
       return
     }
 
