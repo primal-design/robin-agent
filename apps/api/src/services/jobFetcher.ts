@@ -171,6 +171,207 @@ interface RemotiveJob {
   publication_date?:           string
 }
 
+// ── CV-Library ────────────────────────────────────────────────────────────────
+
+async function fetchCVLibrary(keywords: string): Promise<NormalisedJob[]> {
+  const apiKey = process.env.CV_LIBRARY_API_KEY
+  if (!apiKey) {
+    console.warn('[jobFetcher] CV_LIBRARY_API_KEY not set — skipping')
+    return []
+  }
+
+  const url = new URL('https://www.cv-library.co.uk/api/jobs')
+  url.searchParams.set('q',       keywords)
+  url.searchParams.set('geo',     'uk')
+  url.searchParams.set('per_page','100')
+  url.searchParams.set('key',     apiKey)
+
+  const r = await fetch(url.toString(), {
+    headers: { Accept: 'application/json' },
+  })
+  if (!r.ok) throw new Error(`CV-Library ${r.status}: ${await r.text().then(t => t.slice(0, 200))}`)
+
+  const data = await r.json() as { jobs?: CVLibraryJob[] } | CVLibraryJob[]
+  const jobs  = Array.isArray(data) ? data : (data.jobs ?? [])
+
+  return jobs.map(j => ({
+    source:          'cv_library',
+    external_id:     String(j.id),
+    title:           j.title,
+    company:         j.company ?? null,
+    location:        j.location ?? null,
+    country:         'GB',
+    salary_min:      j.salary_from ? Math.round(j.salary_from) : null,
+    salary_max:      j.salary_to   ? Math.round(j.salary_to)   : null,
+    currency:        'GBP',
+    employment_type: j.type ?? null,
+    remote_type:     detectRemote(j.title + ' ' + (j.description ?? '')),
+    description:     j.description ?? null,
+    url:             j.url ?? null,
+    posted_at:       j.date ?? null,
+    raw_payload:     j,
+  }))
+}
+
+interface CVLibraryJob {
+  id:           number | string
+  title:        string
+  company?:     string
+  location?:    string
+  salary_from?: number
+  salary_to?:   number
+  type?:        string
+  description?: string
+  url?:         string
+  date?:        string
+}
+
+// ── Totaljobs RSS ────────────────────────────────────────────────────────────
+
+async function fetchTotaljobs(keywords: string): Promise<NormalisedJob[]> {
+  const encoded = encodeURIComponent(keywords)
+  const feedUrl = `https://www.totaljobs.com/jobs/${encoded}/in-united-kingdom?JobType=4&salary=0&distance=15&radius=0&btnSubmit=Search&action=facet_search&rss=1`
+
+  const r = await fetch(feedUrl, {
+    headers: { 'User-Agent': 'FENJobAgent/1.0 (+https://fen.app)' },
+  })
+  if (!r.ok) throw new Error(`Totaljobs RSS ${r.status}`)
+
+  const xml  = await r.text()
+  const jobs = parseRssItems(xml, 'totaljobs')
+  return jobs
+}
+
+// ── Guardian Jobs RSS ─────────────────────────────────────────────────────────
+
+async function fetchGuardianJobs(keywords: string): Promise<NormalisedJob[]> {
+  const encoded = encodeURIComponent(keywords)
+  const feedUrl = `https://jobs.theguardian.com/jobs/${encoded}/?rss=1`
+
+  const r = await fetch(feedUrl, {
+    headers: { 'User-Agent': 'FENJobAgent/1.0 (+https://fen.app)' },
+  })
+  if (!r.ok) throw new Error(`Guardian Jobs RSS ${r.status}`)
+
+  const xml  = await r.text()
+  const jobs = parseRssItems(xml, 'guardian_jobs')
+  return jobs
+}
+
+// ── NHS Jobs ─────────────────────────────────────────────────────────────────
+
+async function fetchNHSJobs(keywords: string): Promise<NormalisedJob[]> {
+  const url = new URL('https://www.jobs.nhs.uk/api/v1/search')
+  url.searchParams.set('keyword',  keywords)
+  url.searchParams.set('language', 'en')
+  url.searchParams.set('size',     '100')
+
+  const r = await fetch(url.toString(), {
+    headers: { Accept: 'application/json' },
+  })
+  if (!r.ok) throw new Error(`NHS Jobs ${r.status}: ${await r.text().then(t => t.slice(0, 200))}`)
+
+  const data = await r.json() as { data?: NHSJob[] }
+  const jobs = data.data ?? []
+
+  return jobs.map(j => ({
+    source:          'nhs_jobs',
+    external_id:     j.id ?? j.jobReference ?? String(Math.random()),
+    title:           j.jobTitle ?? j.title ?? 'NHS Role',
+    company:         j.employerName ?? 'NHS',
+    location:        j.location ?? null,
+    country:         'GB',
+    salary_min:      j.salaryFrom ? Math.round(j.salaryFrom) : null,
+    salary_max:      j.salaryTo   ? Math.round(j.salaryTo)   : null,
+    currency:        'GBP',
+    employment_type: j.contractType ?? null,
+    remote_type:     null,
+    description:     j.jobOverview ?? null,
+    url:             j.jobUrl ?? `https://www.jobs.nhs.uk/candidate/jobadvert/${j.id}`,
+    posted_at:       j.closingDate ?? null,
+    raw_payload:     j,
+  }))
+}
+
+interface NHSJob {
+  id?:            string
+  jobReference?:  string
+  jobTitle?:      string
+  title?:         string
+  employerName?:  string
+  location?:      string
+  salaryFrom?:    number
+  salaryTo?:      number
+  contractType?:  string
+  jobOverview?:   string
+  jobUrl?:        string
+  closingDate?:   string
+}
+
+// ── Minimal RSS parser (no external dependency) ───────────────────────────────
+
+function parseRssItems(xml: string, source: string): NormalisedJob[] {
+  const items: NormalisedJob[] = []
+
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g
+  let match: RegExpExecArray | null
+
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const item = match[1]
+
+    const get = (tag: string): string | null => {
+      const m = item.match(new RegExp(`<${tag}(?:[^>]*)?><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}(?:[^>]*?)>([\\s\\S]*?)<\\/${tag}>`))
+      const val = m?.[1] ?? m?.[2] ?? null
+      return val ? val.trim() : null
+    }
+
+    const title = get('title')
+    if (!title) continue
+
+    const link        = get('link') ?? get('guid') ?? null
+    const description = get('description')
+    const pubDate     = get('pubDate')
+    const company     = get('company') ?? get('author') ?? null
+    const location    = get('location') ?? null
+
+    // Try to parse salary from description
+    let salary_min: number | null = null
+    let salary_max: number | null = null
+    if (description) {
+      const salaryMatch = description.match(/£([\d,]+)\s*[-–to]+\s*£([\d,]+)/i)
+      if (salaryMatch) {
+        salary_min = parseInt(salaryMatch[1].replace(/,/g, ''), 10)
+        salary_max = parseInt(salaryMatch[2].replace(/,/g, ''), 10)
+      }
+    }
+
+    // Derive a stable external_id from the URL or title+pubDate
+    const external_id = link
+      ? link.replace(/[^a-zA-Z0-9]/g, '').slice(-40)
+      : `${title.slice(0, 20)}-${pubDate ?? Date.now()}`.replace(/[^a-zA-Z0-9]/g, '').slice(0, 40)
+
+    items.push({
+      source,
+      external_id,
+      title,
+      company,
+      location,
+      country:         'GB',
+      salary_min,
+      salary_max,
+      currency:        'GBP',
+      employment_type: null,
+      remote_type:     detectRemote(title + ' ' + (description ?? '')),
+      description:     description ? description.replace(/<[^>]+>/g, '').slice(0, 3000) : null,
+      url:             link,
+      posted_at:       pubDate ?? null,
+      raw_payload:     { title, link, description, pubDate, company, location },
+    })
+  }
+
+  return items
+}
+
 // ── Helper: detect remote type from text ─────────────────────────────────────
 
 function detectRemote(text: string): 'remote' | 'hybrid' | 'onsite' | null {
@@ -250,9 +451,12 @@ export async function embedNewJobs(): Promise<void> {
 
 export async function fetchAllJobs(keywords = 'software engineer developer'): Promise<void> {
   const sources = [
-    { name: 'adzuna',   fn: () => fetchAdzuna(keywords) },
-    { name: 'reed',     fn: () => fetchReed(keywords) },
-    { name: 'remotive', fn: () => fetchRemotive() },
+    { name: 'adzuna',        fn: () => fetchAdzuna(keywords) },
+    { name: 'reed',          fn: () => fetchReed(keywords) },
+    { name: 'cv_library',    fn: () => fetchCVLibrary(keywords) },
+    { name: 'totaljobs',     fn: () => fetchTotaljobs(keywords) },
+    { name: 'guardian_jobs', fn: () => fetchGuardianJobs(keywords) },
+    { name: 'nhs_jobs',      fn: () => fetchNHSJobs(keywords) },
   ]
 
   for (const source of sources) {
