@@ -452,11 +452,8 @@ export async function embedNewJobs(): Promise<void> {
 
 export async function fetchAllJobs(keywords = 'software engineer developer'): Promise<void> {
   const sources = [
-    { name: 'adzuna',        fn: () => fetchAdzuna(keywords) },
-    { name: 'reed',          fn: () => fetchReed(keywords) },
-    { name: 'totaljobs',     fn: () => fetchTotaljobs(keywords) },
-    { name: 'guardian_jobs', fn: () => fetchGuardianJobs(keywords) },
-    { name: 'nhs_jobs',      fn: () => fetchNHSJobs(keywords) },
+    { name: 'adzuna', fn: () => fetchAdzuna(keywords) },
+    { name: 'reed',   fn: () => fetchReed(keywords) },
   ]
 
   for (const source of sources) {
