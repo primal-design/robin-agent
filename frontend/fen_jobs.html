@@ -418,17 +418,13 @@ function authHeaders() {
 
 async function api(path, opts = {}) {
   const r = await fetch(path, { headers: authHeaders(), ...opts })
-  if (r.status === 401) { signOut(); return null }
   return r.ok ? r.json() : null
 }
 
 function signOut() {
   localStorage.removeItem(TOKEN_KEY)
-  window.location.href = '/frontend/fen_dashboard.html'
+  location.reload()
 }
-
-// Check auth on load
-if (!token) window.location.href = '/frontend/fen_dashboard.html'
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 function nav(view, el) {

@@ -113,7 +113,15 @@ async function getRoleByIdentity(identity: string): Promise<string> {
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const identity = extractIdentity(req.headers.authorization || '')
-  if (!identity) return res.status(401).json({ error: 'authentication_required' })
+  if (!identity) {
+    // No token — fall back to default tenant (single-user dev mode)
+    const defaultEmail = process.env.DEFAULT_USER_EMAIL
+    if (defaultEmail) {
+      req.actor = { phone: `email:${defaultEmail}`, role: 'user' }
+      return next()
+    }
+    return res.status(401).json({ error: 'authentication_required' })
+  }
   req.actor = { phone: identity, role: 'user' }
   next()
 }
