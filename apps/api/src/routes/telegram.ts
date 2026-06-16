@@ -71,29 +71,39 @@ telegramRouter.post('/webhooks/telegram/:workerId', async (req, res) => {
   audit({ action: 'job_queued', actor: 'telegram', target: workerId, metadata: { update_id: updateId, job_id: `telegram_${updateId}` } })
 })
 
-// Legacy single-bot webhook (keep for @fen_ai_bot)
+// Job agent webhook — handles callbacks + /start to register chat ID
 telegramRouter.post('/telegram/webhook', async (req, res) => {
   res.json({ ok: true })
-
-  const defaultWorkerId = process.env.DEFAULT_WORKER_ID
   const botToken = env.telegramBotToken
 
-  // Handle inline button presses directly — don't queue
   if (await tryHandleCallbackQuery(req.body, botToken)) return
 
-  if (!defaultWorkerId || !req.body?.message) return
-
-  const updateId = req.body?.update_id
-
-  audit({ action: 'webhook_received', actor: 'telegram', target: defaultWorkerId, metadata: { update_id: updateId, chat_id: req.body.message?.chat?.id } })
-
-  await eventQueue.add(
-    'telegram_message',
-    { workerId: defaultWorkerId, payload: req.body },
-    { jobId: `telegram_${updateId}` }
-  )
-
-  audit({ action: 'job_queued', actor: 'telegram', target: defaultWorkerId, metadata: { update_id: updateId, job_id: `telegram_${updateId}` } })
+  // /start — save the user's chat ID against the default tenant
+  const msg = req.body?.message
+  if (msg?.text === '/start') {
+    const chatId = msg.chat?.id
+    const firstName = msg.chat?.first_name ?? 'there'
+    if (chatId) {
+      const { pool } = await import('../db/pool.js')
+      const defaultTenantId = process.env.DEFAULT_TENANT_ID
+      if (defaultTenantId) {
+        await pool.query(
+          `UPDATE worker_channels
+           SET public_config = public_config || $1
+           WHERE tenant_id = $2 AND channel_type = 'telegram'`,
+          [JSON.stringify({ chat_id: chatId }), defaultTenantId]
+        )
+      }
+      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `👋 Hi ${firstName}! FEN is connected.\n\nI'll send you job matches every morning. Tap Interested on any job and I'll tailor your CV in 30 seconds.`,
+        }),
+      })
+    }
+  }
 })
 
 // Register webhook with Telegram
