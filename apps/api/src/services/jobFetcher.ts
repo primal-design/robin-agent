@@ -605,6 +605,95 @@ interface ArbeitnowJob {
   created_at?:   string
 }
 
+// ── RemoteOK ──────────────────────────────────────────────────────────────────
+// Free API, no key. Returns ~100 remote jobs. Filter to UK/worldwide-remote.
+
+async function fetchRemoteOK(): Promise<NormalisedJob[]> {
+  const r = await fetch('https://remoteok.com/api', {
+    headers: { 'User-Agent': 'FENJobAgent/1.0 (+https://fen.app)', Accept: 'application/json' },
+  })
+  if (!r.ok) throw new Error(`RemoteOK ${r.status}`)
+
+  const data = await r.json() as RemoteOKJob[]
+  const jobs = Array.isArray(data) ? data.slice(1) : [] // first element is legal notice object
+
+  return jobs.map(j => ({
+    source:          'remoteok',
+    external_id:     String(j.id),
+    title:           j.position,
+    company:         j.company ?? null,
+    location:        j.location || 'Remote',
+    country:         'REMOTE',
+    salary_min:      j.salary_min ? Math.round(j.salary_min) : null,
+    salary_max:      j.salary_max ? Math.round(j.salary_max) : null,
+    currency:        'USD',
+    employment_type: null,
+    remote_type:     'remote',
+    description:     j.description?.replace(/<[^>]+>/g, '').slice(0, 5000) ?? null,
+    url:             j.url ?? null,
+    posted_at:       j.date ?? null,
+    raw_payload:     j,
+  }))
+}
+
+interface RemoteOKJob {
+  id:           number
+  position:     string
+  company?:     string
+  location?:    string
+  salary_min?:  number
+  salary_max?:  number
+  description?: string
+  url?:         string
+  date?:        string
+  tags?:        string[]
+}
+
+// ── The Muse ──────────────────────────────────────────────────────────────────
+// Free API, no key. Supports location filter. Good for London/UK tech roles.
+
+async function fetchTheMuse(): Promise<NormalisedJob[]> {
+  const r = await fetch(
+    'https://www.themuse.com/api/public/jobs?page=0&location=London%2C%20England&descending=true',
+    { headers: { Accept: 'application/json' } }
+  )
+  if (!r.ok) throw new Error(`TheMuse ${r.status}`)
+
+  const data = await r.json() as { results?: TheMuseJob[] }
+
+  return (data.results ?? []).map(j => {
+    const loc = j.locations?.[0]?.name ?? null
+    return {
+      source:          'the_muse',
+      external_id:     String(j.id),
+      title:           j.name,
+      company:         j.company?.name ?? null,
+      location:        loc,
+      country:         'GB',
+      salary_min:      null,
+      salary_max:      null,
+      currency:        'GBP',
+      employment_type: j.type ?? null,
+      remote_type:     detectRemote(j.name + ' ' + (loc ?? '')),
+      description:     j.contents?.replace(/<[^>]+>/g, '').slice(0, 5000) ?? null,
+      url:             j.refs?.landing_page ?? null,
+      posted_at:       j.publication_date ?? null,
+      raw_payload:     j,
+    }
+  })
+}
+
+interface TheMuseJob {
+  id:               number
+  name:             string
+  type?:            string
+  contents?:        string
+  publication_date?:string
+  locations?:       { name: string }[]
+  company?:         { name: string }
+  refs?:            { landing_page: string }
+}
+
 // ── Helper: detect remote type from text ─────────────────────────────────────
 
 function detectRemote(text: string): 'remote' | 'hybrid' | 'onsite' | null {
@@ -690,6 +779,8 @@ export async function fetchAllJobs(keywords = 'software engineer developer'): Pr
     { name: 'greenhouse', fn: () => fetchGreenhouse() },
     { name: 'lever',      fn: () => fetchLever() },
     { name: 'arbeitnow',  fn: () => fetchArbeitnow() },
+    { name: 'remoteok',   fn: () => fetchRemoteOK() },
+    { name: 'the_muse',   fn: () => fetchTheMuse() },
   ]
 
   for (const source of sources) {

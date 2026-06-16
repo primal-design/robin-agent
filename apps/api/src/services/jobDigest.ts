@@ -1,5 +1,5 @@
 import { pool } from '../db/pool.js'
-import { sendTelegram } from '../lib/telegram.js'
+import { sendTelegram, sendTelegramWithButtons } from '../lib/telegram.js'
 import { fetchAllJobs } from './jobFetcher.js'
 import { matchJobsForProfile, getTopMatches } from './jobMatcher.js'
 import { getProfile } from './profileService.js'
@@ -7,7 +7,7 @@ import { getProfile } from './profileService.js'
 // ── Format a single job match for Telegram ────────────────────────────────────
 
 function formatJobCard(
-  index: number,
+  _index: number,
   match: {
     title:             string
     company:           string | null
@@ -37,7 +37,7 @@ function formatJobCard(
   const bar   = score >= 80 ? '🟢' : score >= 60 ? '🟡' : '🟠'
 
   const lines = [
-    `<b>${index}. ${match.title}</b>`,
+    `<b>${match.title}</b>`,
     `${match.company ?? 'Company not listed'} · ${match.location ?? 'Location not specified'}${remote}`,
     `${salary} · ${bar} ${score}% match`,
   ]
@@ -87,18 +87,35 @@ async function sendDigestToUser(params: {
     return
   }
 
-  // Build message
-  const header = `🔍 <b>FEN found ${unsent.length} new job match${unsent.length > 1 ? 'es' : ''} for you</b>\n`
-  const cards  = unsent.map((m, i) => formatJobCard(i + 1, m)).join('\n\n──────\n\n')
-  const footer = `\nReply with the job number to apply, or skip. View all at /app/matches`
+  // Send header
+  await sendTelegram(
+    chatId,
+    `🔍 <b>FEN found ${unsent.length} new job match${unsent.length > 1 ? 'es' : ''} for you today</b>`,
+    botToken
+  )
 
-  const message = `${header}\n${cards}\n${footer}`
+  // Send each job as its own message with inline buttons
+  const sentIds: string[] = []
+  for (const m of unsent) {
+    const card = formatJobCard(0, m)  // index unused — standalone card
 
-  // Telegram messages max 4096 chars — truncate if needed
-  await sendTelegram(chatId, message.slice(0, 4000), botToken)
+    // callback_data format: "job:<action>:<match_id>" (max 64 bytes)
+    const mid = m.match_id.slice(0, 36)
+    const buttons = [[
+      { text: '✅ Interested',  callback_data: `job:interested:${mid}` },
+      { text: '❌ Skip',        callback_data: `job:skip:${mid}` },
+    ], [
+      { text: '❓ Why matched', callback_data: `job:why:${mid}` },
+    ]]
 
-  // Mark matches as sent
-  const sentIds = unsent.map(m => m.match_id)
+    await sendTelegramWithButtons(chatId, card, buttons, botToken)
+    sentIds.push(m.match_id)
+
+    // Small delay between messages to avoid Telegram rate limits
+    await new Promise(r => setTimeout(r, 300))
+  }
+
+  // Mark as sent
   if (sentIds.length) {
     await pool.query(
       `UPDATE job_matches SET sent_to_telegram = true WHERE id = ANY($1::uuid[])`,

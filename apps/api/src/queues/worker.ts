@@ -23,6 +23,7 @@ import {
 } from '../services/enquiries.js'
 import { getServiceAreas, getDraftReplyContext, generateDraftReply } from '../services/enquiryReply.js'
 import { runDailyJobDigest } from '../services/jobDigest.js'
+import { runEmailMonitor } from '../services/emailMonitor.js'
 
 function redisConnection() {
   const url = process.env.REDIS_URL
@@ -52,6 +53,12 @@ export const fenWorker = new Worker(
     // ── One-shot reminder delivery ────────────────────────────────────────────
     if (job.name === 'send_reminder') {
       await handleSendReminder(job.data as ReminderJobData)
+      return
+    }
+
+    // ── Email monitor (poll Gmail, classify replies) ──────────────────────────
+    if (job.name === 'email_monitor') {
+      await runEmailMonitor()
       return
     }
 

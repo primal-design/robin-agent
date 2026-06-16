@@ -3,6 +3,7 @@ import { pool } from '../db/pool.js'
 import { requireAuth } from '../lib/auth.js'
 import { getProfile } from '../services/profileService.js'
 import { matchJobsForProfile, getTopMatches } from '../services/jobMatcher.js'
+import { tailorForApplication } from '../services/documentTailor.js'
 
 const router = Router()
 
@@ -90,6 +91,21 @@ router.patch('/matches/:id/feedback', requireAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// GET /applications/:id/events — timeline for one application
+router.get('/applications/:id/events', requireAuth, async (req, res, next) => {
+  try {
+    const tenantId = await getTenantId(req.actor!.phone)
+    if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
+    const r = await pool.query(
+      `SELECT event_type, note, created_at FROM application_events
+       WHERE application_id = $1 AND tenant_id = $2
+       ORDER BY created_at ASC`,
+      [req.params.id, tenantId]
+    )
+    res.json(r.rows)
+  } catch (err) { next(err) }
+})
+
 // GET /applications — get user's application pipeline
 router.get('/applications', requireAuth, async (req, res, next) => {
   try {
@@ -108,6 +124,55 @@ router.get('/applications', requireAuth, async (req, res, next) => {
       [tenantId]
     )
     res.json(r.rows)
+  } catch (err) { next(err) }
+})
+
+// POST /applications/:id/tailor — generate tailored CV + cover letter
+router.post('/applications/:id/tailor', requireAuth, async (req, res, next) => {
+  try {
+    const tenantId = await getTenantId(req.actor!.phone)
+    if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
+
+    // Mark as drafting
+    await pool.query(
+      `UPDATE applications SET status = 'drafting', last_update_at = now()
+       WHERE id = $1 AND tenant_id = $2`,
+      [req.params.id, tenantId]
+    )
+    await pool.query(
+      `INSERT INTO application_events (tenant_id, application_id, event_type)
+       VALUES ($1, $2, 'DRAFTING_STARTED')`,
+      [tenantId, req.params.id]
+    )
+
+    const docs = await tailorForApplication(tenantId, req.params.id)
+    res.json({
+      ok:              true,
+      resume_id:       docs.resumeId,
+      cover_letter_id: docs.coverLetterId,
+      cv_preview:      docs.cvContent.slice(0, 500),
+      cl_preview:      docs.clContent.slice(0, 300),
+    })
+  } catch (err) { next(err) }
+})
+
+// GET /applications/:id/documents — get latest tailored CV + cover letter
+router.get('/applications/:id/documents', requireAuth, async (req, res, next) => {
+  try {
+    const tenantId = await getTenantId(req.actor!.phone)
+    if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
+
+    const r = await pool.query(
+      `SELECT r.content AS cv_content, r.version AS cv_version,
+              cl.content AS cl_content, cl.version AS cl_version
+       FROM applications a
+       LEFT JOIN resumes       r  ON r.id  = a.tailored_cv_id
+       LEFT JOIN cover_letters cl ON cl.id = a.cover_letter_id
+       WHERE a.id = $1 AND a.tenant_id = $2`,
+      [req.params.id, tenantId]
+    )
+    if (!r.rows[0]) return res.status(404).json({ error: 'not_found' })
+    res.json(r.rows[0])
   } catch (err) { next(err) }
 })
 
