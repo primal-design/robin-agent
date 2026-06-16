@@ -424,11 +424,11 @@ async function api(path, opts = {}) {
 
 function signOut() {
   localStorage.removeItem(TOKEN_KEY)
-  window.location.href = '/auth'
+  window.location.href = '/frontend/fen_dashboard.html'
 }
 
 // Check auth on load
-if (!token) window.location.href = '/auth'
+if (!token) window.location.href = '/frontend/fen_dashboard.html'
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 function nav(view, el) {
