@@ -644,11 +644,20 @@ function buildPipeCard(a) {
     </div>
     <div class="status-pill s-${a.status}">${statusLabels[a.status] || a.status}</div>
   `
+  if (a.status === 'draft_ready' || a.status === 'approved' || a.status === 'applied') {
+    const dl = document.createElement('a')
+    dl.className = 'btn btn-outline btn-sm'
+    dl.textContent = '⬇ CV'
+    dl.href = `/applications/${a.id}/cv.docx`
+    dl.download = ''
+    dl.style.marginLeft = '10px'
+    card.appendChild(dl)
+  }
   if (a.status === 'draft_ready') {
     const btn = document.createElement('button')
     btn.className = 'btn btn-green btn-sm'
     btn.textContent = 'Approve'
-    btn.style.marginLeft = '10px'
+    btn.style.marginLeft = '8px'
     btn.onclick = () => approveApplication(a.id, btn)
     card.appendChild(btn)
   }

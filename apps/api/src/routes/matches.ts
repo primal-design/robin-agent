@@ -4,6 +4,7 @@ import { requireAuth } from '../lib/auth.js'
 import { getProfile } from '../services/profileService.js'
 import { matchJobsForProfile, getTopMatches } from '../services/jobMatcher.js'
 import { tailorForApplication } from '../services/documentTailor.js'
+import { buildCvDocx } from '../services/cvExporter.js'
 
 const router = Router()
 
@@ -173,6 +174,41 @@ router.get('/applications/:id/documents', requireAuth, async (req, res, next) =>
     )
     if (!r.rows[0]) return res.status(404).json({ error: 'not_found' })
     res.json(r.rows[0])
+  } catch (err) { next(err) }
+})
+
+// GET /applications/:id/cv.docx — download tailored CV as Word document
+router.get('/applications/:id/cv.docx', requireAuth, async (req, res, next) => {
+  try {
+    const tenantId = await getTenantId(req.actor!.phone)
+    if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
+
+    const r = await pool.query(
+      `SELECT r.content AS cv_content, j.title, j.company,
+              p.full_name, p.email, p.phone, p.location
+       FROM applications a
+       JOIN jobs j ON j.id = a.job_id
+       JOIN profiles p ON p.tenant_id = a.tenant_id
+       LEFT JOIN resumes r ON r.id = a.tailored_cv_id
+       WHERE a.id = $1 AND a.tenant_id = $2`,
+      [req.params.id, tenantId]
+    )
+    if (!r.rows[0]) return res.status(404).json({ error: 'not_found' })
+    const row = r.rows[0]
+    if (!row.cv_content) return res.status(404).json({ error: 'cv_not_tailored_yet' })
+
+    const buf = await buildCvDocx({
+      cvContent: row.cv_content,
+      fullName:  row.full_name || 'Applicant',
+      email:     row.email,
+      phone:     row.phone,
+      location:  row.location,
+    })
+
+    const filename = `CV_${(row.company || 'Application').replace(/\s+/g, '_')}.docx`
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+    res.send(buf)
   } catch (err) { next(err) }
 })
 
