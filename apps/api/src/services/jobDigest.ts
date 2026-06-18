@@ -143,12 +143,13 @@ export async function runDailyJobDigest(): Promise<void> {
     chat_id:   string
     bot_token: string | null
   }>(
-    `SELECT DISTINCT wc.tenant_id, wc.external_id AS chat_id,
-            wc.config->>'bot_token' AS bot_token
+    `SELECT DISTINCT wc.tenant_id,
+            (wc.public_config->>'chat_id')::text AS chat_id,
+            wc.encrypted_config->>'bot_token' AS bot_token
      FROM worker_channels wc
      WHERE wc.channel_type = 'telegram'
-       AND wc.external_id IS NOT NULL
-       AND wc.is_active = true`
+       AND wc.public_config->>'chat_id' IS NOT NULL
+       AND wc.status = 'active'`
   )
 
   const defaultToken = process.env.TELEGRAM_BOT_TOKEN ?? ''
