@@ -276,8 +276,8 @@ export async function matchJobsForProfile(
         [
           tenantId, profileId, m.job_id, m.suitability_score,
           JSON.stringify(m.score_breakdown),
-          JSON.stringify(m.match_reasons),
-          JSON.stringify(m.missing_skills),
+          m.match_reasons,
+          m.missing_skills,
           m.llm_summary,
         ]
       )
