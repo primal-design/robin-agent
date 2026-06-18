@@ -21,10 +21,15 @@ router.post('/jobs/fetch-and-match', async (req, res, next) => {
         console.log('[admin] Jobs fetched:', fetchResult)
         const tenantId = process.env.DEFAULT_TENANT_ID
         if (tenantId) {
+          // Set RLS tenant context
+          await pool.query(`SET app.current_tenant = '${tenantId}'`)
           const profile = await getProfile(tenantId)
+          console.log('[admin] Profile found:', profile?.id)
           if (profile) {
             const matchResult = await matchJobsForProfile(tenantId, profile.id, profile)
             console.log('[admin] Matching done:', matchResult)
+          } else {
+            console.warn('[admin] No profile found for tenant', tenantId)
           }
         }
       } catch (err) {
