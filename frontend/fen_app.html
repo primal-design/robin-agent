@@ -258,7 +258,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
       </div>
       <div class="tg-box">
         <p>Get match alerts on Telegram — tap a job and FEN tailors your CV in 30 seconds.</p>
-        <a class="tg-link" href="https://t.me/fenjobbotbot" target="_blank">
+        <a class="tg-link" href="https://t.me/fen_ai_bot" target="_blank">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.414 13.85l-2.94-.918c-.638-.203-.649-.638.136-.948l11.473-4.424c.531-.194.995.131.811.661z"/></svg>
           Connect Telegram
         </a>
@@ -524,7 +524,8 @@ function buildJobCard(m) {
 
   const card = document.createElement('div')
   card.className = 'job-card'
-  card.id = `match-${m.id}`
+  const mid = m.match_id || m.id
+  card.id = `match-${mid}`
   card.innerHTML = `
     <div class="job-top">
       <div>
@@ -539,8 +540,8 @@ function buildJobCard(m) {
       ${m.match_reasons ? `<span class="meta-pill">✨ ${esc(m.match_reasons.split(',')[0] || '')}</span>` : ''}
     </div>
     <div class="job-actions">
-      <button class="btn btn-green btn-sm" onclick="markInterested('${m.id}','${m.job_id}')">✅ Interested</button>
-      <button class="btn btn-red btn-sm" onclick="markSkip('${m.id}')">✗ Skip</button>
+      <button class="btn btn-green btn-sm" onclick="markInterested('${mid}','${m.job_id}')">✅ Interested</button>
+      <button class="btn btn-red btn-sm" onclick="markSkip('${mid}')">✗ Skip</button>
       ${m.url ? `<a class="btn btn-outline btn-sm" href="${esc(m.url)}" target="_blank">View job</a>` : ''}
     </div>
   `
