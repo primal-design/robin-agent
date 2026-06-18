@@ -3,8 +3,21 @@ import { pool } from '../db/pool.js'
 import { fetchAllJobs } from '../services/jobFetcher.js'
 import { matchJobsForProfile } from '../services/jobMatcher.js'
 import { getProfile } from '../services/profileService.js'
+import { runDailyJobDigest } from '../services/jobDigest.js'
 
 const router = Router()
+
+// POST /jobs/send-digest — admin trigger to send Telegram digest now
+router.post('/jobs/send-digest', async (req, res, next) => {
+  const secret = req.headers['x-admin-secret'] || req.query.secret
+  if (secret !== (process.env.ADMIN_SECRET || 'robin-admin-2026!xK9')) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+  try {
+    res.json({ ok: true, message: 'Digest sending in background' })
+    runDailyJobDigest().catch(err => console.error('[admin] digest error:', err))
+  } catch (err) { next(err) }
+})
 
 // POST /jobs/fetch-and-match — admin trigger to fetch jobs + run matching
 router.post('/jobs/fetch-and-match', async (req, res, next) => {
