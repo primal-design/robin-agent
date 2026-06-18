@@ -67,19 +67,13 @@ async function sendDigestToUser(params: {
   const { tenantId, chatId, botToken } = params
 
   const profile = await getProfile(tenantId)
-  if (!profile || !profile.raw_cv_text) {
-    await sendTelegram(chatId,
-      `👋 <b>FEN Job Agent</b>\n\nUpload your CV to start receiving job matches.\n\nVisit your profile at /app/profile`,
-      botToken
-    )
-    return
-  }
+  if (!profile) return
 
   // Run matching for new jobs
   await matchJobsForProfile(tenantId, profile.id, profile, 300)
 
   // Get top unsent matches
-  const matches = await getTopMatches(tenantId, profile.id, 5, 50)
+  const matches = await getTopMatches(tenantId, profile.id, 5, 30)
   const unsent  = matches.filter(m => !m.sent_to_telegram)
 
   if (!unsent.length) {
