@@ -1,7 +1,38 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
+import { fetchAllJobs } from '../services/jobFetcher.js'
+import { matchJobsForProfile } from '../services/jobMatcher.js'
+import { getProfile } from '../services/profileService.js'
 
 const router = Router()
+
+// POST /jobs/fetch-and-match — admin trigger to fetch jobs + run matching
+router.post('/jobs/fetch-and-match', async (req, res, next) => {
+  const secret = req.headers['x-admin-secret'] || req.query.secret
+  if (secret !== (process.env.ADMIN_SECRET || 'robin-admin-2026!xK9')) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+  try {
+    res.json({ ok: true, message: 'Job fetch + match started in background' })
+    // Run async after responding
+    ;(async () => {
+      try {
+        const fetchResult = await fetchAllJobs()
+        console.log('[admin] Jobs fetched:', fetchResult)
+        const tenantId = process.env.DEFAULT_TENANT_ID
+        if (tenantId) {
+          const profile = await getProfile(tenantId)
+          if (profile) {
+            const matchResult = await matchJobsForProfile(tenantId, profile.id, profile)
+            console.log('[admin] Matching done:', matchResult)
+          }
+        }
+      } catch (err) {
+        console.error('[admin] fetch-and-match error:', err)
+      }
+    })()
+  } catch (err) { next(err) }
+})
 
 // GET /jobs — public job board (no auth required)
 router.get('/jobs', async (req, res, next) => {
