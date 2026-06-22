@@ -246,10 +246,15 @@ export async function matchJobsForProfile(
 
     if (finalScore < 30) continue  // drop very low matches
 
-    // Only call LLM for decent matches to control cost
-    const explanation = finalScore >= 50
-      ? await explainMatch(profile, job, finalScore)
-      : { match_reasons: [], missing_skills: [], llm_summary: '' }
+    // Only call LLM for decent matches to control cost — skip if no API credits
+    let explanation = { match_reasons: [] as string[], missing_skills: [] as string[], llm_summary: '' }
+    if (finalScore >= 50) {
+      try {
+        explanation = await explainMatch(profile, job, finalScore)
+      } catch (err) {
+        console.warn('[jobMatcher] LLM explain failed (no credits?):', err instanceof Error ? err.message : err)
+      }
+    }
 
     results.push({
       job_id:            job.id,
