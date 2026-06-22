@@ -694,6 +694,46 @@ interface TheMuseJob {
   refs?:            { landing_page: string }
 }
 
+// ── Jobicy ────────────────────────────────────────────────────────────────────
+// Free API, no key. Remote jobs across all categories including HR/recruiting.
+
+async function fetchJobicy(): Promise<NormalisedJob[]> {
+  const r = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50&tag=recruiting,hr,talent,sourcing', {
+    headers: { 'User-Agent': 'FENJobAgent/1.0', Accept: 'application/json' },
+  })
+  if (!r.ok) throw new Error(`Jobicy ${r.status}`)
+
+  const data = await r.json() as { jobs?: JobicyJob[] }
+  return (data.jobs ?? []).map(j => ({
+    source:          'jobicy',
+    external_id:     String(j.id),
+    title:           j.jobTitle,
+    company:         j.companyName ?? null,
+    location:        j.jobGeo || 'Remote',
+    country:         'REMOTE',
+    salary_min:      null,
+    salary_max:      null,
+    currency:        'USD',
+    employment_type: j.jobType ?? null,
+    remote_type:     'remote' as const,
+    description:     j.jobDescription?.replace(/<[^>]+>/g, '').slice(0, 5000) ?? null,
+    url:             j.url ?? null,
+    posted_at:       j.pubDate ?? null,
+    raw_payload:     j,
+  }))
+}
+
+interface JobicyJob {
+  id:              number
+  jobTitle:        string
+  companyName?:    string
+  jobGeo?:         string
+  jobType?:        string
+  jobDescription?: string
+  url?:            string
+  pubDate?:        string
+}
+
 // ── Helper: detect remote type from text ─────────────────────────────────────
 
 function detectRemote(text: string): 'remote' | 'hybrid' | 'onsite' | null {
@@ -771,7 +811,21 @@ export async function embedNewJobs(): Promise<void> {
 
 // ── Main: run all enabled sources ────────────────────────────────────────────
 
-export async function fetchAllJobs(keywords = 'software engineer developer'): Promise<void> {
+export async function fetchAllJobs(keywords?: string): Promise<void> {
+  // If no keywords supplied, derive from all active tenant profiles
+  if (!keywords) {
+    const { pool } = await import('../db/pool.js')
+    const r = await pool.query<{ target_roles: string[]; skills: string[] }>(
+      `SELECT target_roles, skills FROM user_profiles LIMIT 20`
+    )
+    const terms = new Set<string>()
+    for (const row of r.rows) {
+      for (const role of (row.target_roles ?? [])) terms.add(role)
+      for (const skill of (row.skills ?? []).slice(0, 3)) terms.add(skill)
+    }
+    keywords = terms.size > 0 ? [...terms].slice(0, 5).join(' ') : 'recruiter talent sourcing'
+    console.log(`[jobFetcher] derived keywords from profiles: "${keywords}"`)
+  }
   const sources = [
     { name: 'adzuna',      fn: () => fetchAdzuna(keywords) },
     { name: 'reed',       fn: () => fetchReed(keywords) },
@@ -781,6 +835,7 @@ export async function fetchAllJobs(keywords = 'software engineer developer'): Pr
     { name: 'arbeitnow',  fn: () => fetchArbeitnow() },
     { name: 'remoteok',   fn: () => fetchRemoteOK() },
     { name: 'the_muse',   fn: () => fetchTheMuse() },
+    { name: 'jobicy',     fn: () => fetchJobicy() },
   ]
 
   for (const source of sources) {
