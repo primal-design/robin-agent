@@ -84,9 +84,10 @@ async function sendDigestToUser(params: {
   // Get top unsent matches
   const matches = await getTopMatches(tenantId, p.id, 5, 30)
   const unsent  = matches.filter(m => !m.sent_to_telegram)
+  console.log(`[jobDigest] tenant ${tenantId}: ${matches.length} total matches, ${unsent.length} unsent, chatId=${chatId}`)
 
   if (!unsent.length) {
-    // No new matches today
+    console.log(`[jobDigest] no unsent matches for tenant ${tenantId}`)
     return
   }
 
