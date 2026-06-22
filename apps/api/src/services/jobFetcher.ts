@@ -887,22 +887,26 @@ export async function embedNewJobs(): Promise<void> {
 // ── Main: run all enabled sources ────────────────────────────────────────────
 
 export async function fetchAllJobs(keywords?: string): Promise<void> {
-  // If no keywords supplied, derive from all active tenant profiles
+  // If no keywords supplied, derive from all active tenant profiles (target_roles only)
   if (!keywords) {
     const { pool } = await import('../db/pool.js')
-    const r = await pool.query<{ target_roles: string[]; skills: string[] }>(
-      `SELECT target_roles, skills FROM user_profiles LIMIT 20`
+    const r = await pool.query<{ target_roles: string[] }>(
+      `SELECT target_roles FROM user_profiles WHERE array_length(target_roles, 1) > 0 LIMIT 20`
     )
     const terms = new Set<string>()
     for (const row of r.rows) {
-      for (const role of (row.target_roles ?? [])) terms.add(role)
-      for (const skill of (row.skills ?? []).slice(0, 3)) terms.add(skill)
+      for (const role of (row.target_roles ?? [])) {
+        // Take first 3 words of each role to keep queries clean
+        const clean = role.split(/\s+/).slice(0, 3).join(' ').trim()
+        if (clean) terms.add(clean)
+      }
     }
-    keywords = terms.size > 0 ? [...terms].slice(0, 5).join(' ') : 'recruiter talent sourcing'
+    keywords = terms.size > 0 ? [...terms].slice(0, 3).join(' OR ') : 'recruiter talent acquisition'
     console.log(`[jobFetcher] derived keywords from profiles: "${keywords}"`)
   }
   const sources = [
     { name: 'adzuna',      fn: () => fetchAdzuna(keywords) },
+    { name: 'adzuna_hr',   fn: () => fetchAdzuna('recruiter OR "talent acquisition" OR "HR manager" OR "recruitment consultant"') },
     { name: 'reed',       fn: () => fetchReed(keywords) },
     { name: 'cv_library', fn: () => fetchCVLibrary(keywords) },
     { name: 'greenhouse', fn: () => fetchGreenhouse() },
