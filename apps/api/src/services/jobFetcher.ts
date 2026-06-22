@@ -605,6 +605,124 @@ interface ArbeitnowJob {
   created_at?:   string
 }
 
+// ── Monster UK RSS ───────────────────────────────────────────────────────────
+// Free RSS, no key. Good UK recruiting/HR coverage.
+
+async function fetchMonsterUK(keywords: string): Promise<NormalisedJob[]> {
+  const searches = [
+    { q: keywords, loc: 'London' },
+    { q: 'recruiter talent acquisition', loc: 'London' },
+    { q: 'HR recruitment consultant', loc: 'London' },
+  ]
+
+  const allJobs: NormalisedJob[] = []
+
+  for (const s of searches) {
+    const url = `https://www.monster.co.uk/jobs/rss?q=${encodeURIComponent(s.q)}&where=${encodeURIComponent(s.loc)}`
+    try {
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'FENJobAgent/1.0 (+https://fen.app)', Accept: 'application/rss+xml,application/xml' },
+      })
+      if (!r.ok) continue
+
+      const xml  = await r.text()
+      const items = xml.match(/<item>([\s\S]*?)<\/item>/g) ?? []
+
+      for (const item of items) {
+        const title   = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]?.trim()
+                     ?? item.match(/<title>(.*?)<\/title>/)?.[1]?.trim() ?? ''
+        const link    = item.match(/<link>(.*?)<\/link>/)?.[1]?.trim() ?? ''
+        const company = item.match(/<companyname><!\[CDATA\[(.*?)\]\]><\/companyname>/)?.[1]?.trim()
+                     ?? item.match(/<dc:creator>(.*?)<\/dc:creator>/)?.[1]?.trim() ?? null
+        const loc     = item.match(/<monsterjob:city>(.*?)<\/monsterjob:city>/)?.[1]?.trim() ?? s.loc
+        const desc    = item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/)?.[1]
+                          ?.replace(/<[^>]+>/g, '').trim().slice(0, 5000) ?? null
+        const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? null
+        const guid    = item.match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ?? link
+
+        if (!title || !link) continue
+
+        allJobs.push({
+          source:          'monster_uk',
+          external_id:     guid,
+          title,
+          company,
+          location:        loc,
+          country:         'GB',
+          salary_min:      null,
+          salary_max:      null,
+          currency:        'GBP',
+          employment_type: null,
+          remote_type:     detectRemote(title + ' ' + (desc ?? '')),
+          description:     desc,
+          url:             link,
+          posted_at:       pubDate ? new Date(pubDate).toISOString() : null,
+          raw_payload:     { title, link, company, loc },
+        })
+      }
+      await new Promise(r => setTimeout(r, 400))
+    } catch (err) {
+      console.warn('[jobFetcher] Monster UK fetch failed:', err instanceof Error ? err.message : err)
+    }
+  }
+
+  const seen = new Set<string>()
+  return allJobs.filter(j => { if (seen.has(j.external_id)) return false; seen.add(j.external_id); return true })
+}
+
+// ── Guardian Jobs ─────────────────────────────────────────────────────────────
+// Free API, requires key from jobs.theguardian.com/api
+
+async function fetchGuardianJobsAPI(keywords: string): Promise<NormalisedJob[]> {
+  const apiKey = process.env.GUARDIAN_JOBS_API_KEY
+  if (!apiKey) {
+    console.warn('[jobFetcher] GUARDIAN_JOBS_API_KEY not set — skipping')
+    return []
+  }
+
+  const url = new URL('https://jobs.theguardian.com/api/1/jobs')
+  url.searchParams.set('apiKey',   apiKey)
+  url.searchParams.set('keywords', keywords)
+  url.searchParams.set('locationName', 'London')
+  url.searchParams.set('pageSize', '50')
+
+  const r = await fetch(url.toString(), { headers: { Accept: 'application/json' } })
+  if (!r.ok) throw new Error(`GuardianJobs ${r.status}: ${await r.text().then(t => t.slice(0, 200))}`)
+
+  const data = await r.json() as { jobs?: GuardianJob[] }
+
+  return (data.jobs ?? []).map(j => ({
+    source:          'guardian_jobs',
+    external_id:     String(j.id),
+    title:           j.jobTitle,
+    company:         j.recruiterName ?? null,
+    location:        j.locationName ?? 'London',
+    country:         'GB',
+    salary_min:      j.salaryMinimum ?? null,
+    salary_max:      j.salaryMaximum ?? null,
+    currency:        'GBP',
+    employment_type: j.contractType ?? null,
+    remote_type:     detectRemote(j.jobTitle + ' ' + (j.locationName ?? '')),
+    description:     j.shortDescription ?? null,
+    url:             j.jobUrl ?? null,
+    posted_at:       j.postedDate ?? null,
+    raw_payload:     j,
+  }))
+}
+
+interface GuardianJob {
+  id:               number
+  jobTitle:         string
+  recruiterName?:   string
+  locationName?:    string
+  salaryMinimum?:   number
+  salaryMaximum?:   number
+  contractType?:    string
+  shortDescription?:string
+  jobUrl?:          string
+  postedDate?:      string
+}
+
 // ── Indeed UK RSS ─────────────────────────────────────────────────────────────
 // Free RSS feed, no key. Searches Indeed UK for specific keywords + location.
 
@@ -914,8 +1032,10 @@ export async function fetchAllJobs(keywords?: string): Promise<void> {
     { name: 'arbeitnow',  fn: () => fetchArbeitnow() },
     { name: 'remoteok',   fn: () => fetchRemoteOK() },
     { name: 'the_muse',   fn: () => fetchTheMuse() },
-    { name: 'jobicy',     fn: () => fetchJobicy() },
-    { name: 'indeed_uk',  fn: () => fetchIndeedUK(keywords) },
+    { name: 'jobicy',        fn: () => fetchJobicy() },
+    { name: 'indeed_uk',     fn: () => fetchIndeedUK(keywords) },
+    { name: 'monster_uk',    fn: () => fetchMonsterUK(keywords) },
+    { name: 'guardian_jobs', fn: () => fetchGuardianJobsAPI(keywords) },
   ]
 
   for (const source of sources) {
