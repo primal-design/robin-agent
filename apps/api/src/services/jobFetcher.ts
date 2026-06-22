@@ -605,6 +605,81 @@ interface ArbeitnowJob {
   created_at?:   string
 }
 
+// ── Indeed UK RSS ─────────────────────────────────────────────────────────────
+// Free RSS feed, no key. Searches Indeed UK for specific keywords + location.
+
+async function fetchIndeedUK(keywords: string): Promise<NormalisedJob[]> {
+  const searches = [
+    { q: keywords, l: 'London' },
+    { q: 'recruiter talent acquisition', l: 'London' },
+    { q: 'HR recruitment sourcing', l: 'London' },
+  ]
+
+  const allJobs: NormalisedJob[] = []
+
+  for (const s of searches) {
+    const url = `https://www.indeed.co.uk/rss?q=${encodeURIComponent(s.q)}&l=${encodeURIComponent(s.l)}&radius=10&sort=date`
+    try {
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'FENJobAgent/1.0 (+https://fen.app)', Accept: 'application/rss+xml,application/xml' },
+      })
+      if (!r.ok) continue
+
+      const xml = await r.text()
+
+      // Parse RSS items with regex (no xml parser dependency)
+      const items = xml.match(/<item>([\s\S]*?)<\/item>/g) ?? []
+
+      for (const item of items) {
+        const title    = item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)?.[1]?.trim() ?? ''
+        const link     = item.match(/<link>(.*?)<\/link>/)?.[1]?.trim() ?? ''
+        const company  = item.match(/<source[^>]*>(.*?)<\/source>/)?.[1]?.trim() ?? null
+        const location = item.match(/<indeed:city>(.*?)<\/indeed:city>/)?.[1]?.trim()
+                      ?? item.match(/<indeed:state>(.*?)<\/indeed:state>/)?.[1]?.trim()
+                      ?? s.l
+        const salMin   = item.match(/<indeed:salary[^>]*from="([0-9.]+)"/)?.[1]
+        const salMax   = item.match(/<indeed:salary[^>]*to="([0-9.]+)"/)?.[1]
+        const desc     = item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/)?.[1]
+                           ?.replace(/<[^>]+>/g, '').trim().slice(0, 5000) ?? null
+        const pubDate  = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] ?? null
+        const guid     = item.match(/<guid[^>]*>(.*?)<\/guid>/)?.[1] ?? link
+
+        if (!title || !link) continue
+
+        allJobs.push({
+          source:          'indeed_uk',
+          external_id:     guid,
+          title,
+          company,
+          location,
+          country:         'GB',
+          salary_min:      salMin ? Math.round(parseFloat(salMin)) : null,
+          salary_max:      salMax ? Math.round(parseFloat(salMax)) : null,
+          currency:        'GBP',
+          employment_type: null,
+          remote_type:     detectRemote(title + ' ' + (desc ?? '')),
+          description:     desc,
+          url:             link,
+          posted_at:       pubDate ? new Date(pubDate).toISOString() : null,
+          raw_payload:     { title, link, company, location },
+        })
+      }
+
+      await new Promise(r => setTimeout(r, 500)) // be polite between requests
+    } catch (err) {
+      console.warn('[jobFetcher] Indeed UK fetch failed:', err instanceof Error ? err.message : err)
+    }
+  }
+
+  // Deduplicate by external_id
+  const seen = new Set<string>()
+  return allJobs.filter(j => {
+    if (seen.has(j.external_id)) return false
+    seen.add(j.external_id)
+    return true
+  })
+}
+
 // ── RemoteOK ──────────────────────────────────────────────────────────────────
 // Free API, no key. Returns ~100 remote jobs. Filter to UK/worldwide-remote.
 
@@ -836,6 +911,7 @@ export async function fetchAllJobs(keywords?: string): Promise<void> {
     { name: 'remoteok',   fn: () => fetchRemoteOK() },
     { name: 'the_muse',   fn: () => fetchTheMuse() },
     { name: 'jobicy',     fn: () => fetchJobicy() },
+    { name: 'indeed_uk',  fn: () => fetchIndeedUK(keywords) },
   ]
 
   for (const source of sources) {
