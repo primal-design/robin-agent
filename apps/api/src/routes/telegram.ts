@@ -3,6 +3,8 @@ import { eventQueue } from '../queues/eventQueue.js'
 import { audit } from '../services/audit.js'
 import { handleJobCallback } from '../services/jobCallbackHandler.js'
 import { handleApplyCallback } from '../services/jobNotifier.js'
+import { handleOnboardingReply, handleWorkTypeCallback } from '../services/telegramOnboarding.js'
+import { sendTelegram } from '../lib/telegram.js'
 import { env } from '../config/env.js'
 
 export const telegramRouter = Router()
@@ -26,6 +28,21 @@ async function tryHandleCallbackQuery(body: Record<string, unknown>, botToken: s
 
   if (data.startsWith('job:')) {
     await handleJobCallback({ callbackQueryId: cbId, chatId, messageId: msgId, data, botToken })
+    return true
+  }
+
+  if (data.startsWith('profile:work_type:')) {
+    const workType = data.split(':')[2]
+    const { pool } = await import('../db/pool.js')
+    const r = await pool.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM worker_channels
+       WHERE channel_type='telegram' AND (public_config->>'chat_id')::text=$1 AND status='active' LIMIT 1`,
+      [String(chatId)]
+    )
+    const tenantId = r.rows[0]?.tenant_id
+    if (tenantId) {
+      await handleWorkTypeCallback(tenantId, chatId, workType, botToken)
+    }
     return true
   }
 
@@ -78,31 +95,42 @@ telegramRouter.post('/telegram/webhook', async (req, res) => {
 
   if (await tryHandleCallbackQuery(req.body, botToken)) return
 
-  // /start — save the user's chat ID against the default tenant
   const msg = req.body?.message
-  if (msg?.text === '/start') {
-    const chatId = msg.chat?.id
-    const firstName = msg.chat?.first_name ?? 'there'
-    if (chatId) {
-      const { pool } = await import('../db/pool.js')
-      const defaultTenantId = process.env.DEFAULT_TENANT_ID
-      if (defaultTenantId) {
-        await pool.query(
-          `UPDATE worker_channels
-           SET public_config = public_config || $1
-           WHERE tenant_id = $2 AND channel_type = 'telegram'`,
-          [JSON.stringify({ chat_id: chatId }), defaultTenantId]
-        )
-      }
-      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: `👋 Hi ${firstName}! FEN is connected.\n\nI'll send you job matches every morning. Tap Interested on any job and I'll tailor your CV in 30 seconds.`,
-        }),
-      })
+  if (!msg?.text) return
+
+  const chatId    = msg.chat?.id as number
+  const msgText   = msg.text as string
+  const firstName = msg.chat?.first_name ?? 'there'
+
+  // Resolve tenant from chat ID
+  const { pool } = await import('../db/pool.js')
+  const defaultTenantId = process.env.DEFAULT_TENANT_ID
+  const tenantRes = await pool.query<{ tenant_id: string }>(
+    `SELECT tenant_id FROM worker_channels
+     WHERE channel_type='telegram' AND (public_config->>'chat_id')::text=$1 AND status='active' LIMIT 1`,
+    [String(chatId)]
+  )
+  const tenantId = tenantRes.rows[0]?.tenant_id ?? defaultTenantId
+
+  // /start — save the user's chat ID against the default tenant
+  if (msgText === '/start') {
+    if (chatId && tenantId) {
+      await pool.query(
+        `UPDATE worker_channels
+         SET public_config = public_config || $1
+         WHERE tenant_id = $2 AND channel_type = 'telegram'`,
+        [JSON.stringify({ chat_id: chatId }), tenantId]
+      )
     }
+    await sendTelegram(chatId,
+      `👋 Hi ${firstName}! FEN is connected.\n\nI'll send you job matches every morning. Tap Interested on any job and I'll tailor your CV in 30 seconds.`,
+      botToken)
+    return
+  }
+
+  // Handle onboarding replies
+  if (tenantId) {
+    await handleOnboardingReply(tenantId, chatId, msgText, botToken)
   }
 })
 

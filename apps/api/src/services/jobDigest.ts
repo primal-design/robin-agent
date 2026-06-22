@@ -3,6 +3,7 @@ import { sendTelegram, sendTelegramWithButtons } from '../lib/telegram.js'
 import { fetchAllJobs } from './jobFetcher.js'
 import { matchJobsForProfile, getTopMatches } from './jobMatcher.js'
 import { getProfile } from './profileService.js'
+import { maybeStartOnboarding, isProfileComplete } from './telegramOnboarding.js'
 
 // ── Format a single job match for Telegram ────────────────────────────────────
 
@@ -67,13 +68,21 @@ async function sendDigestToUser(params: {
   const { tenantId, chatId, botToken } = params
 
   const profile = await getProfile(tenantId)
-  if (!profile) return
+
+  // If profile is missing key fields, ask the user to fill it in via Telegram
+  if (!isProfileComplete(profile)) {
+    await maybeStartOnboarding(tenantId, chatId, botToken, profile)
+    return
+  }
+
+  // profile is complete here
+  const p = profile!
 
   // Run matching for new jobs
-  await matchJobsForProfile(tenantId, profile.id, profile, 300)
+  await matchJobsForProfile(tenantId, p.id, p, 300)
 
   // Get top unsent matches
-  const matches = await getTopMatches(tenantId, profile.id, 5, 30)
+  const matches = await getTopMatches(tenantId, p.id, 5, 30)
   const unsent  = matches.filter(m => !m.sent_to_telegram)
 
   if (!unsent.length) {
