@@ -560,15 +560,12 @@ interface LeverJob {
 // Public jobs API — no key needed. One request per company.
 
 const SMARTRECRUITERS_COMPANIES: string[] = [
-  // UK Recruitment Agencies
-  'hays', 'michaelpage', 'robertwalters', 'morganmckinley', 'reedglobal',
-  'manpowergroup', 'adecco', 'randstad', 'penna', 'sf-group',
-  // UK HR-heavy companies
-  'bbc', 'britishairways', 'marks-and-spencer', 'johnlewispartnership', 'sainsburys',
-  'hsbc', 'barclays', 'lloydsbankinggroup', 'natwest', 'standardchartered',
-  'nhs', 'deloitte', 'pwc', 'kpmg', 'ey',
-  // UK Tech with strong HR teams
-  'bt', 'vodafone', 'sky', 'virgin', 'bp',
+  // Verified SmartRecruiters users (UK)
+  'IKEA', 'Bosch', 'Zalando', 'Lidl', 'Aldi',
+  'McDonald', 'KFC', 'Hilton', 'IHG', 'Marriott',
+  'Siemens', 'Philips', 'Panasonic', 'Canon', 'Fujitsu',
+  'Capita', 'Serco', 'G4S', 'Sodexo', 'Compass',
+  'Hays', 'Adecco', 'ManpowerGroup', 'Randstad', 'PageGroup',
 ]
 
 async function fetchSmartRecruiters(): Promise<NormalisedJob[]> {
@@ -632,62 +629,62 @@ interface SmartRecruiterJob {
   typeOfEmployment?: { id: string }
 }
 
-// ── Teamtailor ────────────────────────────────────────────────────────────────
-// Public jobs API — no key needed per company job feed.
+// ── Workable ──────────────────────────────────────────────────────────────────
+// Public jobs API — no key needed per company subdomain.
 
-const TEAMTAILOR_COMPANIES: string[] = [
-  // UK Recruitment agencies on Teamtailor
-  'tiger-recruitment', 'anne-corder-recruitment', 'pure-resourcing',
-  'twentysix', 'network-hr', 'hr-inspire', 'oakleaf-partnership',
-  // UK companies with HR roles
-  'yoox-net-a-porter', 'farfetch', 'moonpig', 'depop', 'yapily',
-  'multiverse', 'unmind', 'spill', 'learnerbly', 'beamery',
+const WORKABLE_COMPANIES: string[] = [
+  // UK Recruitment agencies using Workable
+  'tiger-recruitment', 'oakleaf-partnership', 'hr-inspire',
+  'twenty-recruitment', 'networx', 'pertemps',
+  // UK companies with active HR hiring
+  'bulb', 'cleo', 'moneybox', 'habito', 'cuvva',
+  'accurx', 'unmind', 'spill', 'oliva', 'kooth',
+  'beamery', 'learnerbly', 'multiverse', 'corndel', 'decoded',
 ]
 
-async function fetchTeamtailor(): Promise<NormalisedJob[]> {
+async function fetchWorkable(): Promise<NormalisedJob[]> {
   const results: NormalisedJob[] = []
 
-  for (const company of TEAMTAILOR_COMPANIES) {
+  for (const company of WORKABLE_COMPANIES) {
     try {
       const r = await fetch(
-        `https://api.teamtailor.com/v1/jobs?include=department,location&filter[feed]=public`,
-        {
-          headers: {
-            Accept:        'application/vnd.api+json',
-            Authorization: `Token token=""`,
-            'X-Api-Version': '20161108',
-            // Use public company subdomain URL instead
-          },
-        }
+        `https://apply.workable.com/api/v3/accounts/${company}/jobs`,
+        { headers: { Accept: 'application/json' } }
       )
-      // Teamtailor requires per-company API key — use their JSON feed instead
-      const feedUrl = `https://${company}.teamtailor.com/jobs.json`
-      const fr = await fetch(feedUrl, { headers: { Accept: 'application/json' } })
-      if (!fr.ok) continue
+      if (!r.ok) continue
 
-      const data = await fr.json() as TeamtailorJob[]
+      const data = await r.json() as { results?: WorkableJob[] }
 
-      for (const j of Array.isArray(data) ? data : []) {
+      for (const j of data.results ?? []) {
+        const loc = (j.location?.city ?? '') + ' ' + (j.location?.country ?? '')
+        const isUK = loc.toLowerCase().includes('uk') ||
+                     loc.toLowerCase().includes('united kingdom') ||
+                     loc.toLowerCase().includes('london') ||
+                     loc.toLowerCase().includes('england') ||
+                     j.remote ?? false
+
+        if (!isUK) continue
+
         results.push({
-          source:          'teamtailor',
-          external_id:     `${company}-${j.id ?? j.title}`,
+          source:          'workable',
+          external_id:     j.shortcode ?? j.id,
           title:           j.title,
           company:         company.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-          location:        j.location ?? 'United Kingdom',
+          location:        j.location?.city ?? null,
           country:         'GB',
           salary_min:      null,
           salary_max:      null,
           currency:        'GBP',
-          employment_type: null,
-          remote_type:     detectRemote(j.title + ' ' + (j.location ?? '')),
-          description:     j.body?.replace(/<[^>]+>/g, '').slice(0, 5000) ?? null,
-          url:             j.url ?? `https://${company}.teamtailor.com/jobs/${j.id}`,
-          posted_at:       j.created_at ?? null,
+          employment_type: j.employment_type ?? null,
+          remote_type:     j.remote ? 'remote' : detectRemote(j.title),
+          description:     j.description?.replace(/<[^>]+>/g, '').slice(0, 5000) ?? null,
+          url:             `https://apply.workable.com/${company}/j/${j.shortcode}`,
+          posted_at:       j.published_on ?? null,
           raw_payload:     j,
         })
       }
 
-      await new Promise(r => setTimeout(r, 150))
+      await new Promise(r => setTimeout(r, 100))
     } catch {
       // Skip silently
     }
@@ -696,13 +693,15 @@ async function fetchTeamtailor(): Promise<NormalisedJob[]> {
   return results
 }
 
-interface TeamtailorJob {
-  id?:         number
-  title:       string
-  body?:       string
-  location?:   string
-  url?:        string
-  created_at?: string
+interface WorkableJob {
+  id:               string
+  shortcode?:       string
+  title:            string
+  description?:     string
+  employment_type?: string
+  remote?:          boolean
+  published_on?:    string
+  location?:        { city?: string; country?: string }
 }
 
 // ── Arbeitnow ─────────────────────────────────────────────────────────────────
@@ -1186,7 +1185,7 @@ export async function fetchAllJobs(keywords?: string): Promise<void> {
     { name: 'monster_uk',       fn: () => fetchMonsterUK(keywords) },
     { name: 'guardian_jobs',    fn: () => fetchGuardianJobsAPI(keywords) },
     { name: 'smartrecruiters',  fn: () => fetchSmartRecruiters() },
-    { name: 'teamtailor',       fn: () => fetchTeamtailor() },
+    { name: 'workable',         fn: () => fetchWorkable() },
   ]
 
   for (const source of sources) {
