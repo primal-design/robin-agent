@@ -55,6 +55,17 @@ function passesHardFilters(job: JobForScoring, profile: UserProfile): boolean {
     if (!matches && !(isRemote && wantsRemote)) return false
   }
 
+  // Role mismatch hard filter — if profile has specific target roles, block clearly unrelated jobs
+  if (profile.target_roles.length > 0) {
+    const profileIsRecruiting = profile.target_roles.some(r =>
+      /recruit|talent|sourc|hr |human resource/i.test(r)
+    )
+    if (profileIsRecruiting) {
+      const techJobPattern = /software engineer|developer|devops|data engineer|machine learning|backend|frontend|full.?stack|sre |site reliability|platform engineer/i
+      if (techJobPattern.test(job.title)) return false
+    }
+  }
+
   return true
 }
 
