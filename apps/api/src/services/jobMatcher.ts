@@ -55,14 +55,16 @@ function passesHardFilters(job: JobForScoring, profile: UserProfile): boolean {
     if (!matches && !(isRemote && wantsRemote)) return false
   }
 
-  // Role mismatch hard filter — if profile has specific target roles, block clearly unrelated jobs
+  // Role relevance filter — if profile targets recruiting/HR, require job to match
   if (profile.target_roles.length > 0) {
     const profileIsRecruiting = profile.target_roles.some(r =>
-      /recruit|talent|sourc|hr |human resource/i.test(r)
+      /recruit|talent|sourc|hr|human resource/i.test(r)
     )
     if (profileIsRecruiting) {
-      const techJobPattern = /software engineer|developer|devops|data engineer|machine learning|backend|frontend|full.?stack|sre |site reliability|platform engineer/i
-      if (techJobPattern.test(job.title)) return false
+      const recruitingPattern = /recruit|talent acquisition|talent partner|sourcing|resourcing|hr |human resource|people partner|people manager|hrbp|staffing|headhunt|hiring manager/i
+      const titleMatch = recruitingPattern.test(job.title)
+      const descMatch  = job.description ? recruitingPattern.test(job.description.slice(0, 500)) : false
+      if (!titleMatch && !descMatch) return false
     }
   }
 
