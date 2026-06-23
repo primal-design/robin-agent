@@ -661,7 +661,7 @@ async function fetchWorkable(): Promise<NormalisedJob[]> {
                      loc.toLowerCase().includes('united kingdom') ||
                      loc.toLowerCase().includes('london') ||
                      loc.toLowerCase().includes('england') ||
-                     j.remote ?? false
+                     (j.remote ?? false)
 
         if (!isUK) continue
 
