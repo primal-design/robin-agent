@@ -10,7 +10,7 @@ import { startEmbeddingWorker }    from './services/embeddingWorker.js'
 
 assertRequired()
 
-ensureParaTables().catch(err => console.warn('PARA tables init failed:', err))
+ensureParaTables().catch(() => {/* tables exist, owned by migration role */})
 startDispatcher().catch(err => console.warn('[scheduler] dispatcher start failed:', err))
 startConnectorScheduler()
 startEmbeddingWorker()

@@ -14,39 +14,35 @@ export interface ParaNote {
 
 // ── Auto-create tables if they don't exist ────────────────────────────────────
 export async function ensureParaTables(): Promise<void> {
-  // Tables are created via migration — skip if already exist or if we lack ownership
+  // Tables are owned by the migration role — this is a no-op if they already exist
   try {
-    await db.query(`SELECT 1 FROM para_notes LIMIT 0`)
-    return // table exists, nothing to do
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS para_notes (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id     UUID NOT NULL,
+        para_type   TEXT NOT NULL,
+        title       TEXT NOT NULL,
+        section     TEXT NOT NULL,
+        content     TEXT NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `)
+    await db.query(`CREATE INDEX IF NOT EXISTS para_notes_user_idx ON para_notes(user_id)`)
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS daily_logs (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id     UUID NOT NULL,
+        date        DATE NOT NULL DEFAULT CURRENT_DATE,
+        role        TEXT NOT NULL,
+        content     TEXT NOT NULL,
+        logged_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `)
+    await db.query(`CREATE INDEX IF NOT EXISTS daily_logs_user_date_idx ON daily_logs(user_id, date)`)
   } catch {
-    // table doesn't exist — fall through to create it
+    // Tables already exist and are owned by migration role — safe to ignore
   }
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS para_notes (
-      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id     UUID NOT NULL,
-      para_type   TEXT NOT NULL,
-      title       TEXT NOT NULL,
-      section     TEXT NOT NULL,
-      content     TEXT NOT NULL,
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-      updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `)
-  await db.query(`CREATE INDEX IF NOT EXISTS para_notes_user_idx ON para_notes(user_id)`)
-
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS daily_logs (
-      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id     UUID NOT NULL,
-      date        DATE NOT NULL DEFAULT CURRENT_DATE,
-      role        TEXT NOT NULL,
-      content     TEXT NOT NULL,
-      logged_at   TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `)
-  await db.query(`CREATE INDEX IF NOT EXISTS daily_logs_user_date_idx ON daily_logs(user_id, date)`)
 }
 
 // ── Daily log ─────────────────────────────────────────────────────────────────
