@@ -284,13 +284,13 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
   </div>
 
   <div class="tab-bar">
-    <div class="tab on" id="tab-matches" onclick="switchTab('matches')">Matches</div>
+    <div class="tab on" id="tab-profile" onclick="switchTab('profile')">My Profile</div>
     <div class="tab" id="tab-pipeline" onclick="switchTab('pipeline')">My Applications</div>
-    <div class="tab" id="tab-profile" onclick="switchTab('profile')">My Profile</div>
+    <div class="tab" id="tab-matches" onclick="switchTab('matches')">Matches</div>
   </div>
 
   <!-- ── MATCHES TAB ── -->
-  <div id="tab-matches-content" class="content">
+  <div id="tab-matches-content" class="content" style="display:none">
     <div style="height:8px;overflow:hidden;margin-bottom:16px;border-radius:4px" id="loading-bar" style="display:none">
       <div class="loading-bar" id="lb-inner"></div>
     </div>
@@ -331,7 +331,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
   </div>
 
   <!-- ── PROFILE TAB ── -->
-  <div id="tab-profile-content" class="content" style="display:none">
+  <div id="tab-profile-content" class="content">
     <div class="section-head">
       <div class="section-title">My Profile</div>
     </div>
@@ -438,16 +438,16 @@ function goScreen(id) {
   window.scrollTo(0,0)
 }
 
-function goApp() { goScreen('screen-app'); loadMatches(); loadPipeline() }
+function goApp() { goScreen('screen-app'); loadProfileTab(); loadMatches(); loadPipeline() }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.getElementById('tab-matches-content').style.display  = tab === 'matches'  ? '' : 'none'
   document.getElementById('tab-pipeline-content').style.display = tab === 'pipeline' ? '' : 'none'
   document.getElementById('tab-profile-content').style.display  = tab === 'profile'  ? '' : 'none'
-  document.getElementById('tab-matches').classList.toggle('on',  tab === 'matches')
-  document.getElementById('tab-pipeline').classList.toggle('on', tab === 'pipeline')
   document.getElementById('tab-profile').classList.toggle('on',  tab === 'profile')
+  document.getElementById('tab-pipeline').classList.toggle('on', tab === 'pipeline')
+  document.getElementById('tab-matches').classList.toggle('on',  tab === 'matches')
   if (tab === 'pipeline') loadPipeline()
   if (tab === 'profile')  loadProfileTab()
 }
