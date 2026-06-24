@@ -537,7 +537,7 @@ function buildJobCard(m) {
     <div class="job-meta">
       ${salary ? `<span class="meta-pill">💰 ${salary}</span>` : ''}
       ${remote ? `<span class="meta-pill">📍 ${remote}</span>` : ''}
-      ${m.match_reasons ? `<span class="meta-pill">✨ ${esc(m.match_reasons.split(',')[0] || '')}</span>` : ''}
+      ${m.match_reasons?.length ? `<span class="meta-pill">✨ ${esc(Array.isArray(m.match_reasons) ? m.match_reasons[0] : m.match_reasons.split(',')[0])}</span>` : ''}
     </div>
     <div class="job-actions">
       <button class="btn btn-green btn-sm" onclick="markInterested('${mid}','${m.job_id}')">✅ Interested</button>
