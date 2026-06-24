@@ -19,13 +19,12 @@ export async function getOrCreateTenantForEmail(email: string): Promise<string> 
     await client.query('BEGIN')
 
     const tenantRes = await client.query<{ id: string }>(
-      `INSERT INTO tenants (name, email, slug)
-       VALUES ($1, $2, $3)
+      `INSERT INTO tenants (name, email)
+       VALUES ($1, $2)
        RETURNING id`,
       [
-        lower.split('@')[0],  // name from email prefix
+        lower.split('@')[0],
         lower,
-        `fen-${crypto.randomBytes(4).toString('hex')}`,
       ]
     )
     const tenantId = tenantRes.rows[0].id
