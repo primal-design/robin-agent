@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../lib/auth.js'
 import { uploadCV, upsertProfile, getProfile } from '../services/profileService.js'
+import { extractTextFromFile } from '../services/cvExtractor.js'
 
 const router = Router()
 
@@ -39,18 +40,36 @@ router.get('/profile', requireAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// POST /profile/cv — upload raw CV text, parse + embed
+// POST /profile/cv — upload CV (text, base64 PDF/DOCX, or image)
 router.post('/profile/cv', requireAuth, async (req, res, next) => {
   try {
-    const { cv_text } = req.body as { cv_text?: string }
-    if (!cv_text || cv_text.trim().length < 50) {
-      return res.status(400).json({ error: 'cv_text must be at least 50 characters' })
+    const { cv_text, file_data, file_name, file_type } = req.body as {
+      cv_text?:   string
+      file_data?: string  // base64 encoded file
+      file_name?: string
+      file_type?: string  // mime type
+    }
+
+    let extractedText: string
+
+    if (file_data && file_name) {
+      // New path: binary file uploaded as base64
+      const buf = Buffer.from(file_data, 'base64')
+      extractedText = await extractTextFromFile(buf, file_name, file_type ?? '')
+    } else if (cv_text) {
+      extractedText = cv_text
+    } else {
+      return res.status(400).json({ error: 'provide file_data or cv_text' })
+    }
+
+    if (!extractedText || extractedText.trim().length < 50) {
+      return res.status(400).json({ error: 'Could not extract text from CV — try a different format' })
     }
 
     const tenantId = await getTenantId(req.actor!.phone)
     if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
 
-    const { profile, parsed } = await uploadCV(tenantId, cv_text)
+    const { profile, parsed } = await uploadCV(tenantId, extractedText)
     res.status(201).json({ profile, parsed })
   } catch (err) { next(err) }
 })
