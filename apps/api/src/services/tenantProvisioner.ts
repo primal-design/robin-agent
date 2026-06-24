@@ -1,4 +1,5 @@
 import { pool } from '../db/pool.js'
+import { env } from '../config/env.js'
 import crypto from 'crypto'
 
 // ── Get or create tenant for an email ────────────────────────────────────────
@@ -30,12 +31,16 @@ export async function getOrCreateTenantForEmail(email: string): Promise<string> 
     const tenantId = tenantRes.rows[0].id
 
     // Create Telegram worker channel (empty, waiting for connect)
-    await client.query(
-      `INSERT INTO worker_channels
-         (tenant_id, channel_type, status, public_config, encrypted_config)
-       VALUES ($1, 'telegram', 'pending', '{}', '{}')`,
-      [tenantId]
-    )
+    const workerId = env.defaultWorkerId
+    if (workerId) {
+      await client.query(
+        `INSERT INTO worker_channels
+           (tenant_id, worker_id, channel_type, status, public_config, encrypted_config)
+         VALUES ($1, $2, 'telegram', 'pending', '{}', '{}')
+         ON CONFLICT (tenant_id, channel_type) DO NOTHING`,
+        [tenantId, workerId]
+      )
+    }
 
     await client.query('COMMIT')
     console.log(`[tenantProvisioner] Created tenant ${tenantId} for ${lower}`)

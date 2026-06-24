@@ -22,9 +22,10 @@ export async function extractTextFromFile(
     return extractDocx(buf)
   }
 
-  // DOC (old Word) — use Claude vision as fallback
+  // DOC (old Word) — try to extract as UTF-8 text; Claude vision can't read binary .doc
   if (ext === 'doc' || mimeType === 'application/msword') {
-    return extractWithClaude(buf, 'image/jpeg')
+    const text = buf.toString('utf-8').replace(/[^\x20-\x7E\n\r\t]/g, ' ').replace(/\s{3,}/g, '\n').trim()
+    return text.length > 100 ? text : 'Could not extract text from .doc file. Please save as .docx or PDF.'
   }
 
   // Images — use Claude vision
@@ -46,13 +47,35 @@ async function extractPdf(buf: Buffer): Promise<string> {
     const pdfParse = (await import('pdf-parse')).default
     const data = await pdfParse(buf)
     const text = data.text?.trim() ?? ''
-    if (text.length > 100) return text
-    // If PDF text extraction gave too little (scanned PDF), fall back to Claude vision
-    return extractWithClaude(buf, 'application/pdf' as 'image/jpeg')
+    if (text.length > 50) return text
+    // Scanned PDF with no selectable text — use Claude document vision
+    return extractPdfWithClaude(buf)
   } catch {
-    // Scanned PDF — use Claude vision
-    return extractWithClaude(buf, 'application/pdf' as 'image/jpeg')
+    return extractPdfWithClaude(buf)
   }
+}
+
+async function extractPdfWithClaude(buf: Buffer): Promise<string> {
+  const base64 = buf.toString('base64')
+  const res = await anthropic.messages.create({
+    model:      env.modelFast,
+    max_tokens: 2000,
+    messages: [{
+      role:    'user',
+      content: [{
+        type:   'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+      } as unknown as Anthropic.TextBlockParam, {
+        type: 'text',
+        text: 'This is a CV/resume. Extract all the text content exactly as written. Return only the extracted text, no commentary.',
+      }],
+    }],
+  })
+  return res.content
+    .filter(b => b.type === 'text')
+    .map(b => (b as { type: 'text'; text: string }).text)
+    .join('')
+    .trim()
 }
 
 // ── DOCX extraction ───────────────────────────────────────────────────────────

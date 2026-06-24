@@ -3,6 +3,21 @@ import { env } from '../config/env.js'
 
 const anthropic = new Anthropic({ apiKey: env.anthropicKey })
 
+export interface WorkHistoryEntry {
+  employer:   string
+  title:      string
+  start_date: string | null
+  end_date:   string | null  // null = current
+  summary:    string | null
+}
+
+export interface EducationEntry {
+  institution: string
+  qualification: string
+  field:       string | null
+  year:        number | null
+}
+
 export interface ParsedCV {
   full_name:              string | null
   headline:               string | null
@@ -14,6 +29,10 @@ export interface ParsedCV {
   domains:                string[]
   target_roles:           string[]
   work_authorisation:     string | null
+  work_history:           WorkHistoryEntry[]
+  education:              EducationEntry[]
+  certifications:         string[]
+  languages:              string[]
   inferred:               string[]
   summary:                string
 }
@@ -21,47 +40,58 @@ export interface ParsedCV {
 export async function parseCV(rawText: string): Promise<ParsedCV> {
   const prompt = `Extract structured data from this CV/resume. Return ONLY valid JSON, no other text.
 
-Extract the following. If a field is genuinely not present in the CV, return null for it — do NOT guess or invent. For fields you infer rather than read directly, include them but mark them in the "inferred" array so they can be confirmed by the candidate.
+Extract the following fields. If a field is genuinely not present, return null or [] — do NOT guess or invent. For fields you infer rather than read directly, include them in the "inferred" array.
 
 {
   "full_name": "",
   "headline": "",
+  "location": "",
   "skills": [],
   "seniority": "",
   "experience_years": null,
   "current_or_recent_role": "",
   "domains": [],
   "target_roles": [],
-  "location": "",
-  "work_authorisation": "",
+  "work_authorisation": null,
+  "work_history": [
+    { "employer": "", "title": "", "start_date": "", "end_date": "", "summary": "" }
+  ],
+  "education": [
+    { "institution": "", "qualification": "", "field": "", "year": null }
+  ],
+  "certifications": [],
+  "languages": [],
   "inferred": []
 }
 
 Field definitions:
 - full_name: candidate's full name
 - headline: their current title or summary line
+- location: as written on the CV, or null
 - skills: technical + tool skills explicitly mentioned (max 30)
 - seniority: one of junior | mid | senior | lead | null — infer from years + scope
 - experience_years: total years of professional experience, numeric or null
 - current_or_recent_role: most recent job title
-- domains: industries/sectors worked in (e.g. finance, recruitment, logistics, NHS)
+- domains: industries/sectors worked in (e.g. finance, recruitment, NHS)
 - target_roles: INFERRED from background — what roles they likely want next (2-4 titles)
-- location: as written on the CV, or null
-- work_authorisation: ONLY if explicitly stated, e.g. "Skilled Worker Dependent visa", "right to work UK", "needs sponsorship". Otherwise null. Do NOT infer this.
-- inferred: list the field names above that you inferred rather than read directly (always include target_roles and seniority here)
+- work_authorisation: ONLY if explicitly stated (e.g. "right to work UK", "needs sponsorship"). Never infer.
+- work_history: all jobs listed — employer, title, start_date (e.g. "Jan 2020"), end_date (null if current), summary (1 sentence)
+- education: all degrees/diplomas — institution, qualification (e.g. "BSc"), field (subject), year (graduation year or null)
+- certifications: professional certs explicitly listed (e.g. "CIPD Level 5", "AWS Solutions Architect")
+- languages: languages spoken if listed
+- inferred: always include "target_roles" and "seniority"; add any other inferred fields
 
 Rules:
-- Never invent skills, titles, or experience not supported by the text.
-- work_authorisation: extract ONLY if the CV explicitly states it. Never guess visa or right-to-work status.
-- target_roles and seniority are best-effort inferences — always include them in the "inferred" array.
+- Never invent jobs, education, or certifications not in the text.
+- work_authorisation: extract ONLY if explicitly stated. Never guess.
 - Return valid JSON only. No markdown, no explanation.
 
 CV text:
-${rawText.slice(0, 4000)}`
+${rawText.slice(0, 6000)}`
 
   const res = await anthropic.messages.create({
     model:      env.modelFast,
-    max_tokens: 800,
+    max_tokens: 2000,
     messages:   [{ role: 'user', content: prompt }],
   })
 
@@ -86,6 +116,10 @@ ${rawText.slice(0, 4000)}`
       domains:                parsed.domains                ?? [],
       target_roles:           parsed.target_roles           ?? [],
       work_authorisation:     parsed.work_authorisation     ?? null,
+      work_history:           parsed.work_history           ?? [],
+      education:              parsed.education              ?? [],
+      certifications:         parsed.certifications         ?? [],
+      languages:              parsed.languages              ?? [],
       inferred:               parsed.inferred               ?? ['target_roles', 'seniority'],
       summary:                '',
     }
@@ -101,6 +135,10 @@ ${rawText.slice(0, 4000)}`
       domains:                [],
       target_roles:           [],
       work_authorisation:     null,
+      work_history:           [],
+      education:              [],
+      certifications:         [],
+      languages:              [],
       inferred:               [],
       summary:                rawText.slice(0, 300),
     }

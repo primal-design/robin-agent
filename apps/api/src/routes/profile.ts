@@ -118,4 +118,36 @@ router.get('/profile/telegram-connect', requireAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// POST /profile/cv/debug — extract + parse CV without saving, returns raw parse result
+router.post('/profile/cv/debug', requireAuth, async (req, res, next) => {
+  try {
+    const { cv_text, file_data, file_name, file_type } = req.body as {
+      cv_text?:   string
+      file_data?: string
+      file_name?: string
+      file_type?: string
+    }
+
+    let extractedText: string
+
+    if (file_data && file_name) {
+      const buf = Buffer.from(file_data, 'base64')
+      extractedText = await extractTextFromFile(buf, file_name, file_type ?? '')
+    } else if (cv_text) {
+      extractedText = cv_text
+    } else {
+      return res.status(400).json({ error: 'provide file_data or cv_text' })
+    }
+
+    const { parseCV } = await import('../services/cvParser.js')
+    const parsed = await parseCV(extractedText)
+
+    res.json({
+      extracted_text_length: extractedText.length,
+      extracted_text_preview: extractedText.slice(0, 500),
+      parsed,
+    })
+  } catch (err) { next(err) }
+})
+
 export default router

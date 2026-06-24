@@ -128,9 +128,14 @@ export function createApp() {
   // ── Error handler ─────────────────────────────────────────────────────
   if (env.sentryDsn) Sentry.setupExpressErrorHandler(app)
 
-  app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const message = err instanceof Error ? err.message : 'Internal server error'
-    console.error('[Error]', message)
+    const pg = err as Record<string, unknown>
+    if (pg?.code) {
+      console.error(`[Error] ${req.method} ${req.path} — pg ${pg.code}: ${message}`, pg.detail ?? '', pg.hint ?? '')
+    } else {
+      console.error(`[Error] ${req.method} ${req.path}`, message)
+    }
     res.status(500).json({ error: message })
   })
 

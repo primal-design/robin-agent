@@ -1,6 +1,7 @@
 import type { PoolClient } from 'pg'
 import { pool } from '../db/pool.js'
 import { parseCV } from './cvParser.js'
+import type { WorkHistoryEntry, EducationEntry } from './cvParser.js'
 import { embedTexts } from '../lib/embed.js'
 
 export interface UserProfile {
@@ -23,6 +24,10 @@ export interface UserProfile {
   notice_period:         string | null
   avoid_roles:           string[]
   confirmed_fields:      string[]
+  work_history:          WorkHistoryEntry[]
+  education:             EducationEntry[]
+  certifications:        string[]
+  languages:             string[]
   created_at:            string
   updated_at:            string
 }
@@ -34,7 +39,10 @@ export async function getProfile(tenantId: string): Promise<UserProfile | null> 
     `SELECT id, tenant_id, full_name, headline, location,
             target_roles, target_locations, min_salary,
             preferred_work_type, skills, experience_years,
-            raw_cv_text, created_at, updated_at
+            raw_cv_text, seniority, current_or_recent_role, domains,
+            work_authorisation, notice_period, avoid_roles, confirmed_fields,
+            work_history, education, certifications, languages,
+            created_at, updated_at
      FROM user_profiles
      WHERE tenant_id = $1
      ORDER BY created_at DESC
@@ -71,8 +79,12 @@ export async function upsertProfile(
            work_authorisation     = COALESCE($14, work_authorisation),
            notice_period          = COALESCE($15, notice_period),
            avoid_roles            = COALESCE($16, avoid_roles),
+           work_history           = COALESCE($17, work_history),
+           education              = COALESCE($18, education),
+           certifications         = COALESCE($19, certifications),
+           languages              = COALESCE($20, languages),
            updated_at             = now()
-       WHERE id = $17
+       WHERE id = $21
        RETURNING *`,
       [
         params.full_name              ?? null,
@@ -91,6 +103,10 @@ export async function upsertProfile(
         params.work_authorisation     ?? null,
         params.notice_period          ?? null,
         params.avoid_roles            ?? null,
+        params.work_history           ? JSON.stringify(params.work_history)   : null,
+        params.education              ? JSON.stringify(params.education)       : null,
+        params.certifications         ?? null,
+        params.languages              ?? null,
         existing.id,
       ]
     )
@@ -101,8 +117,9 @@ export async function upsertProfile(
     `INSERT INTO user_profiles
        (tenant_id, full_name, headline, location, target_roles, target_locations,
         min_salary, preferred_work_type, skills, experience_years, raw_cv_text,
-        seniority, current_or_recent_role, domains, work_authorisation)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+        seniority, current_or_recent_role, domains, work_authorisation,
+        work_history, education, certifications, languages)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
      RETURNING *`,
     [
       tenantId,
@@ -120,6 +137,10 @@ export async function upsertProfile(
       params.current_or_recent_role ?? null,
       params.domains                ?? [],
       params.work_authorisation     ?? null,
+      params.work_history           ? JSON.stringify(params.work_history)   : '[]',
+      params.education              ? JSON.stringify(params.education)       : '[]',
+      params.certifications         ?? [],
+      params.languages              ?? [],
     ]
   )
   return r.rows[0]
@@ -146,6 +167,10 @@ export async function uploadCV(
     current_or_recent_role:parsed.current_or_recent_role ?? undefined,
     domains:               parsed.domains?.length        ? parsed.domains       : undefined,
     work_authorisation:    parsed.work_authorisation     ?? undefined,
+    work_history:          parsed.work_history,
+    education:             parsed.education,
+    certifications:        parsed.certifications,
+    languages:             parsed.languages,
     raw_cv_text:           rawCvText,
   })
 

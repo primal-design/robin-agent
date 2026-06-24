@@ -14,6 +14,14 @@ export interface ParaNote {
 
 // ── Auto-create tables if they don't exist ────────────────────────────────────
 export async function ensureParaTables(): Promise<void> {
+  // Tables are created via migration — skip if already exist or if we lack ownership
+  try {
+    await db.query(`SELECT 1 FROM para_notes LIMIT 0`)
+    return // table exists, nothing to do
+  } catch {
+    // table doesn't exist — fall through to create it
+  }
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS para_notes (
       id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
