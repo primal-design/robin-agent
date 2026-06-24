@@ -286,6 +286,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
   <div class="tab-bar">
     <div class="tab on" id="tab-matches" onclick="switchTab('matches')">Matches</div>
     <div class="tab" id="tab-pipeline" onclick="switchTab('pipeline')">My Applications</div>
+    <div class="tab" id="tab-profile" onclick="switchTab('profile')">My Profile</div>
   </div>
 
   <!-- ── MATCHES TAB ── -->
@@ -326,6 +327,63 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
         <div class="big">📋</div>
         <p>No applications yet.<br/>Tap <strong>Interested</strong> on a match to start.</p>
       </div>
+    </div>
+  </div>
+
+  <!-- ── PROFILE TAB ── -->
+  <div id="tab-profile-content" class="content" style="display:none">
+    <div class="section-head">
+      <div class="section-title">My Profile</div>
+    </div>
+
+    <div style="max-width:520px;margin:0 auto;padding:0 0 40px">
+
+      <!-- CV Upload -->
+      <div style="margin-bottom:28px">
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:10px">CV / Resume</div>
+        <div class="upload-zone" id="profile-drop-zone" style="padding:24px">
+          <input type="file" id="profile-cv-file" accept=".pdf,.doc,.docx,.txt"/>
+          <div class="upload-icon" id="profile-upload-icon">📄</div>
+          <div class="upload-label">Drop your CV here or tap to upload</div>
+          <div class="upload-hint">PDF, Word, or plain text · Max 2 MB</div>
+        </div>
+        <button class="btn btn-primary" id="cv-upload-btn" style="margin-top:12px;width:100%" onclick="uploadProfileCV()">Upload CV</button>
+        <div id="cv-upload-status" style="font-size:12px;color:var(--ink3);margin-top:6px;text-align:center"></div>
+      </div>
+
+      <!-- Skills -->
+      <div style="margin-bottom:20px">
+        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Target Roles</label>
+        <input type="text" id="p-target-roles" placeholder="e.g. Recruiter, Talent Acquisition Manager" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Skills</label>
+        <input type="text" id="p-skills" placeholder="e.g. LinkedIn Recruiter, Boolean search, ATS" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Minimum Salary (£/year)</label>
+        <input type="number" id="p-min-salary" placeholder="e.g. 40000" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Target Locations</label>
+        <input type="text" id="p-locations" placeholder="e.g. London, Remote" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
+      </div>
+
+      <div style="margin-bottom:24px">
+        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Work Type</label>
+        <select id="p-work-type" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)">
+          <option value="any">Any</option>
+          <option value="remote">Remote</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="onsite">Onsite</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%" onclick="saveProfile()">Save Profile</button>
+      <div id="profile-save-status" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:center"></div>
     </div>
   </div>
 
@@ -370,11 +428,70 @@ function goApp() { goScreen('screen-app'); loadMatches(); loadPipeline() }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  document.getElementById('tab-matches-content').style.display = tab === 'matches' ? '' : 'none'
+  document.getElementById('tab-matches-content').style.display  = tab === 'matches'  ? '' : 'none'
   document.getElementById('tab-pipeline-content').style.display = tab === 'pipeline' ? '' : 'none'
-  document.getElementById('tab-matches').classList.toggle('on', tab === 'matches')
+  document.getElementById('tab-profile-content').style.display  = tab === 'profile'  ? '' : 'none'
+  document.getElementById('tab-matches').classList.toggle('on',  tab === 'matches')
   document.getElementById('tab-pipeline').classList.toggle('on', tab === 'pipeline')
+  document.getElementById('tab-profile').classList.toggle('on',  tab === 'profile')
   if (tab === 'pipeline') loadPipeline()
+  if (tab === 'profile')  loadProfileTab()
+}
+
+async function loadProfileTab() {
+  const p = await api('/profile')
+  if (!p) return
+  if (p.target_roles)     document.getElementById('p-target-roles').value = p.target_roles.join(', ')
+  if (p.skills)           document.getElementById('p-skills').value = p.skills.join(', ')
+  if (p.min_salary)       document.getElementById('p-min-salary').value = p.min_salary
+  if (p.target_locations) document.getElementById('p-locations').value = p.target_locations.join(', ')
+  if (p.preferred_work_type) document.getElementById('p-work-type').value = p.preferred_work_type
+}
+
+async function saveProfile() {
+  const target_roles     = document.getElementById('p-target-roles').value.split(',').map(s=>s.trim()).filter(Boolean)
+  const skills           = document.getElementById('p-skills').value.split(',').map(s=>s.trim()).filter(Boolean)
+  const min_salary       = parseInt(document.getElementById('p-min-salary').value) || null
+  const target_locations = document.getElementById('p-locations').value.split(',').map(s=>s.trim()).filter(Boolean)
+  const preferred_work_type = document.getElementById('p-work-type').value
+
+  const r = await api('/profile', {
+    method: 'PATCH',
+    body: JSON.stringify({ target_roles, skills, min_salary, target_locations, preferred_work_type })
+  })
+  const el = document.getElementById('profile-save-status')
+  if (r) { el.textContent = '✅ Profile saved'; el.style.color = 'var(--green)' }
+  else   { el.textContent = '❌ Save failed';   el.style.color = 'red' }
+}
+
+let profileCvFile = null
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('profile-cv-file')
+  if (inp) inp.addEventListener('change', e => {
+    profileCvFile = e.target.files[0]
+    if (profileCvFile) {
+      document.getElementById('profile-upload-icon').textContent = '✅'
+      document.getElementById('cv-upload-status').textContent = profileCvFile.name
+    }
+  })
+})
+
+async function uploadProfileCV() {
+  if (!profileCvFile) { toast('Select a CV file first'); return }
+  const btn = document.getElementById('cv-upload-btn')
+  btn.textContent = 'Uploading…'; btn.disabled = true
+  try {
+    const cvText = await readFileAsText(profileCvFile)
+    const r = await api('/profile/cv', { method: 'POST', body: JSON.stringify({ cv_text: cvText }) })
+    if (r) {
+      toast('CV uploaded — FEN will re-match your jobs 🎉')
+      document.getElementById('cv-upload-status').textContent = '✅ Uploaded successfully'
+    } else {
+      toast('Upload failed')
+    }
+  } finally {
+    btn.textContent = 'Upload CV'; btn.disabled = false
+  }
 }
 
 // ── CV upload ─────────────────────────────────────────────────────────────────
