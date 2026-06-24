@@ -3,7 +3,7 @@ import { eventQueue } from '../queues/eventQueue.js'
 import { audit } from '../services/audit.js'
 import { handleJobCallback } from '../services/jobCallbackHandler.js'
 import { handleApplyCallback } from '../services/jobNotifier.js'
-import { handleOnboardingReply, handleWorkTypeCallback } from '../services/telegramOnboarding.js'
+import { handleOnboardingReply, handleWorkTypeCallback, handleOnboardingCallback } from '../services/telegramOnboarding.js'
 import { useTelegramConnectToken } from '../services/tenantProvisioner.js'
 import { sendTelegram } from '../lib/telegram.js'
 import { env } from '../config/env.js'
@@ -29,6 +29,20 @@ async function tryHandleCallbackQuery(body: Record<string, unknown>, botToken: s
 
   if (data.startsWith('job:')) {
     await handleJobCallback({ callbackQueryId: cbId, chatId, messageId: msgId, data, botToken })
+    return true
+  }
+
+  if (data.startsWith('ob:')) {
+    const { pool } = await import('../db/pool.js')
+    const r = await pool.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM worker_channels
+       WHERE channel_type='telegram' AND (public_config->>'chat_id')::text=$1 AND status='active' LIMIT 1`,
+      [String(chatId)]
+    )
+    const tenantId = r.rows[0]?.tenant_id
+    if (tenantId) {
+      await handleOnboardingCallback(tenantId, chatId, data, botToken)
+    }
     return true
   }
 

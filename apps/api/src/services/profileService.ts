@@ -4,20 +4,27 @@ import { parseCV } from './cvParser.js'
 import { embedTexts } from '../lib/embed.js'
 
 export interface UserProfile {
-  id:                  string
-  tenant_id:           string
-  full_name:           string | null
-  headline:            string | null
-  location:            string | null
-  target_roles:        string[]
-  target_locations:    string[]
-  min_salary:          number | null
-  preferred_work_type: string
-  skills:              string[]
-  experience_years:    number | null
-  raw_cv_text:         string | null
-  created_at:          string
-  updated_at:          string
+  id:                    string
+  tenant_id:             string
+  full_name:             string | null
+  headline:              string | null
+  location:              string | null
+  target_roles:          string[]
+  target_locations:      string[]
+  min_salary:            number | null
+  preferred_work_type:   string
+  skills:                string[]
+  experience_years:      number | null
+  raw_cv_text:           string | null
+  seniority:             string | null
+  current_or_recent_role:string | null
+  domains:               string[]
+  work_authorisation:    string | null
+  notice_period:         string | null
+  avoid_roles:           string[]
+  confirmed_fields:      string[]
+  created_at:            string
+  updated_at:            string
 }
 
 // ── Get profile for tenant ────────────────────────────────────────────────────
@@ -48,33 +55,42 @@ export async function upsertProfile(
   if (existing) {
     const r = await pool.query<UserProfile>(
       `UPDATE user_profiles
-       SET full_name           = COALESCE($1, full_name),
-           headline            = COALESCE($2, headline),
-           location            = COALESCE($3, location),
-           target_roles        = COALESCE($4, target_roles),
-           target_locations    = COALESCE($5, target_locations),
-           min_salary          = COALESCE($6, min_salary),
-           preferred_work_type = COALESCE($7, preferred_work_type),
-           skills              = COALESCE($8, skills),
-           experience_years    = COALESCE($9, experience_years),
-           raw_cv_text         = COALESCE($10, raw_cv_text),
-           updated_at          = now()
-       WHERE id = $11
-       RETURNING id, tenant_id, full_name, headline, location,
-                 target_roles, target_locations, min_salary,
-                 preferred_work_type, skills, experience_years,
-                 raw_cv_text, created_at, updated_at`,
+       SET full_name              = COALESCE($1,  full_name),
+           headline               = COALESCE($2,  headline),
+           location               = COALESCE($3,  location),
+           target_roles           = COALESCE($4,  target_roles),
+           target_locations       = COALESCE($5,  target_locations),
+           min_salary             = COALESCE($6,  min_salary),
+           preferred_work_type    = COALESCE($7,  preferred_work_type),
+           skills                 = COALESCE($8,  skills),
+           experience_years       = COALESCE($9,  experience_years),
+           raw_cv_text            = COALESCE($10, raw_cv_text),
+           seniority              = COALESCE($11, seniority),
+           current_or_recent_role = COALESCE($12, current_or_recent_role),
+           domains                = COALESCE($13, domains),
+           work_authorisation     = COALESCE($14, work_authorisation),
+           notice_period          = COALESCE($15, notice_period),
+           avoid_roles            = COALESCE($16, avoid_roles),
+           updated_at             = now()
+       WHERE id = $17
+       RETURNING *`,
       [
-        params.full_name        ?? null,
-        params.headline         ?? null,
-        params.location         ?? null,
-        params.target_roles     ?? null,
-        params.target_locations ?? null,
-        params.min_salary       ?? null,
-        params.preferred_work_type ?? null,
-        params.skills           ?? null,
-        params.experience_years ?? null,
-        params.raw_cv_text      ?? null,
+        params.full_name              ?? null,
+        params.headline               ?? null,
+        params.location               ?? null,
+        params.target_roles           ?? null,
+        params.target_locations       ?? null,
+        params.min_salary             ?? null,
+        params.preferred_work_type    ?? null,
+        params.skills                 ?? null,
+        params.experience_years       ?? null,
+        params.raw_cv_text            ?? null,
+        params.seniority              ?? null,
+        params.current_or_recent_role ?? null,
+        params.domains                ?? null,
+        params.work_authorisation     ?? null,
+        params.notice_period          ?? null,
+        params.avoid_roles            ?? null,
         existing.id,
       ]
     )
@@ -84,24 +100,26 @@ export async function upsertProfile(
   const r = await pool.query<UserProfile>(
     `INSERT INTO user_profiles
        (tenant_id, full_name, headline, location, target_roles, target_locations,
-        min_salary, preferred_work_type, skills, experience_years, raw_cv_text)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-     RETURNING id, tenant_id, full_name, headline, location,
-               target_roles, target_locations, min_salary,
-               preferred_work_type, skills, experience_years,
-               raw_cv_text, created_at, updated_at`,
+        min_salary, preferred_work_type, skills, experience_years, raw_cv_text,
+        seniority, current_or_recent_role, domains, work_authorisation)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+     RETURNING *`,
     [
       tenantId,
-      params.full_name           ?? null,
-      params.headline            ?? null,
-      params.location            ?? null,
-      params.target_roles        ?? [],
-      params.target_locations    ?? [],
-      params.min_salary          ?? null,
-      params.preferred_work_type ?? 'any',
-      params.skills              ?? [],
-      params.experience_years    ?? null,
-      params.raw_cv_text         ?? null,
+      params.full_name              ?? null,
+      params.headline               ?? null,
+      params.location               ?? null,
+      params.target_roles           ?? [],
+      params.target_locations       ?? [],
+      params.min_salary             ?? null,
+      params.preferred_work_type    ?? 'any',
+      params.skills                 ?? [],
+      params.experience_years       ?? null,
+      params.raw_cv_text            ?? null,
+      params.seniority              ?? null,
+      params.current_or_recent_role ?? null,
+      params.domains                ?? [],
+      params.work_authorisation     ?? null,
     ]
   )
   return r.rows[0]
@@ -118,13 +136,17 @@ export async function uploadCV(
 
   // Save profile with parsed fields
   const profile = await upsertProfile(tenantId, {
-    full_name:        parsed.full_name        ?? undefined,
-    headline:         parsed.headline         ?? undefined,
-    location:         parsed.location         ?? undefined,
-    skills:           parsed.skills.length    ? parsed.skills           : undefined,
-    experience_years: parsed.experience_years ?? undefined,
-    target_roles:     parsed.target_roles.length ? parsed.target_roles  : undefined,
-    raw_cv_text:      rawCvText,
+    full_name:             parsed.full_name              ?? undefined,
+    headline:              parsed.headline               ?? undefined,
+    location:              parsed.location               ?? undefined,
+    skills:                parsed.skills.length          ? parsed.skills        : undefined,
+    experience_years:      parsed.experience_years       ?? undefined,
+    target_roles:          parsed.target_roles.length    ? parsed.target_roles  : undefined,
+    seniority:             parsed.seniority              ?? undefined,
+    current_or_recent_role:parsed.current_or_recent_role ?? undefined,
+    domains:               parsed.domains?.length        ? parsed.domains       : undefined,
+    work_authorisation:    parsed.work_authorisation     ?? undefined,
+    raw_cv_text:           rawCvText,
   })
 
   // Generate embedding from CV text + skills (async, best-effort)
