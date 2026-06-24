@@ -3,20 +3,19 @@ import { pool } from '../db/pool.js'
 import { requireAuth } from '../lib/auth.js'
 import { uploadCV, upsertProfile, getProfile } from '../services/profileService.js'
 import { extractTextFromFile } from '../services/cvExtractor.js'
+import { getOrCreateTenantForEmail, generateTelegramConnectToken } from '../services/tenantProvisioner.js'
 
 const router = Router()
 
-// Resolve tenant_id from req.actor identity
-async function getTenantId(identity: string): Promise<string | null> {
+// Resolve tenant_id from req.actor identity — auto-provisions a tenant for new emails
+async function getTenantId(identity: string, autoCreate = false): Promise<string | null> {
   if (identity.startsWith('email:')) {
     const email = identity.slice(6)
-    const r = await pool.query(
-      `SELECT t.id FROM tenants t
-       JOIN waitlist w ON LOWER(w.email) = LOWER($1)
-       LIMIT 1`,
+    if (autoCreate) return getOrCreateTenantForEmail(email)
+    const r = await pool.query<{ id: string }>(
+      `SELECT id FROM tenants WHERE LOWER(email) = LOWER($1) LIMIT 1`,
       [email]
     )
-    // Fallback to default tenant
     const defaultId = process.env.DEFAULT_TENANT_ID
     return r.rows[0]?.id ?? defaultId ?? null
   }
@@ -66,7 +65,7 @@ router.post('/profile/cv', requireAuth, async (req, res, next) => {
       return res.status(400).json({ error: 'Could not extract text from CV — try a different format' })
     }
 
-    const tenantId = await getTenantId(req.actor!.phone)
+    const tenantId = await getTenantId(req.actor!.phone, true)  // auto-create tenant on CV upload
     if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
 
     const { profile, parsed } = await uploadCV(tenantId, extractedText)
@@ -100,6 +99,22 @@ router.patch('/profile', requireAuth, async (req, res, next) => {
     })
 
     res.json(profile)
+  } catch (err) { next(err) }
+})
+
+// GET /profile/telegram-connect — get a one-time token to connect Telegram
+router.get('/profile/telegram-connect', requireAuth, async (req, res, next) => {
+  try {
+    const tenantId = await getTenantId(req.actor!.phone, true)
+    if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
+
+    const token   = await generateTelegramConnectToken(tenantId)
+    const botName = process.env.TELEGRAM_BOT_USERNAME || 'fen_ai_bot'
+    res.json({
+      token,
+      instructions: `Open Telegram and send this message to @${botName}:\n/connect ${token}`,
+      deep_link:    `https://t.me/${botName}?start=connect_${token}`,
+    })
   } catch (err) { next(err) }
 })
 

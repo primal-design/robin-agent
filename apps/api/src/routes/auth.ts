@@ -81,11 +81,19 @@ router.post('/auth/send-magic-link', async (req, res, next) => {
       [email]
     )
 
-    if (!check.rows.length || check.rows[0].status !== 'accepted') {
-      return res.status(403).json({ error: 'not_accepted', message: "That email doesn't have access yet." })
+    // Allow open signup — if not on waitlist, auto-add them as accepted candidate
+    if (!check.rows.length) {
+      await db.query(
+        `INSERT INTO waitlist (request_id, name, email, status, role)
+         VALUES ($1, $2, $3, 'accepted', 'candidate')
+         ON CONFLICT DO NOTHING`,
+        [`AUTO-${Date.now().toString(36)}`, email.split('@')[0], email]
+      )
+    } else if (check.rows[0].status !== 'accepted') {
+      await db.query(`UPDATE waitlist SET status='accepted' WHERE LOWER(email)=$1`, [email])
     }
 
-    const name = check.rows[0].name || ''
+    const name = check.rows[0]?.name || email.split('@')[0]
     const identity = `email:${email}`
     const magic = createToken(identity, 'magic', MAGIC_TTL_MS)
     const url = `${appBaseUrl(req)}/auth/magic?token=${encodeURIComponent(magic)}`

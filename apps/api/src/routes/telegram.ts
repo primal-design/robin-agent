@@ -4,6 +4,7 @@ import { audit } from '../services/audit.js'
 import { handleJobCallback } from '../services/jobCallbackHandler.js'
 import { handleApplyCallback } from '../services/jobNotifier.js'
 import { handleOnboardingReply, handleWorkTypeCallback } from '../services/telegramOnboarding.js'
+import { useTelegramConnectToken } from '../services/tenantProvisioner.js'
 import { sendTelegram } from '../lib/telegram.js'
 import { env } from '../config/env.js'
 
@@ -112,18 +113,28 @@ telegramRouter.post('/telegram/webhook', async (req, res) => {
   )
   const tenantId = tenantRes.rows[0]?.tenant_id ?? defaultTenantId
 
-  // /start — save the user's chat ID against the default tenant
-  if (msgText === '/start') {
-    if (chatId && tenantId) {
-      await pool.query(
-        `UPDATE worker_channels
-         SET public_config = public_config || $1
-         WHERE tenant_id = $2 AND channel_type = 'telegram'`,
-        [JSON.stringify({ chat_id: chatId }), tenantId]
-      )
+  // /connect <token> or /start connect_<token> — link Telegram to a tenant
+  const connectMatch = msgText.match(/^\/(?:connect|start connect_)\s*([a-f0-9]{32})$/i)
+             || msgText.match(/^\/start\s+connect_([a-f0-9]{32})$/i)
+  if (connectMatch) {
+    const token = connectMatch[1]
+    const linked = await useTelegramConnectToken(token, chatId, botToken)
+    if (linked) {
+      await sendTelegram(chatId,
+        `✅ <b>Telegram connected to your FEN account!</b>\n\nYou'll receive daily job matches here. FEN starts scanning now.`,
+        botToken)
+    } else {
+      await sendTelegram(chatId,
+        `❌ That connect code is invalid or expired. Go back to FEN and generate a new one.`,
+        botToken)
     }
+    return
+  }
+
+  // /start — default welcome
+  if (msgText === '/start') {
     await sendTelegram(chatId,
-      `👋 Hi ${firstName}! FEN is connected.\n\nI'll send you job matches every morning. Tap Interested on any job and I'll tailor your CV in 30 seconds.`,
+      `👋 Hi ${firstName}! I'm FEN — your personal job search agent.\n\nTo connect your account, go to the FEN dashboard and tap <b>Connect Telegram</b>.`,
       botToken)
     return
   }
