@@ -736,7 +736,7 @@ async function fetchArbeitnow(): Promise<NormalisedJob[]> {
       remote_type:     j.remote ? 'remote' : detectRemote(j.title + ' ' + (j.description ?? '')),
       description:     j.description?.slice(0, 5000) ?? null,
       url:             j.url ?? null,
-      posted_at:       j.created_at ?? null,
+      posted_at:       j.created_at ? new Date(j.created_at * 1000).toISOString() : null,
       raw_payload:     j,
     }))
 }
