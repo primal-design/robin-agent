@@ -86,4 +86,13 @@ router.post('/admin/waitlist/notify', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+router.post('/admin/run-digest', async (req, res, next) => {
+  if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' })
+  try {
+    const { runDailyJobDigest } = await import('../services/jobDigest.js')
+    await runDailyJobDigest()
+    res.json({ ok: true })
+  } catch (err) { next(err) }
+})
+
 export default router
