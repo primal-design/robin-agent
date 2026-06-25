@@ -10,8 +10,12 @@ const router = Router()
 
 async function getTenantId(identity: string): Promise<string | null> {
   if (identity.startsWith('email:')) {
-    const defaultId = process.env.DEFAULT_TENANT_ID
-    return defaultId ?? null
+    const email = identity.slice(6)
+    const r = await pool.query<{ id: string }>(
+      `SELECT id FROM tenants WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+      [email]
+    )
+    return r.rows[0]?.id ?? process.env.DEFAULT_TENANT_ID ?? null
   }
   const r = await pool.query(
     `SELECT m.tenant_id FROM memberships m
