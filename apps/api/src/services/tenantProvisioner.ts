@@ -37,7 +37,7 @@ export async function getOrCreateTenantForEmail(email: string): Promise<string> 
         `INSERT INTO worker_channels
            (tenant_id, worker_id, channel_type, status, public_config, encrypted_config)
          VALUES ($1, $2, 'telegram', 'pending', '{}', '{}')
-         ON CONFLICT (tenant_id, channel_type) DO NOTHING`,
+         ON CONFLICT DO NOTHING`,
         [tenantId, workerId]
       )
     }
