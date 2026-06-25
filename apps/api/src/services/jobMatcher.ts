@@ -61,6 +61,12 @@ function passesHardFilters(job: JobForScoring, profile: UserProfile): boolean {
     if (overseniorPattern.test(job.title)) return false
   }
 
+  // Block trainee/graduate/apprentice roles for candidates with 3+ years experience
+  if (profile.experience_years && profile.experience_years >= 3) {
+    const juniorPattern = /\b(trainee|graduate\s+(developer|engineer|programme)|apprentice|entry.level|junior\s+trainee|no experience required)\b/i
+    if (juniorPattern.test(job.title)) return false
+  }
+
   // Role relevance filter — if profile targets recruiting/HR, require job to match
   if (profile.target_roles.length > 0) {
     const profileIsRecruiting = profile.target_roles.some(r =>
