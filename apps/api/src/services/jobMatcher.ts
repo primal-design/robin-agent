@@ -55,6 +55,12 @@ function passesHardFilters(job: JobForScoring, profile: UserProfile): boolean {
     if (!matches && !(isRemote && wantsRemote)) return false
   }
 
+  // Seniority filter — block management/executive roles for junior/mid candidates
+  if (profile.seniority && ['junior', 'mid'].includes(profile.seniority)) {
+    const overseniorPattern = /\b(director|vp |vice president|head of|chief|cto|cpo|staff engineer|principal engineer|engineering manager|senior manager|people manager)\b/i
+    if (overseniorPattern.test(job.title)) return false
+  }
+
   // Role relevance filter — if profile targets recruiting/HR, require job to match
   if (profile.target_roles.length > 0) {
     const profileIsRecruiting = profile.target_roles.some(r =>
@@ -87,7 +93,8 @@ function cosineSimilarity(a: number[], b: number[]): number {
 // ── Scoring ───────────────────────────────────────────────────────────────────
 
 function scoreSkills(profile: UserProfile, job: JobForScoring): number {
-  if (!profile.skills.length || !job.description) return 50
+  if (!profile.skills.length) return 0  // no skills = can't score, penalise hard
+  if (!job.description) return 40       // job has no description, neutral
 
   const desc = job.description.toLowerCase()
   const matched = profile.skills.filter(s => desc.includes(s.toLowerCase()))
