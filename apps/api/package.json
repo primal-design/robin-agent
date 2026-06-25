@@ -11,6 +11,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
     "@sentry/node": "^10.53.1",
+    "apify-client": "^2.23.4",
     "bullmq": "^5.76.8",
     "docx": "^9.7.1",
     "dotenv": "^16.4.5",

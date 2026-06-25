@@ -1121,86 +1121,13 @@ async function storeJobs(jobs: NormalisedJob[]): Promise<{ inserted: number }> {
   return { inserted }
 }
 
-// ── Apify: Indeed UK ─────────────────────────────────────────────────────────
-// Actor: apify/indeed-scraper
+// ── Apify helpers ─────────────────────────────────────────────────────────────
 
-async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
+function getApifyClient() {
   const token = process.env.APIFY_API_TOKEN
-  if (!token) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping indeed/linkedin'); return [] }
-
-  const input = {
-    position:  keywords,
-    country:   'GB',
-    location:  'London',
-    maxItems:  50,
-    parseCompanyDetails: false,
-  }
-
-  const run = await fetch(
-    `https://api.apify.com/v2/acts/apify~indeed-scraper/run-sync-get-dataset-items?token=${token}&timeout=120`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }
-  )
-  if (!run.ok) throw new Error(`Apify Indeed ${run.status}: ${await run.text()}`)
-  const items = await run.json() as Record<string, unknown>[]
-
-  return items.map(j => ({
-    source:          'apify_indeed',
-    external_id:     (j.id ?? j.url) as string,
-    title:           j.positionName as string ?? '',
-    company:         j.company as string ?? null,
-    location:        j.location as string ?? null,
-    country:         'GB',
-    salary_min:      parseSalaryMin(j.salary as string ?? ''),
-    salary_max:      parseSalaryMax(j.salary as string ?? ''),
-    currency:        'GBP',
-    employment_type: j.jobType as string ?? null,
-    remote_type:     detectRemote(String(j.positionName ?? '') + ' ' + String(j.description ?? '')),
-    description:     (j.description as string ?? '').slice(0, 5000),
-    url:             j.url as string ?? null,
-    posted_at:       j.datePosted as string ?? null,
-    raw_payload:     j,
-  })).filter(j => j.external_id && j.title)
-}
-
-// ── Apify: LinkedIn Jobs ──────────────────────────────────────────────────────
-// Actor: bebity/linkedin-jobs-scraper
-
-async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
-  const token = process.env.APIFY_API_TOKEN
-  if (!token) return []
-
-  const input = {
-    title:          keywords,
-    location:       'London, United Kingdom',
-    rows:           50,
-    publishedAt:    'r604800',  // last 7 days
-    contractType:   'F',        // full-time
-  }
-
-  const run = await fetch(
-    `https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/run-sync-get-dataset-items?token=${token}&timeout=120`,
-    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) }
-  )
-  if (!run.ok) throw new Error(`Apify LinkedIn ${run.status}: ${await run.text()}`)
-  const items = await run.json() as Record<string, unknown>[]
-
-  return items.map(j => ({
-    source:          'apify_linkedin',
-    external_id:     j.id as string ?? j.url as string,
-    title:           j.title as string ?? '',
-    company:         j.companyName as string ?? null,
-    location:        j.location as string ?? null,
-    country:         'GB',
-    salary_min:      parseSalaryMin(String(j.salary ?? '')),
-    salary_max:      parseSalaryMax(String(j.salary ?? '')),
-    currency:        'GBP',
-    employment_type: j.contractType as string ?? null,
-    remote_type:     detectRemote(String(j.title ?? '') + ' ' + String(j.description ?? '')),
-    description:     (j.description as string ?? '').slice(0, 5000),
-    url:             j.jobUrl as string ?? null,
-    posted_at:       j.postedAt as string ?? null,
-    raw_payload:     j,
-  })).filter(j => j.external_id && j.title)
+  if (!token) return null
+  const { ApifyClient } = require('apify-client')
+  return new ApifyClient({ token }) as import('apify-client').ApifyClient
 }
 
 function parseSalaryMin(s: string): number | null {
@@ -1212,6 +1139,78 @@ function parseSalaryMax(s: string): number | null {
   const parts = s.match(/[\d,]+/g)
   if (!parts || parts.length < 2) return parseSalaryMin(s)
   return parseInt(parts[parts.length - 1].replace(/,/g, ''), 10) || null
+}
+
+// ── Apify: Indeed UK ─────────────────────────────────────────────────────────
+// Actor: apify/indeed-scraper
+
+async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
+  const client = getApifyClient()
+  if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_indeed'); return [] }
+
+  const { defaultDatasetId } = await client.actor('apify/indeed-scraper').call({
+    position:            keywords,
+    country:             'GB',
+    location:            'London',
+    maxItems:            50,
+    parseCompanyDetails: false,
+  })
+
+  const { items } = await client.dataset(defaultDatasetId).listItems()
+
+  return (items as Record<string, unknown>[]).map(j => ({
+    source:          'apify_indeed',
+    external_id:     String(j.id ?? j.url ?? ''),
+    title:           String(j.positionName ?? ''),
+    company:         j.company as string ?? null,
+    location:        j.location as string ?? null,
+    country:         'GB',
+    salary_min:      parseSalaryMin(String(j.salary ?? '')),
+    salary_max:      parseSalaryMax(String(j.salary ?? '')),
+    currency:        'GBP',
+    employment_type: j.jobType as string ?? null,
+    remote_type:     detectRemote(String(j.positionName ?? '') + ' ' + String(j.description ?? '')),
+    description:     String(j.description ?? '').slice(0, 5000),
+    url:             j.url as string ?? null,
+    posted_at:       j.datePosted as string ?? null,
+    raw_payload:     j,
+  })).filter(j => j.external_id && j.title)
+}
+
+// ── Apify: LinkedIn Jobs ──────────────────────────────────────────────────────
+// Actor: bebity/linkedin-jobs-scraper
+
+async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
+  const client = getApifyClient()
+  if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_linkedin'); return [] }
+
+  const { defaultDatasetId } = await client.actor('bebity/linkedin-jobs-scraper').call({
+    title:        keywords,
+    location:     'London, United Kingdom',
+    rows:         50,
+    publishedAt:  'r604800',
+    contractType: 'F',
+  })
+
+  const { items } = await client.dataset(defaultDatasetId).listItems()
+
+  return (items as Record<string, unknown>[]).map(j => ({
+    source:          'apify_linkedin',
+    external_id:     String(j.id ?? j.jobUrl ?? ''),
+    title:           String(j.title ?? ''),
+    company:         j.companyName as string ?? null,
+    location:        j.location as string ?? null,
+    country:         'GB',
+    salary_min:      parseSalaryMin(String(j.salary ?? '')),
+    salary_max:      parseSalaryMax(String(j.salary ?? '')),
+    currency:        'GBP',
+    employment_type: j.contractType as string ?? null,
+    remote_type:     detectRemote(String(j.title ?? '') + ' ' + String(j.description ?? '')),
+    description:     String(j.description ?? '').slice(0, 5000),
+    url:             j.jobUrl as string ?? null,
+    posted_at:       j.postedAt as string ?? null,
+    raw_payload:     j,
+  })).filter(j => j.external_id && j.title)
 }
 
 // ── Embed any jobs that have no embedding yet ─────────────────────────────────
