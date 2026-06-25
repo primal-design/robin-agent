@@ -1148,7 +1148,7 @@ async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
   const client = await getApifyClient()
   if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_indeed'); return [] }
 
-  const { defaultDatasetId } = await client.actor('apify/indeed-scraper').call({
+  const { defaultDatasetId } = await client.actor('misceres/indeed-scraper').call({
     position:            keywords,
     country:             'GB',
     location:            'London',
@@ -1184,12 +1184,11 @@ async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
   const client = await getApifyClient()
   if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_linkedin'); return [] }
 
-  const { defaultDatasetId } = await client.actor('bebity/linkedin-jobs-scraper').call({
-    title:        keywords,
-    location:     'London, United Kingdom',
-    rows:         50,
+  const { defaultDatasetId } = await client.actor('curious_coder/linkedin-jobs-scraper').call({
+    queries:      keywords,
+    locationStr:  'London, United Kingdom',
+    maxResults:   50,
     publishedAt:  'r604800',
-    contractType: 'F',
   })
 
   const { items } = await client.dataset(defaultDatasetId).listItems()
