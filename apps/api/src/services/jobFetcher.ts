@@ -1148,12 +1148,11 @@ async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
   const client = await getApifyClient()
   if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_indeed'); return [] }
 
-  const { defaultDatasetId } = await client.actor('misceres/indeed-scraper').call({
-    position:            keywords,
-    country:             'GB',
-    location:            'London',
-    maxItems:            50,
-    parseCompanyDetails: false,
+  const { defaultDatasetId } = await client.actor('borderline/indeed-scraper').call({
+    position: keywords,
+    country:  'GB',
+    location: 'London',
+    maxItems: 50,
   })
 
   const { items } = await client.dataset(defaultDatasetId).listItems()
