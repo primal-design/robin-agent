@@ -510,6 +510,12 @@ async function uploadProfileCV() {
     if (r) {
       toast('CV uploaded — FEN will re-match your jobs 🎉')
       document.getElementById('cv-upload-status').textContent = '✅ Uploaded successfully'
+      // Populate form fields from parsed CV
+      const p = r.profile || r.parsed || r
+      if (p.target_roles?.length)   document.getElementById('p-target-roles').value = p.target_roles.join(', ')
+      if (p.skills?.length)         document.getElementById('p-skills').value = p.skills.join(', ')
+      if (p.min_salary)               document.getElementById('p-min-salary').value = p.min_salary
+      if (p.target_locations?.length) document.getElementById('p-locations').value = p.target_locations.join(', ')
     } else {
       toast('Upload failed')
     }
