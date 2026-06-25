@@ -750,7 +750,7 @@ interface ArbeitnowJob {
   job_types?:    string[]
   description?:  string
   url?:          string
-  created_at?:   string
+  created_at?:   number
 }
 
 // ── Monster UK RSS ───────────────────────────────────────────────────────────

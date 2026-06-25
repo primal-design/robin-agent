@@ -146,7 +146,7 @@ export async function upsertProfile(
   return r.rows[0]
 }
 
-// ── Upload CV: parse + embed + upsert ─────────────────────────────────────────
+// ── Upload CV: parse + embed + overwrite CV-derived fields ───────────────────
 
 export async function uploadCV(
   tenantId: string,
@@ -155,17 +155,63 @@ export async function uploadCV(
   // Parse CV fields with LLM
   const parsed = await parseCV(rawCvText)
 
-  // Save profile with parsed fields
+  const existing = await getProfile(tenantId)
+
+  // CV upload always overwrites CV-derived fields — never COALESCE them
+  if (existing) {
+    await pool.query(
+      `UPDATE user_profiles
+       SET full_name              = COALESCE($1,  full_name),
+           headline               = COALESCE($2,  headline),
+           location               = COALESCE($3,  location),
+           skills                 = $4,
+           experience_years       = COALESCE($5,  experience_years),
+           target_roles           = $6,
+           seniority              = $7,
+           current_or_recent_role = COALESCE($8,  current_or_recent_role),
+           domains                = $9,
+           work_authorisation     = COALESCE($10, work_authorisation),
+           work_history           = $11,
+           education              = $12,
+           certifications         = $13,
+           languages              = $14,
+           raw_cv_text            = $15,
+           updated_at             = now()
+       WHERE id = $16`,
+      [
+        parsed.full_name              ?? null,
+        parsed.headline               ?? null,
+        parsed.location               ?? null,
+        parsed.skills,
+        parsed.experience_years       ?? null,
+        parsed.target_roles,
+        parsed.seniority              ?? null,
+        parsed.current_or_recent_role ?? null,
+        parsed.domains,
+        parsed.work_authorisation     ?? null,
+        JSON.stringify(parsed.work_history),
+        JSON.stringify(parsed.education),
+        parsed.certifications,
+        parsed.languages,
+        rawCvText,
+        existing.id,
+      ]
+    )
+    const profile = await getProfile(tenantId)
+    return { profile: profile!, parsed }
+  }
+
+  // New profile — insert
   const profile = await upsertProfile(tenantId, {
     full_name:             parsed.full_name              ?? undefined,
     headline:              parsed.headline               ?? undefined,
     location:              parsed.location               ?? undefined,
-    skills:                parsed.skills.length          ? parsed.skills        : undefined,
+    skills:                parsed.skills,
     experience_years:      parsed.experience_years       ?? undefined,
-    target_roles:          parsed.target_roles.length    ? parsed.target_roles  : undefined,
+    target_roles:          parsed.target_roles,
     seniority:             parsed.seniority              ?? undefined,
     current_or_recent_role:parsed.current_or_recent_role ?? undefined,
-    domains:               parsed.domains?.length        ? parsed.domains       : undefined,
+    domains:               parsed.domains,
     work_authorisation:    parsed.work_authorisation     ?? undefined,
     work_history:          parsed.work_history,
     education:             parsed.education,
