@@ -1185,9 +1185,9 @@ async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
 
   // Build LinkedIn search URLs from keywords (one per role term)
   const terms = keywords.split(' OR ').slice(0, 3).map(k => k.trim())
-  const urls = terms.map(t =>
-    `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(t)}&location=London%2C%20United%20Kingdom&f_TPR=r604800`
-  )
+  const urls = terms.map(t => ({
+    url: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(t)}&location=London%2C%20United%20Kingdom&f_TPR=r604800`,
+  }))
 
   const { defaultDatasetId } = await client.actor('curious_coder/linkedin-jobs-search-scraper').call({
     urls,
