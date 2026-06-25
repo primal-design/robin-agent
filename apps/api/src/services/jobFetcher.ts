@@ -1123,11 +1123,11 @@ async function storeJobs(jobs: NormalisedJob[]): Promise<{ inserted: number }> {
 
 // ── Apify helpers ─────────────────────────────────────────────────────────────
 
-function getApifyClient() {
+async function getApifyClient() {
   const token = process.env.APIFY_API_TOKEN
   if (!token) return null
-  const { ApifyClient } = require('apify-client')
-  return new ApifyClient({ token }) as import('apify-client').ApifyClient
+  const { ApifyClient } = await import('apify-client')
+  return new ApifyClient({ token })
 }
 
 function parseSalaryMin(s: string): number | null {
@@ -1145,7 +1145,7 @@ function parseSalaryMax(s: string): number | null {
 // Actor: apify/indeed-scraper
 
 async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
-  const client = getApifyClient()
+  const client = await getApifyClient()
   if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_indeed'); return [] }
 
   const { defaultDatasetId } = await client.actor('apify/indeed-scraper').call({
@@ -1181,7 +1181,7 @@ async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
 // Actor: bebity/linkedin-jobs-scraper
 
 async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
-  const client = getApifyClient()
+  const client = await getApifyClient()
   if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_linkedin'); return [] }
 
   const { defaultDatasetId } = await client.actor('bebity/linkedin-jobs-scraper').call({
