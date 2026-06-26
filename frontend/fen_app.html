@@ -30,8 +30,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .brand span{color:var(--gold2)}
 .topbar-right{display:flex;align-items:center;gap:12px}
 .avatar{width:32px;height:32px;border-radius:50%;background:var(--ambl);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--amber);cursor:pointer}
-.tab-bar{display:flex;border-bottom:.5px solid var(--rule);background:var(--card);padding:0 20px}
-.tab{padding:12px 0;margin-right:24px;font-size:13px;font-weight:400;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab-bar{display:flex;border-bottom:.5px solid var(--rule);background:var(--card);padding:0 20px;gap:0}
+.tab{padding:12px 0;margin-right:24px;font-size:13px;font-weight:400;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
 .tab.on{color:var(--ink);font-weight:500;border-bottom-color:var(--gold2)}
 
 /* ── CONTENT ── */
@@ -48,18 +48,17 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .ob-title{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:300;color:var(--ink);margin-bottom:6px}
 .ob-desc{font-size:14px;color:var(--ink3);margin-bottom:28px;line-height:1.6}
 .ob-dots{display:flex;gap:6px;justify-content:center;margin-top:28px}
-.ob-dot{width:6px;height:6px;border-radius:50%;background:var(--rule2,var(--ink4));transition:background .2s}
+.ob-dot{width:6px;height:6px;border-radius:50%;background:var(--ink4);transition:background .2s}
 .ob-dot.on{background:var(--gold2)}
 
 /* ── UPLOAD ZONE ── */
-.upload-zone{border:1.5px dashed var(--ink4);border-radius:10px;padding:40px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.upload-zone{border:1.5px dashed var(--ink4);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--gold2);background:rgba(184,151,107,.04)}
-.upload-icon{font-size:36px;margin-bottom:12px}
-.upload-label{font-size:15px;font-weight:400;color:var(--ink);margin-bottom:4px}
+.upload-icon{font-size:32px;margin-bottom:10px}
+.upload-label{font-size:14px;font-weight:400;color:var(--ink);margin-bottom:4px}
 .upload-hint{font-size:12px;color:var(--ink3)}
-.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 .upload-zone.has-file{border-style:solid;border-color:var(--green);background:var(--greenl)}
-.upload-zone.has-file .upload-icon::before{content:"✅"}
 .file-name{font-size:13px;color:var(--green);font-weight:500;margin-top:8px}
 
 /* ── FORM ── */
@@ -86,7 +85,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .btn-red{background:var(--redl);color:var(--red);border:none}
 .btn-red:hover{background:#f5d5d0}
 .btn-full{width:100%}
-.btn-sm{padding:8px 16px;font-size:13px}
+.btn-sm{padding:8px 14px;font-size:13px}
 
 /* ── DONE SCREEN ── */
 .done-icon{font-size:56px;margin-bottom:20px;text-align:center}
@@ -103,21 +102,24 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .job-card{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:14px;border:.5px solid var(--rule);transition:box-shadow .15s}
 .job-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07)}
 .job-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
-.job-title{font-size:16px;font-weight:500;color:var(--ink);line-height:1.3}
+.job-title{font-size:15px;font-weight:500;color:var(--ink);line-height:1.3}
 .job-company{font-size:13px;color:var(--ink3);margin-top:3px}
-.score-badge{flex-shrink:0;background:var(--greenl);color:var(--green);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600}
+.score-badge{flex-shrink:0;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;background:var(--greenl);color:var(--green)}
 .score-badge.amber{background:var(--ambl);color:var(--amber)}
-.job-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.score-badge.red{background:var(--redl);color:var(--red)}
+.job-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .meta-pill{font-size:12px;color:var(--ink3);background:var(--bg);border-radius:20px;padding:3px 10px;border:.5px solid var(--rule)}
-.job-actions{display:flex;gap:8px}
+.job-summary{font-size:13px;color:var(--ink3);line-height:1.5;margin-bottom:14px;font-style:italic}
+.job-actions{display:flex;gap:8px;flex-wrap:wrap}
 .empty-state{text-align:center;padding:60px 20px;color:var(--ink3)}
 .empty-state .big{font-size:40px;margin-bottom:12px}
 .empty-state p{font-size:14px;line-height:1.6}
 
-/* ── PIPELINE ── */
-.pipe-card{background:var(--card);border-radius:var(--r);padding:18px 20px;margin-bottom:10px;border:.5px solid var(--rule);display:flex;align-items:center;gap:14px}
+/* ── PIPELINE CARDS ── */
+.pipe-card{background:var(--card);border-radius:var(--r);padding:16px 20px;margin-bottom:10px;border:.5px solid var(--rule)}
+.pipe-card-main{display:flex;align-items:center;gap:12px}
 .pipe-info{flex:1;min-width:0}
-.pipe-title{font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pipe-title{font-size:14px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pipe-company{font-size:12px;color:var(--ink3);margin-top:2px}
 .status-pill{flex-shrink:0;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .s-interested{background:var(--bluel);color:var(--blue)}
@@ -127,25 +129,39 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .s-interview{background:#F0E8FF;color:#7C3AED}
 .s-offer{background:#FFFBEB;color:#B45309}
 .s-rejected,.s-withdrawn{background:var(--redl);color:var(--red)}
+.pipe-actions{display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:.5px solid var(--rule)}
 .filter-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
 .filter-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:.5px solid var(--rule);background:var(--card);color:var(--ink3);transition:all .15s}
 .filter-pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 
+/* ── PROFILE SECTION ── */
+.profile-section{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:16px;border:.5px solid var(--rule)}
+.profile-section-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.form-field{margin-bottom:16px}
+.form-field:last-child{margin-bottom:0}
+.form-field label{display:block;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);font-weight:500;margin-bottom:6px}
+.form-field input,.form-field select{width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;font-family:"Inter",sans-serif;background:var(--bg);color:var(--ink);outline:none;transition:border .15s}
+.form-field input:focus,.form-field select:focus{border-color:var(--gold2)}
+
 /* ── TOAST ── */
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;white-space:nowrap;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
 
 /* ── LOADING ── */
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-.loading-bar{height:2px;background:var(--gold2);animation:loadbar 1.2s ease-in-out infinite}
+#loading-bar{height:2px;background:var(--gold2);display:none;border-radius:4px;margin-bottom:16px;overflow:hidden}
+#loading-bar.active{display:block;animation:loadbar 1.2s ease-in-out infinite}
 @keyframes loadbar{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
 
 @media(max-width:480px){
   .row2{grid-template-columns:1fr}
   .ob-card{padding:24px 20px}
-  .content{padding:20px 16px}
+  .content{padding:16px}
   .topbar{padding:14px 16px}
+  .tab{margin-right:16px;font-size:12px}
+  .job-actions{flex-direction:column}
+  .job-actions .btn{width:100%}
 }
 </style>
 </head>
@@ -232,10 +248,8 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
       </div>
 
       <div style="display:flex;gap:10px;margin-top:8px">
-        <button class="btn btn-outline" onclick="goScreen('screen-ob1')" style="flex:0 0 auto">← Back</button>
-        <button class="btn btn-primary btn-full" id="btn-ob2" onclick="ob2Next()">
-          Save &amp; Continue →
-        </button>
+        <button class="btn btn-outline" onclick="goScreen('screen-ob1')" style="flex-shrink:0">← Back</button>
+        <button class="btn btn-primary btn-full" id="btn-ob2" onclick="ob2Next()">Save &amp; Continue →</button>
       </div>
       <div class="ob-dots" style="margin-top:24px">
         <div class="ob-dot"></div><div class="ob-dot on"></div><div class="ob-dot"></div>
@@ -279,21 +293,19 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
   <div class="topbar">
     <div class="brand">FEN<span>.</span></div>
     <div class="topbar-right">
-      <div class="avatar" id="user-avatar" title="Profile" onclick="goScreen('screen-ob2-edit')">?</div>
+      <div class="avatar" id="user-avatar" title="Profile" onclick="switchTab('profile')">?</div>
     </div>
   </div>
 
   <div class="tab-bar">
-    <div class="tab on" id="tab-profile" onclick="switchTab('profile')">My Profile</div>
-    <div class="tab" id="tab-pipeline" onclick="switchTab('pipeline')">My Applications</div>
-    <div class="tab" id="tab-matches" onclick="switchTab('matches')">Matches</div>
+    <div class="tab on"  id="tab-matches"  onclick="switchTab('matches')">Matches</div>
+    <div class="tab"     id="tab-pipeline" onclick="switchTab('pipeline')">Applications</div>
+    <div class="tab"     id="tab-profile"  onclick="switchTab('profile')">Profile</div>
   </div>
 
   <!-- ── MATCHES TAB ── -->
-  <div id="tab-matches-content" class="content" style="display:none">
-    <div style="height:8px;overflow:hidden;margin-bottom:16px;border-radius:4px" id="loading-bar" style="display:none">
-      <div class="loading-bar" id="lb-inner"></div>
-    </div>
+  <div id="tab-matches-content" class="content">
+    <div id="loading-bar"></div>
     <div class="section-head">
       <div class="section-title">Today's matches</div>
       <div class="section-count" id="match-count"></div>
@@ -304,21 +316,21 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
         <p>Loading your matches…</p>
       </div>
     </div>
-    <div style="text-align:center;margin:24px 0" id="run-match-wrap" style="display:none">
-      <button class="btn btn-outline btn-sm" onclick="runMatch()">Run matching now</button>
+    <div style="text-align:center;margin:24px 0">
+      <button class="btn btn-outline btn-sm" id="run-match-btn" onclick="runMatch()">🔄 Run matching now</button>
     </div>
   </div>
 
   <!-- ── PIPELINE TAB ── -->
   <div id="tab-pipeline-content" class="content" style="display:none">
     <div class="section-head">
-      <div class="section-title">Your applications</div>
+      <div class="section-title">My Applications</div>
       <div class="section-count" id="pipe-count"></div>
     </div>
     <div class="filter-row" id="pipe-filters">
       <div class="filter-pill on" onclick="pipeFilter('all',this)">All</div>
       <div class="filter-pill" onclick="pipeFilter('interested',this)">Interested</div>
-      <div class="filter-pill" onclick="pipeFilter('draft_ready',this)">Ready to approve</div>
+      <div class="filter-pill" onclick="pipeFilter('draft_ready',this)">Ready</div>
       <div class="filter-pill" onclick="pipeFilter('applied',this)">Applied</div>
       <div class="filter-pill" onclick="pipeFilter('interview',this)">Interview</div>
     </div>
@@ -331,74 +343,82 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
   </div>
 
   <!-- ── PROFILE TAB ── -->
-  <div id="tab-profile-content" class="content">
+  <div id="tab-profile-content" class="content" style="display:none">
     <div class="section-head">
       <div class="section-title">My Profile</div>
     </div>
 
-    <div style="max-width:520px;margin:0 auto;padding:0 0 40px">
+    <!-- CV Upload -->
+    <div class="profile-section">
+      <div class="profile-section-title">📄 CV / Resume</div>
+      <div class="upload-zone" id="profile-drop-zone">
+        <input type="file" id="profile-cv-file" accept=".pdf,.doc,.docx,.txt"/>
+        <div class="upload-icon" id="profile-upload-icon">📄</div>
+        <div class="upload-label">Drop your CV here or tap to upload</div>
+        <div class="upload-hint">PDF, Word, or plain text · Max 2 MB</div>
+        <div class="file-name" id="profile-file-name" style="display:none"></div>
+      </div>
+      <button class="btn btn-primary btn-full" id="cv-upload-btn" style="margin-top:12px" onclick="uploadProfileCV()">
+        Upload &amp; Re-parse CV
+      </button>
+      <div id="cv-upload-status" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:center;min-height:18px"></div>
+    </div>
 
-      <!-- CV Upload -->
-      <div style="margin-bottom:28px">
-        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:10px">CV / Resume</div>
-        <div class="upload-zone" id="profile-drop-zone" style="padding:24px">
-          <input type="file" id="profile-cv-file" accept=".pdf,.doc,.docx,.txt"/>
-          <div class="upload-icon" id="profile-upload-icon">📄</div>
-          <div class="upload-label">Drop your CV here or tap to upload</div>
-          <div class="upload-hint">PDF, Word, or plain text · Max 2 MB</div>
+    <!-- Job Preferences -->
+    <div class="profile-section">
+      <div class="profile-section-title">🎯 Job Preferences</div>
+      <div class="form-field">
+        <label>Target Roles</label>
+        <input type="text" id="p-target-roles" placeholder="e.g. Java Developer, Senior Software Engineer"/>
+      </div>
+      <div class="form-field">
+        <label>Target Locations</label>
+        <input type="text" id="p-locations" placeholder="e.g. London, Remote"/>
+      </div>
+      <div class="row2" style="gap:16px">
+        <div class="form-field" style="margin-bottom:0">
+          <label>Min Salary (£/yr)</label>
+          <input type="number" id="p-min-salary" placeholder="e.g. 50000"/>
         </div>
-        <button class="btn btn-primary" id="cv-upload-btn" style="margin-top:12px;width:100%" onclick="uploadProfileCV()">Upload CV</button>
-        <div id="cv-upload-status" style="font-size:12px;color:var(--ink3);margin-top:6px;text-align:center"></div>
-      </div>
-
-      <!-- Skills -->
-      <div style="margin-bottom:20px">
-        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Target Roles</label>
-        <input type="text" id="p-target-roles" placeholder="e.g. Recruiter, Talent Acquisition Manager" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
-      </div>
-
-      <div style="margin-bottom:20px">
-        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Skills</label>
-        <input type="text" id="p-skills" placeholder="e.g. LinkedIn Recruiter, Boolean search, ATS" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
-      </div>
-
-      <div style="margin-bottom:20px">
-        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Minimum Salary (£/year)</label>
-        <input type="number" id="p-min-salary" placeholder="e.g. 40000" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
-      </div>
-
-      <div style="margin-bottom:20px">
-        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Target Locations</label>
-        <input type="text" id="p-locations" placeholder="e.g. London, Remote" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)"/>
-      </div>
-
-      <div style="margin-bottom:24px">
-        <label style="font-size:13px;font-weight:500;color:var(--ink);display:block;margin-bottom:6px">Work Type</label>
-        <select id="p-work-type" style="width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;background:var(--card)">
-          <option value="any">Any</option>
-          <option value="remote">Remote</option>
-          <option value="hybrid">Hybrid</option>
-          <option value="onsite">Onsite</option>
-        </select>
-      </div>
-
-      <button class="btn btn-primary" style="width:100%" onclick="saveProfile()">Save Profile</button>
-      <div id="profile-save-status" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:center"></div>
-
-      <!-- Telegram Connect -->
-      <div style="margin-top:32px;padding:20px;background:var(--card);border:1px solid var(--rule);border-radius:12px">
-        <div style="font-size:14px;font-weight:500;color:var(--ink);margin-bottom:6px">📱 Telegram Alerts</div>
-        <div style="font-size:13px;color:var(--ink3);margin-bottom:14px">Get daily job matches sent directly to your Telegram.</div>
-        <button class="btn btn-outline" style="width:100%" onclick="connectTelegram()">Connect Telegram</button>
-        <div id="telegram-connect-info" style="display:none;margin-top:14px;padding:14px;background:#f0f7ff;border-radius:8px;font-size:13px">
-          <div style="font-weight:500;margin-bottom:8px">Open Telegram and send this message to <b>@fen_ai_bot</b>:</div>
-          <div id="telegram-connect-cmd" style="font-family:monospace;background:#e8f0fe;padding:8px 12px;border-radius:6px;word-break:break-all"></div>
-          <a id="telegram-connect-link" href="#" target="_blank" style="display:block;margin-top:10px;text-align:center">
-            <button class="btn btn-primary" style="width:100%">Open in Telegram →</button>
-          </a>
+        <div class="form-field" style="margin-bottom:0">
+          <label>Work Type</label>
+          <select id="p-work-type">
+            <option value="any">Any</option>
+            <option value="remote">Remote</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="onsite">Onsite</option>
+          </select>
         </div>
       </div>
     </div>
+
+    <!-- Skills -->
+    <div class="profile-section">
+      <div class="profile-section-title">🛠 Skills</div>
+      <div class="form-field" style="margin-bottom:0">
+        <label>Skills (comma separated)</label>
+        <input type="text" id="p-skills" placeholder="e.g. Java, Spring Boot, Angular, Kubernetes"/>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="saveProfile()" style="margin-bottom:8px">Save Profile</button>
+    <div id="profile-save-status" style="font-size:12px;color:var(--ink3);text-align:center;min-height:18px;margin-bottom:24px"></div>
+
+    <!-- Telegram Connect -->
+    <div class="profile-section">
+      <div class="profile-section-title">📱 Telegram Alerts</div>
+      <div style="font-size:13px;color:var(--ink3);margin-bottom:14px;line-height:1.5">Get daily job matches sent directly to your Telegram.</div>
+      <button class="btn btn-outline btn-full" onclick="connectTelegram()">Connect Telegram</button>
+      <div id="telegram-connect-info" style="display:none;margin-top:14px;padding:14px;background:var(--bluel);border-radius:8px">
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px">Open Telegram and send this to <b>@fen_ai_bot</b>:</div>
+        <div id="telegram-connect-cmd" style="font-family:monospace;background:rgba(37,99,235,.1);padding:8px 12px;border-radius:6px;font-size:13px;word-break:break-all;margin-bottom:10px"></div>
+        <a id="telegram-connect-link" href="#" target="_blank">
+          <button class="btn btn-primary btn-full">Open in Telegram →</button>
+        </a>
+      </div>
+    </div>
+
+    <div style="padding-bottom:40px"></div>
   </div>
 
 </div>
@@ -411,20 +431,21 @@ let cvFile = null
 let roleTags = [], locTags = []
 let allApplications = []
 let currentPipeFilter = 'all'
+let matchesLoaded = false
 
 // ── API ───────────────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
   try {
-    const r = await fetch(path, {
-      headers: { 'Content-Type': 'application/json' },
-      ...opts
-    })
-    return r.ok ? r.json() : null
+    const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) }
+    const r = await fetch(path, { ...opts, headers })
+    if (!r.ok) return null
+    const text = await r.text()
+    return text ? JSON.parse(text) : null
   } catch { return null }
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
-function toast(msg, ms = 3000) {
+function toast(msg, ms = 3500) {
   const t = document.getElementById('toast')
   t.textContent = msg
   t.classList.add('show')
@@ -435,38 +456,43 @@ function toast(msg, ms = 3000) {
 function goScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'))
   document.getElementById(id).classList.add('on')
-  window.scrollTo(0,0)
+  window.scrollTo(0, 0)
 }
 
-function goApp() { goScreen('screen-app'); loadProfileTab(); loadMatches(); loadPipeline() }
+function goApp() {
+  goScreen('screen-app')
+  switchTab('matches')
+}
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  document.getElementById('tab-matches-content').style.display  = tab === 'matches'  ? '' : 'none'
-  document.getElementById('tab-pipeline-content').style.display = tab === 'pipeline' ? '' : 'none'
-  document.getElementById('tab-profile-content').style.display  = tab === 'profile'  ? '' : 'none'
-  document.getElementById('tab-profile').classList.toggle('on',  tab === 'profile')
-  document.getElementById('tab-pipeline').classList.toggle('on', tab === 'pipeline')
-  document.getElementById('tab-matches').classList.toggle('on',  tab === 'matches')
+  const tabs = ['matches', 'pipeline', 'profile']
+  tabs.forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('on', t === tab)
+    document.getElementById(`tab-${t}-content`).style.display = t === tab ? '' : 'none'
+  })
+  window.scrollTo(0, 0)
+  if (tab === 'matches')  { if (!matchesLoaded) loadMatches(); else {} }
   if (tab === 'pipeline') loadPipeline()
   if (tab === 'profile')  loadProfileTab()
 }
 
+// ── Profile tab ───────────────────────────────────────────────────────────────
 async function loadProfileTab() {
   const p = await api('/profile')
   if (!p) return
-  if (p.target_roles)     document.getElementById('p-target-roles').value = p.target_roles.join(', ')
-  if (p.skills)           document.getElementById('p-skills').value = p.skills.join(', ')
-  if (p.min_salary)       document.getElementById('p-min-salary').value = p.min_salary
-  if (p.target_locations) document.getElementById('p-locations').value = p.target_locations.join(', ')
-  if (p.preferred_work_type) document.getElementById('p-work-type').value = p.preferred_work_type
+  if (p.target_roles?.length)     document.getElementById('p-target-roles').value = p.target_roles.join(', ')
+  if (p.skills?.length)           document.getElementById('p-skills').value = p.skills.join(', ')
+  if (p.min_salary)               document.getElementById('p-min-salary').value = p.min_salary
+  if (p.target_locations?.length) document.getElementById('p-locations').value = p.target_locations.join(', ')
+  if (p.preferred_work_type)      document.getElementById('p-work-type').value = p.preferred_work_type
 }
 
 async function saveProfile() {
-  const target_roles     = document.getElementById('p-target-roles').value.split(',').map(s=>s.trim()).filter(Boolean)
-  const skills           = document.getElementById('p-skills').value.split(',').map(s=>s.trim()).filter(Boolean)
-  const min_salary       = parseInt(document.getElementById('p-min-salary').value) || null
-  const target_locations = document.getElementById('p-locations').value.split(',').map(s=>s.trim()).filter(Boolean)
+  const target_roles        = document.getElementById('p-target-roles').value.split(',').map(s => s.trim()).filter(Boolean)
+  const skills              = document.getElementById('p-skills').value.split(',').map(s => s.trim()).filter(Boolean)
+  const min_salary          = parseInt(document.getElementById('p-min-salary').value) || null
+  const target_locations    = document.getElementById('p-locations').value.split(',').map(s => s.trim()).filter(Boolean)
   const preferred_work_type = document.getElementById('p-work-type').value
 
   const r = await api('/profile', {
@@ -475,63 +501,101 @@ async function saveProfile() {
   })
   const el = document.getElementById('profile-save-status')
   if (r) { el.textContent = '✅ Profile saved'; el.style.color = 'var(--green)' }
-  else   { el.textContent = '❌ Save failed';   el.style.color = 'red' }
+  else   { el.textContent = '❌ Save failed';   el.style.color = 'var(--red)' }
+  setTimeout(() => { el.textContent = '' }, 3000)
 }
 
+// ── Profile CV upload ─────────────────────────────────────────────────────────
 let profileCvFile = null
+
 document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('profile-cv-file')
-  if (inp) inp.addEventListener('change', e => {
+  if (!inp) return
+  inp.addEventListener('change', e => {
     profileCvFile = e.target.files[0]
     if (profileCvFile) {
       document.getElementById('profile-upload-icon').textContent = '✅'
-      document.getElementById('cv-upload-status').textContent = profileCvFile.name
+      const lbl = document.getElementById('profile-file-name')
+      lbl.textContent = profileCvFile.name
+      lbl.style.display = 'block'
+      document.getElementById('profile-drop-zone').classList.add('has-file')
+    }
+  })
+
+  // Drag & drop on profile zone
+  const pz = document.getElementById('profile-drop-zone')
+  pz.addEventListener('dragover', e => { e.preventDefault(); pz.classList.add('drag') })
+  pz.addEventListener('dragleave', () => pz.classList.remove('drag'))
+  pz.addEventListener('drop', e => {
+    e.preventDefault()
+    pz.classList.remove('drag')
+    const f = e.dataTransfer.files[0]
+    if (f) {
+      profileCvFile = f
+      document.getElementById('profile-upload-icon').textContent = '✅'
+      const lbl = document.getElementById('profile-file-name')
+      lbl.textContent = f.name
+      lbl.style.display = 'block'
+      pz.classList.add('has-file')
     }
   })
 })
 
-async function connectTelegram() {
-  const r = await api('/profile/telegram-connect')
-  if (!r) { toast('Failed to generate connect code'); return }
-
-  document.getElementById('telegram-connect-info').style.display = 'block'
-  document.getElementById('telegram-connect-cmd').textContent = `/connect ${r.token}`
-  document.getElementById('telegram-connect-link').href = r.deep_link
-  toast('Connect code generated — open Telegram now')
-}
-
 async function uploadProfileCV() {
   if (!profileCvFile) { toast('Select a CV file first'); return }
   const btn = document.getElementById('cv-upload-btn')
-  btn.textContent = 'Uploading…'; btn.disabled = true
+  const status = document.getElementById('cv-upload-status')
+  btn.innerHTML = '<span class="spinner"></span> Uploading…'
+  btn.disabled = true
+  status.textContent = ''
+
   try {
     const file_data = await readFileAsBase64(profileCvFile)
-    const r = await api('/profile/cv', { method: 'POST', body: JSON.stringify({ file_data, file_name: profileCvFile.name, file_type: profileCvFile.type }) })
+    const r = await api('/profile/cv', {
+      method: 'POST',
+      body: JSON.stringify({ file_data, file_name: profileCvFile.name, file_type: profileCvFile.type })
+    })
     if (r) {
+      status.textContent = '✅ CV uploaded & profile updated'
+      status.style.color = 'var(--green)'
       toast('CV uploaded — FEN will re-match your jobs 🎉')
-      document.getElementById('cv-upload-status').textContent = '✅ Uploaded successfully'
-      // Populate form fields from parsed CV
-      const p = r.profile || r.parsed || r
-      if (p.target_roles?.length)   document.getElementById('p-target-roles').value = p.target_roles.join(', ')
-      if (p.skills?.length)         document.getElementById('p-skills').value = p.skills.join(', ')
+      // Populate form fields from parsed result
+      const p = r.profile || r
+      if (p.target_roles?.length)     document.getElementById('p-target-roles').value = p.target_roles.join(', ')
+      if (p.skills?.length)           document.getElementById('p-skills').value = p.skills.join(', ')
       if (p.min_salary)               document.getElementById('p-min-salary').value = p.min_salary
       if (p.target_locations?.length) document.getElementById('p-locations').value = p.target_locations.join(', ')
+      matchesLoaded = false  // force matches refresh
     } else {
-      toast('Upload failed')
+      status.textContent = '❌ Upload failed — try again'
+      status.style.color = 'var(--red)'
     }
+  } catch {
+    status.textContent = '❌ Upload failed'
+    status.style.color = 'var(--red)'
   } finally {
-    btn.textContent = 'Upload CV'; btn.disabled = false
+    btn.innerHTML = 'Upload &amp; Re-parse CV'
+    btn.disabled = false
   }
 }
 
-// ── CV upload ─────────────────────────────────────────────────────────────────
-const dropZone = document.getElementById('drop-zone')
+async function connectTelegram() {
+  const r = await api('/profile/telegram-connect')
+  if (!r) { toast('Failed to generate connect code'); return }
+  document.getElementById('telegram-connect-info').style.display = 'block'
+  document.getElementById('telegram-connect-cmd').textContent = `/connect ${r.token}`
+  document.getElementById('telegram-connect-link').href = r.deep_link
+  toast('Connect code ready — open Telegram now')
+}
+
+// ── Onboarding CV upload ──────────────────────────────────────────────────────
+const dropZone  = document.getElementById('drop-zone')
 const fileInput = document.getElementById('cv-file')
 
 fileInput.addEventListener('change', () => {
   if (fileInput.files[0]) selectFile(fileInput.files[0])
 })
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag') })
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag') })
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'))
 dropZone.addEventListener('drop', e => {
   e.preventDefault()
@@ -552,15 +616,21 @@ function selectFile(f) {
 
 // ── Onboarding step 1 ─────────────────────────────────────────────────────────
 async function ob1Next() {
-  // Check if profile already exists
-  const profile = await api('/profile')
-  if (profile && profile.id) {
-    // Already onboarded — fill prefs and go straight to app
-    fillPrefsFromProfile(profile)
-    goApp()
-    return
+  const btn = document.getElementById('btn-ob1')
+  btn.disabled = true
+  btn.innerHTML = '<span class="spinner"></span>'
+  try {
+    const profile = await api('/profile')
+    if (profile && profile.id) {
+      fillPrefsFromProfile(profile)
+      goApp()
+      return
+    }
+    goScreen('screen-ob2')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = 'Continue →'
   }
-  goScreen('screen-ob2')
 }
 
 // ── Tags ─────────────────────────────────────────────────────────────────────
@@ -568,7 +638,7 @@ function addTag(e, type) {
   if (e.key !== 'Enter' && e.key !== ',') return
   e.preventDefault()
   const input = document.getElementById(type === 'roles' ? 'roles-input' : 'locs-input')
-  const val = input.value.trim()
+  const val = input.value.trim().replace(/,$/, '')
   if (!val) return
   const arr = type === 'roles' ? roleTags : locTags
   if (!arr.includes(val)) { arr.push(val); renderTags(type) }
@@ -582,14 +652,14 @@ function removeTag(type, val) {
 }
 
 function renderTags(type) {
-  const wrap = document.getElementById(type === 'roles' ? 'roles-wrap' : 'locs-wrap')
+  const wrap  = document.getElementById(type === 'roles' ? 'roles-wrap' : 'locs-wrap')
   const input = document.getElementById(type === 'roles' ? 'roles-input' : 'locs-input')
-  const arr = type === 'roles' ? roleTags : locTags
+  const arr   = type === 'roles' ? roleTags : locTags
   wrap.querySelectorAll('.tag').forEach(t => t.remove())
   arr.forEach(val => {
     const tag = document.createElement('div')
     tag.className = 'tag'
-    tag.innerHTML = `${val}<button onclick="removeTag('${type}','${val}')" type="button">×</button>`
+    tag.innerHTML = `${esc(val)}<button onclick="removeTag('${type}','${esc(val)}')" type="button">×</button>`
     wrap.insertBefore(tag, input)
   })
 }
@@ -599,9 +669,7 @@ async function ob2Next() {
   const btn = document.getElementById('btn-ob2')
   btn.disabled = true
   btn.innerHTML = '<span class="spinner"></span>'
-
   try {
-    // Upload CV first if we have one
     if (cvFile) {
       const file_data = await readFileAsBase64(cvFile)
       await api('/profile/cv', {
@@ -609,8 +677,6 @@ async function ob2Next() {
         body: JSON.stringify({ file_data, file_name: cvFile.name, file_type: cvFile.type })
       })
     }
-
-    // Save preferences
     await api('/profile', {
       method: 'PATCH',
       body: JSON.stringify({
@@ -619,12 +685,11 @@ async function ob2Next() {
         min_salary:          parseInt(document.getElementById('pref-salary').value) || undefined,
         preferred_work_type: document.getElementById('pref-remote').value || undefined,
         target_roles:        roleTags.length ? roleTags : undefined,
-        target_locations:    locTags.length ? locTags : undefined,
+        target_locations:    locTags.length  ? locTags  : undefined,
       })
     })
-
     goScreen('screen-ob3')
-  } catch (err) {
+  } catch {
     toast('Something went wrong — try again')
   } finally {
     btn.disabled = false
@@ -634,40 +699,54 @@ async function ob2Next() {
 
 function fillPrefsFromProfile(p) {
   if (!p) return
-  if (p.full_name) document.getElementById('pref-name').value = p.full_name
-  if (p.location) document.getElementById('pref-location').value = p.location
-  if (p.min_salary) document.getElementById('pref-salary').value = p.min_salary
+  if (p.full_name)           document.getElementById('pref-name').value = p.full_name
+  if (p.location)            document.getElementById('pref-location').value = p.location
+  if (p.min_salary)          document.getElementById('pref-salary').value = p.min_salary
   if (p.preferred_work_type) document.getElementById('pref-remote').value = p.preferred_work_type
-  if (Array.isArray(p.target_roles)) { roleTags = p.target_roles; renderTags('roles') }
-  if (Array.isArray(p.target_locations)) { locTags = p.target_locations; renderTags('locs') }
+  if (Array.isArray(p.target_roles))     { roleTags = p.target_roles;     renderTags('roles') }
+  if (Array.isArray(p.target_locations)) { locTags  = p.target_locations; renderTags('locs')  }
 }
 
 // ── Matches ───────────────────────────────────────────────────────────────────
 async function loadMatches() {
+  matchesLoaded = true
   const list = document.getElementById('matches-list')
-  list.innerHTML = '<div class="empty-state"><div class="big">⏳</div><p>Loading…</p></div>'
+  const lb   = document.getElementById('loading-bar')
+  lb.classList.add('active')
+  list.innerHTML = '<div class="empty-state"><div class="big">⏳</div><p>Loading your matches…</p></div>'
 
   const data = await api('/matches?limit=30&min_score=30')
-  if (!data || !data.matches || !data.matches.length) {
+  lb.classList.remove('active')
+
+  if (!data || !data.matches?.length) {
     list.innerHTML = `<div class="empty-state">
       <div class="big">🔍</div>
-      <p>No matches yet.<br/>FEN scans for jobs daily.<br/>Check back tomorrow or run matching now.</p>
+      <p>No matches yet.<br/>FEN scans for jobs daily — check back tomorrow,<br/>or tap the button below to run matching now.</p>
     </div>`
-    document.getElementById('run-match-wrap').style.display = 'block'
     return
   }
 
   document.getElementById('match-count').textContent = `${data.matches.length} found`
-  document.getElementById('run-match-wrap').style.display = 'block'
   list.innerHTML = ''
   data.matches.forEach(m => list.appendChild(buildJobCard(m)))
 }
 
+function scoreClass(score) {
+  if (score >= 70) return ''
+  if (score >= 50) return 'amber'
+  return 'red'
+}
+
 function buildJobCard(m) {
-  const score = m.suitability_score || 0
-  const scoreClass = score >= 70 ? '' : 'amber'
-  const salary = m.salary_min ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max ? '–' + (m.salary_max/1000).toFixed(0) + 'k' : '+'}` : ''
-  const remote = m.remote_type ? ({ remote:'Remote', hybrid:'Hybrid', onsite:'On-site' }[m.remote_type] || m.remote_type) : ''
+  const score  = m.suitability_score || 0
+  const salary = m.salary_min
+    ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max ? '–' + (m.salary_max/1000).toFixed(0) + 'k' : '+'}`
+    : ''
+  const remote = { remote:'🌐 Remote', hybrid:'🏠 Hybrid', onsite:'🏢 On-site' }[m.remote_type] || ''
+  const summary = m.llm_summary ? `<div class="job-summary">${esc(m.llm_summary)}</div>` : ''
+
+  const reasons = Array.isArray(m.match_reasons) ? m.match_reasons : []
+  const reasonPills = reasons.slice(0, 2).map(r => `<span class="meta-pill">✨ ${esc(r)}</span>`).join('')
 
   const card = document.createElement('div')
   card.className = 'job-card'
@@ -675,21 +754,22 @@ function buildJobCard(m) {
   card.id = `match-${mid}`
   card.innerHTML = `
     <div class="job-top">
-      <div>
+      <div style="min-width:0">
         <div class="job-title">${esc(m.title || 'Role')}</div>
         <div class="job-company">${esc(m.company || '')}${m.location ? ' · ' + esc(m.location) : ''}</div>
       </div>
-      <div class="score-badge ${scoreClass}">${score}%</div>
+      <div class="score-badge ${scoreClass(score)}">${score}%</div>
     </div>
     <div class="job-meta">
       ${salary ? `<span class="meta-pill">💰 ${salary}</span>` : ''}
-      ${remote ? `<span class="meta-pill">📍 ${remote}</span>` : ''}
-      ${m.match_reasons?.length ? `<span class="meta-pill">✨ ${esc(Array.isArray(m.match_reasons) ? m.match_reasons[0] : m.match_reasons.split(',')[0])}</span>` : ''}
+      ${remote ? `<span class="meta-pill">${remote}</span>` : ''}
+      ${reasonPills}
     </div>
+    ${summary}
     <div class="job-actions">
       <button class="btn btn-green btn-sm" onclick="markInterested('${mid}','${m.job_id}')">✅ Interested</button>
       <button class="btn btn-red btn-sm" onclick="markSkip('${mid}')">✗ Skip</button>
-      ${m.url ? `<a class="btn btn-outline btn-sm" href="${esc(m.url)}" target="_blank">View job</a>` : ''}
+      ${m.url ? `<a class="btn btn-outline btn-sm" href="${esc(m.url)}" target="_blank">View →</a>` : ''}
     </div>
   `
   return card
@@ -697,14 +777,14 @@ function buildJobCard(m) {
 
 async function markInterested(matchId, jobId) {
   const card = document.getElementById(`match-${matchId}`)
-  if (card) card.style.opacity = '.5'
+  if (card) { card.style.transition = 'opacity .2s'; card.style.opacity = '.4' }
   const r = await api(`/matches/${matchId}/feedback`, {
     method: 'PATCH',
     body: JSON.stringify({ feedback: 'interested' })
   })
   if (r) {
     toast('Added to your applications 🎉')
-    if (card) card.remove()
+    setTimeout(() => card?.remove(), 200)
   } else {
     if (card) card.style.opacity = '1'
     toast('Something went wrong')
@@ -713,26 +793,28 @@ async function markInterested(matchId, jobId) {
 
 async function markSkip(matchId) {
   const card = document.getElementById(`match-${matchId}`)
+  if (card) { card.style.transition = 'opacity .3s,max-height .3s'; card.style.opacity = '0' }
   await api(`/matches/${matchId}/feedback`, {
     method: 'PATCH',
     body: JSON.stringify({ feedback: 'skip' })
   })
-  if (card) { card.style.transition = 'opacity .3s'; card.style.opacity = '0'; setTimeout(() => card.remove(), 300) }
+  setTimeout(() => card?.remove(), 300)
 }
 
 async function runMatch() {
-  const btn = event.target
+  const btn = document.getElementById('run-match-btn')
   btn.disabled = true
-  btn.textContent = 'Running…'
+  btn.innerHTML = '<span class="spinner" style="border-top-color:var(--ink)"></span> Running…'
   const r = await api('/matches/run', { method: 'POST' })
-  if (r && r.ok) {
-    toast(`Found ${r.scored || 0} new matches`)
+  btn.disabled = false
+  btn.textContent = '🔄 Run matching now'
+  if (r?.ok) {
+    toast(`Found ${r.matched ?? 0} new matches`)
+    matchesLoaded = false
     await loadMatches()
   } else {
     toast('Matching failed — try again')
   }
-  btn.disabled = false
-  btn.textContent = 'Run matching now'
 }
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
@@ -741,7 +823,7 @@ async function loadPipeline() {
   list.innerHTML = '<div class="empty-state"><div class="big">⏳</div><p>Loading…</p></div>'
 
   const data = await api('/applications')
-  if (!data || !data.length) {
+  if (!data?.length) {
     list.innerHTML = `<div class="empty-state">
       <div class="big">📋</div>
       <p>No applications yet.<br/>Tap <strong>Interested</strong> on a match to start.</p>
@@ -778,37 +860,30 @@ function renderPipeline() {
 }
 
 function buildPipeCard(a) {
-  const statusLabels = {
+  const labels = {
     interested:'Interested', drafting:'Tailoring CV…', draft_ready:'Ready to approve',
     approved:'Approved', applied:'Applied', interview:'Interview',
-    assessment:'Assessment', offer:'Offer', rejected:'Rejected', withdrawn:'Withdrawn'
+    assessment:'Assessment', offer:'Offer 🎉', rejected:'Rejected', withdrawn:'Withdrawn'
   }
+
+  const hasActions = ['draft_ready','approved','applied'].includes(a.status)
+  const canApprove = a.status === 'draft_ready'
+
   const card = document.createElement('div')
   card.className = 'pipe-card'
   card.innerHTML = `
-    <div class="pipe-info">
-      <div class="pipe-title">${esc(a.title || 'Role')}</div>
-      <div class="pipe-company">${esc(a.company || '')}${a.location ? ' · ' + esc(a.location) : ''}</div>
+    <div class="pipe-card-main">
+      <div class="pipe-info">
+        <div class="pipe-title">${esc(a.title || 'Role')}</div>
+        <div class="pipe-company">${esc(a.company || '')}${a.location ? ' · ' + esc(a.location) : ''}${a.salary_min ? ' · £' + (a.salary_min/1000).toFixed(0) + 'k' : ''}</div>
+      </div>
+      <div class="status-pill s-${a.status}">${labels[a.status] || a.status}</div>
     </div>
-    <div class="status-pill s-${a.status}">${statusLabels[a.status] || a.status}</div>
+    ${hasActions ? `<div class="pipe-actions">
+      <a class="btn btn-outline btn-sm" href="/applications/${a.id}/cv.docx" download>⬇ Download CV</a>
+      ${canApprove ? `<button class="btn btn-green btn-sm" onclick="approveApplication('${a.id}',this)">✅ Approve</button>` : ''}
+    </div>` : ''}
   `
-  if (a.status === 'draft_ready' || a.status === 'approved' || a.status === 'applied') {
-    const dl = document.createElement('a')
-    dl.className = 'btn btn-outline btn-sm'
-    dl.textContent = '⬇ CV'
-    dl.href = `/applications/${a.id}/cv.docx`
-    dl.download = ''
-    dl.style.marginLeft = '10px'
-    card.appendChild(dl)
-  }
-  if (a.status === 'draft_ready') {
-    const btn = document.createElement('button')
-    btn.className = 'btn btn-green btn-sm'
-    btn.textContent = 'Approve'
-    btn.style.marginLeft = '8px'
-    btn.onclick = () => approveApplication(a.id, btn)
-    card.appendChild(btn)
-  }
   return card
 }
 
@@ -820,44 +895,32 @@ async function approveApplication(appId, btn) {
     body: JSON.stringify({ status: 'approved' })
   })
   if (r) { toast('Application approved ✅'); loadPipeline() }
-  else { toast('Failed — try again'); btn.disabled = false; btn.textContent = 'Approve' }
+  else   { toast('Failed — try again'); btn.disabled = false; btn.textContent = '✅ Approve' }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = e => resolve(e.target.result)
-    reader.onerror = reject
-    reader.readAsText(file)
-  })
-}
-
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = e => {
-      // result is "data:mime/type;base64,XXXX" — strip the prefix
-      const result = e.target.result
-      const base64 = result.split(',')[1]
-      resolve(base64)
-    }
+    reader.onload  = e => resolve(e.target.result.split(',')[1])
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
 }
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   const profile = await api('/profile')
-  if (profile && profile.id) {
-    fillPrefsFromProfile(profile)
-    const initials = (profile.full_name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+  if (profile?.id) {
+    const initials = (profile.full_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     document.getElementById('user-avatar').textContent = initials
+    fillPrefsFromProfile(profile)
     goApp()
   } else {
     goScreen('screen-ob1')
