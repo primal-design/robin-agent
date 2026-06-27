@@ -94,8 +94,19 @@ telegramRouter.post('/webhooks/telegram/:workerId', async (req, res) => {
   const msg2 = req.body?.message
   if (msg2?.text) {
     const botToken2 = env.telegramBotToken
-    const { handleOnboardingReply: handleReply } = await import('../services/telegramOnboarding.js')
-    await handleReply(msg2, botToken2).catch(e => console.error('[telegram] worker message error:', e))
+    const chatId2   = msg2.chat?.id as number
+    const { pool: pool2 } = await import('../db/pool.js')
+    const tr = await pool2.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM worker_channels
+       WHERE channel_type='telegram' AND (public_config->>'chat_id')::text=$1 AND status='active' LIMIT 1`,
+      [String(chatId2)]
+    )
+    const tenantId2 = tr.rows[0]?.tenant_id
+    if (tenantId2) {
+      const { handleOnboardingReply: handleReply } = await import('../services/telegramOnboarding.js')
+      await handleReply(tenantId2, chatId2, msg2.text as string, botToken2)
+        .catch(e => console.error('[telegram] worker message error:', e))
+    }
   }
 })
 
