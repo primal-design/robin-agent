@@ -1,928 +1,440 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="grammarly-disable-badge" content="true"/>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>FEN</title>
+<title>FEN — AI Job Search Agent</title>
+<meta name="description" content="FEN finds the jobs worth your time. Upload your CV, get daily matched roles, tailored CVs, and cover letters — powered by AI."/>
 <style>
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400;500&display=swap");
-:root{--ink:#1A1816;--ink2:#3D3B37;--ink3:rgba(26,24,22,.48);--gold:#B8976B;--gold2:#8B6E4A;--rule:rgba(26,24,22,.09);--seal:#A53D2F}
-*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
-body{background:#fff;color:var(--ink);font-family:"Inter",sans-serif;font-weight:300;line-height:1.6;overflow-x:hidden}
-.serif{font-family:"Cormorant Garamond",serif;font-weight:300}
-
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;background:#fff;border-bottom:.5px solid var(--rule);padding:0 52px;height:64px;display:flex;align-items:center;justify-content:space-between;z-index:100;transition:box-shadow .3s}
-nav.lifted{box-shadow:0 1px 20px rgba(0,0,0,.06)}
-.brand{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
-#fox{height:42px;width:auto;display:block;transform-origin:50% 90%}
-.wordmark{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:400;color:#1A1816;letter-spacing:.01em}
-.nav-links{display:flex;align-items:center;gap:40px}
-.nl{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink2);cursor:pointer;font-weight:400;transition:color .25s;text-decoration:none;background:none;border:none;font-family:"Inter",sans-serif}
-.nl:hover{color:var(--gold2)}
-.nl.btn{padding:9px 20px;border:.5px solid var(--ink);background:var(--ink);color:#fff;transition:all .3s}
-.nl.btn:hover{background:transparent;color:var(--ink)}
-
-/* FOX KEYFRAMES */
-@keyframes standUp{0%{transform:scaleX(1) scaleY(1) rotate(0deg) translateY(0)}22%{transform:scaleX(.94) scaleY(1.13) rotate(-1.5deg) translateY(-8px)}45%{transform:scaleX(1.05) scaleY(1.08) rotate(1deg) translateY(-5px)}65%{transform:scaleX(.98) scaleY(1.04) rotate(-.3deg) translateY(-3px)}82%{transform:scaleX(1.02) scaleY(1.07) rotate(.2deg) translateY(-4px)}100%{transform:scaleX(1) scaleY(1.06) rotate(0deg) translateY(-3px)}}
-@keyframes sitDown{0%{transform:scaleX(1) scaleY(1.06) translateY(-3px)}40%{transform:scaleX(1.02) scaleY(.97) translateY(1px)}70%{transform:scaleX(.99) scaleY(1.01) translateY(0)}100%{transform:scaleX(1) scaleY(1) translateY(0)}}
-@keyframes breathe{0%,100%{opacity:.9;transform:scaleY(1)}50%{opacity:1;transform:scaleY(1.016) translateY(-.5px)}}
-
-/* HERO */
-.hero{min-height:auto;padding:90px 52px 60px;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:24px}
-.hero-text{padding:0}
-.eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold2);margin-bottom:22px;display:flex;align-items:center;gap:12px}
-.eyebrow::before{content:"";width:28px;height:.5px;background:var(--gold)}
-h1{font-size:clamp(48px,6.5vw,92px);line-height:.96;letter-spacing:-.03em;font-weight:300;margin-bottom:22px}
-h1 em{font-style:italic;color:var(--gold2)}
-.hero-sub{font-size:17px;line-height:1.65;color:var(--ink2);max-width:440px;margin-bottom:14px;font-weight:300}
-.hero-outcome{font-size:14px;font-weight:400;color:var(--ink);letter-spacing:.02em;margin-bottom:36px;padding-left:14px;border-left:2px solid var(--gold);line-height:1.55;max-width:400px}
-.btns{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
-.btn-p{font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:18px 38px;border:.5px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;font-family:"Inter",sans-serif;font-weight:400;transition:all .35s}
-.btn-p:hover{background:transparent;color:var(--ink)}
-.btn-g{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink2);cursor:pointer;padding:18px 0;background:none;border:none;font-family:"Inter",sans-serif;font-weight:400;position:relative}
-.btn-g::after{content:"";position:absolute;bottom:12px;left:0;right:0;height:.5px;background:var(--ink2);transition:transform .35s;transform-origin:left}
-.btn-g:hover::after{transform:scaleX(0);transform-origin:right}
-
-/* PHONE */
-.phone-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;padding:0;align-self:center}
-.phone{width:290px;background:#1A1816;border-radius:46px;padding:9px;box-shadow:0 40px 70px -25px rgba(0,0,0,.22);flex-shrink:0}
-.pscreen{background:#fff;border-radius:38px;overflow:hidden;height:560px;display:flex;flex-direction:column}
-.ps-bar{padding:14px 20px 7px;display:flex;justify-content:space-between;font-size:11px;font-weight:500;flex-shrink:0}
-.ps-head{padding:4px 18px 12px;border-bottom:.5px solid var(--rule);text-align:center;flex-shrink:0}
-.ps-sub{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-bottom:2px}
-.ps-name{font-family:"Cormorant Garamond",serif;font-size:16px}
-.ps-msgs{padding:16px 12px;display:flex;flex-direction:column;gap:8px;flex:1;overflow-y:auto;scroll-behavior:smooth}
-.pm{padding:9px 12px;border-radius:14px;font-size:12.5px;line-height:1.45;max-width:84%}
-.pm.i{background:#F2F2F2;align-self:flex-start;border-bottom-left-radius:3px}
-.pm.o{background:#1A1816;color:#fff;align-self:flex-end;border-bottom-right-radius:3px}
-.pm.a{background:#FAEEDA;border:.5px solid rgba(184,151,107,.4);padding:12px 13px;border-radius:12px;max-width:92%;align-self:flex-start}
-.al{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold2);margin-bottom:4px}
-.aw{font-size:12px;font-weight:500;margin-bottom:2px}
-.al2{font-size:11px;color:var(--gold2);margin-bottom:8px;font-family:"Cormorant Garamond",serif;font-style:italic}
-.ad{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:13.5px;line-height:1.4;margin-bottom:10px}
-.abs{display:flex;gap:6px}
-.ab{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:5px 13px;border-radius:16px;cursor:pointer;font-family:"Inter",sans-serif}
-.ab.s{background:#1A1816;color:#fff;border:none}.ab.e{background:transparent;color:#1A1816;border:.5px solid #1A1816}
-.ps-t{text-align:center;font-size:9px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase;margin:3px 0}
-.ps-inp{padding:9px 12px 14px;border-top:.5px solid var(--rule);flex-shrink:0}
-.ps-ib{background:#F2F2F2;border-radius:20px;padding:8px 14px;font-size:12px;color:var(--ink3)}
-.phone-cap{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold2)}
-
-/* HANDLES SECTION */
-.handles{padding:100px 52px;background:#FAFAF8;border-top:.5px solid var(--rule);border-bottom:.5px solid var(--rule)}
-.handles-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start}
-.h-left h2{font-family:"Cormorant Garamond",serif;font-size:clamp(34px,4vw,50px);font-weight:300;line-height:1.1;letter-spacing:-.015em;margin-bottom:20px}
-.h-left h2 em{color:var(--gold2)}.h-left p{font-size:16px;color:var(--ink2);line-height:1.75;font-weight:300;max-width:380px;margin-bottom:28px}
-.h-end{font-size:15px;color:var(--ink);font-weight:400;line-height:1.6;padding-top:20px;border-top:.5px solid var(--rule);max-width:380px}
-.h-end em{font-style:italic;color:var(--gold2);font-family:"Cormorant Garamond",serif;font-size:17px}
-.h-list{list-style:none;display:flex;flex-direction:column;gap:0}
-.h-item{display:flex;align-items:flex-start;gap:16px;padding:18px 0;border-bottom:.5px solid var(--rule)}
-.h-item:first-child{border-top:.5px solid var(--rule)}
-.h-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);margin-top:8px;flex-shrink:0}
-.h-item-text{font-size:15px;color:var(--ink);line-height:1.5;font-weight:300}
-.h-item-text strong{font-weight:400}.h-item-text span{font-size:13px;color:var(--ink3);display:block;margin-top:3px}
-
-/* DIVIDER */
-.rdiv{display:flex;justify-content:center;padding:32px 0}
-
-/* HOW IT WORKS */
-#how{padding:120px 52px 140px;max-width:1080px;margin:0 auto;opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s}
-#how.visible{opacity:1;transform:translateY(0)}
-.how-head{text-align:center;margin-bottom:72px}
-.how-head h2{font-family:"Cormorant Garamond",serif;font-size:clamp(34px,4vw,52px);font-weight:300;letter-spacing:-.015em;margin-bottom:14px}
-.how-head h2 em{color:var(--gold2)}
-.how-head p{font-size:15px;color:var(--ink2);max-width:460px;margin:0 auto;font-weight:300;line-height:1.7}
-.journey{max-width:760px;margin:0 auto;position:relative}
-.journey::before{content:"";position:absolute;left:27px;top:10px;bottom:10px;width:.5px;background:linear-gradient(180deg,transparent,var(--gold) 10%,var(--gold) 90%,transparent)}
-.step{display:grid;grid-template-columns:56px 1fr;gap:28px;padding:36px 0;border-bottom:.5px solid var(--rule);position:relative}
-.step:last-child{border-bottom:none}
-.snum{width:54px;height:54px;border-radius:50%;border:.5px solid var(--gold);background:#fff;display:flex;align-items:center;justify-content:center;font-family:"Cormorant Garamond",serif;font-size:19px;font-style:italic;color:var(--gold2);flex-shrink:0;z-index:1;transition:background .35s,color .35s}
-.step:hover .snum{background:var(--gold2);color:#fff;border-color:var(--gold2)}
-.sbody{padding-top:10px}
-.stag{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink3);margin-bottom:9px}
-.stitle{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:300;letter-spacing:-.01em;margin-bottom:10px;line-height:1.2}
-.stitle em{font-style:italic;color:var(--gold2)}
-.sdesc{font-size:14px;line-height:1.75;color:var(--ink2);max-width:540px;font-weight:300}
-.skicker{font-size:14px;font-weight:400;color:var(--ink);margin-top:10px;font-style:italic;font-family:"Cormorant Garamond",serif}
-.sdemo{margin-top:14px;padding:12px 14px;background:#FAFAFA;border:.5px solid var(--rule);border-radius:8px;font-size:13px;line-height:1.6;color:var(--ink2);max-width:500px;font-family:"Cormorant Garamond",serif;font-style:italic}
-.sdemo b{font-style:normal;font-weight:400;color:var(--ink)}
-.cta-block{text-align:center;margin-top:64px;padding:40px;border:.5px solid var(--rule)}
-.cta-block h3{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:300;font-style:italic;margin-bottom:8px}
-.cta-block p{font-size:14px;color:var(--ink2);margin-bottom:22px;font-weight:300}
-
-/* STATEMENT */
-.statement{padding:140px 52px 100px;max-width:1080px;margin:0 auto}
-.s-ey{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold2);display:flex;align-items:center;gap:12px;margin-bottom:36px}
-.s-ey::before{content:"";width:32px;height:.5px;background:var(--gold)}
-.s-h{font-size:clamp(36px,5vw,62px);line-height:1.08;letter-spacing:-.02em;margin-bottom:36px;font-weight:300;max-width:780px}
-.s-h em{color:var(--gold2)}
-.s-p{font-size:17px;line-height:1.8;color:var(--ink2);max-width:580px;font-weight:300}
-.s-p+.s-p{margin-top:20px}
-.s-contrast{font-size:17px;font-weight:400;color:var(--ink);max-width:540px;margin-top:32px;padding-top:28px;border-top:.5px solid var(--rule)}
-
-/* BEHAVIOURS */
-.behaviours{padding:80px 52px;max-width:1080px;margin:0 auto}
-.brow{display:grid;grid-template-columns:80px 1fr;gap:56px;padding:52px 0;border-bottom:.5px solid var(--rule);align-items:baseline}
-.brow:first-of-type{border-top:.5px solid var(--rule)}
-.bnum{font-family:"Cormorant Garamond",serif;font-size:60px;font-weight:300;font-style:italic;color:var(--gold);line-height:1}
-.btag{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink3);margin-bottom:18px}
-.btit{font-family:"Cormorant Garamond",serif;font-size:clamp(26px,2.8vw,38px);font-weight:300;line-height:1.15;letter-spacing:-.01em;margin-bottom:18px}
-.btit em{font-style:italic;color:var(--gold2)}
-.bdesc{font-size:15px;line-height:1.8;color:var(--ink2);max-width:560px;font-weight:300}
-
-/* QUOTE */
-.qsec{padding:100px 52px;background:#FAFAF8;text-align:center}
-.qmark{font-family:"Cormorant Garamond",serif;font-size:140px;line-height:.8;color:var(--gold);font-weight:300;font-style:italic;opacity:.5}
-.qtext{font-family:"Cormorant Garamond",serif;font-size:clamp(25px,2.8vw,42px);font-weight:300;font-style:italic;line-height:1.35;max-width:820px;margin:0 auto 40px}
-.qtext em{color:var(--gold2)}
-
-/* CLOSING */
-.closing{padding:100px 52px;text-align:center;max-width:720px;margin:0 auto}
-.closing h2{font-family:"Cormorant Garamond",serif;font-size:clamp(38px,4.5vw,58px);font-weight:300;line-height:1.12;letter-spacing:-.016em;margin-bottom:16px}
-.closing h2 em{color:var(--gold2)}
-.closing-def{font-size:15px;color:var(--ink2);max-width:560px;margin:0 auto 40px;line-height:1.75;font-weight:300;font-style:italic;font-family:"Cormorant Garamond",serif}
-
-/* FOOTER */
-footer{padding:80px 52px 44px;border-top:.5px solid var(--rule);background:#FAFAF8}
-.f-in{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:56px;margin-bottom:56px}
-.fbrand{display:flex;align-items:center;gap:9px;margin-bottom:16px}
-.ffox{height:80px;width:80px;opacity:.7}
-.fname{font-family:"Cormorant Garamond",serif;font-size:20px;font-weight:400}
-.ftag{font-size:13px;color:var(--ink2);line-height:1.7;max-width:280px;font-weight:300}
-.fcol h4{font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);margin-bottom:20px;font-weight:500}
-.fcol a{display:block;font-size:14px;color:var(--ink);margin-bottom:12px;text-decoration:none;font-weight:300;cursor:pointer;transition:color .25s}
-.fcol a:hover{color:var(--gold2)}
-.fbot{max-width:1080px;margin:0 auto;padding-top:28px;border-top:.5px solid var(--rule);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink3);letter-spacing:.1em}
-.fseal{border:.5px solid var(--seal);padding:3px 6px;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:10px;color:var(--seal)}
-
-/* ════════ ACCESS OVERLAY ════════ */
-#access-view{position:fixed;inset:0;background:#fff;z-index:9000;display:none;opacity:0;transition:opacity .5s;overflow-y:auto}
-#access-view.show{opacity:1}
-body.locked{overflow:hidden}
-.a-topbar{position:sticky;top:0;background:#fff;border-bottom:.5px solid var(--rule);padding:0 52px;height:64px;display:flex;align-items:center;justify-content:space-between;z-index:10}
-.a-tb-brand{display:flex;align-items:center;gap:10px}
-.a-tb-fox{height:80px;width:80px}
-.a-tb-name{font-family:"Cormorant Garamond",serif;font-size:20px;font-weight:400}
-.a-tb-close{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);background:none;border:none;cursor:pointer;font-family:"Inter",sans-serif;font-weight:400}
-.a-tb-close:hover{color:var(--ink)}
-.a-progress{position:fixed;top:22px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:11;opacity:0;transition:opacity .5s}
-.a-progress.visible{opacity:1}
-.a-pdot{width:5px;height:5px;border-radius:3px;background:rgba(26,24,22,.15);transition:all .3s}
-.a-pdot.active{width:18px;background:var(--gold2)}
-.a-pdot.done{background:var(--gold)}
-.a-stage{min-height:calc(100vh - 64px);display:flex;align-items:center;justify-content:center;padding:40px 32px}
-.a-screen{display:none;max-width:560px;width:100%}
-.a-screen.active{display:block}
-.q-eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold2);margin-bottom:20px;display:flex;align-items:center;gap:12px}
-.q-eyebrow::before{content:"";width:20px;height:.5px;background:var(--gold)}
-.q-title{font-family:"Cormorant Garamond",serif;font-size:clamp(30px,4.5vw,48px);font-weight:300;line-height:1.15;letter-spacing:-.015em;margin-bottom:36px}
-.q-title em{font-style:italic;color:var(--gold2)}
-.q-hint{font-size:14px;color:var(--ink2);margin-bottom:28px;font-weight:300;line-height:1.7}
-.q-input{width:100%;font-family:"Cormorant Garamond",serif;font-size:clamp(22px,3.5vw,34px);font-weight:300;color:var(--ink);background:transparent;border:none;border-bottom:.5px solid var(--rule);padding:12px 0;outline:none;transition:border-color .3s}
-.q-input:focus{border-bottom-color:var(--gold2)}
-.q-input::placeholder{color:var(--ink3);font-style:italic}
-textarea.q-input{resize:none;min-height:90px;font-size:clamp(18px,2.5vw,24px);line-height:1.5}
-.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
-.chip{padding:12px 22px;border:.5px solid var(--rule);background:#fff;color:var(--ink2);font-size:14px;font-family:"Inter",sans-serif;font-weight:300;cursor:pointer;transition:all .3s;border-radius:30px}
-.chip:hover{border-color:var(--gold);color:var(--gold2)}
-.chip.selected{background:var(--ink);color:#fff;border-color:var(--ink)}
-.scard-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px}
-.scard{padding:24px 10px;border:.5px solid var(--rule);cursor:pointer;text-align:center;transition:all .3s;background:#fff}
-.scard:hover{border-color:var(--gold);transform:translateY(-2px)}
-.scard.selected{background:var(--ink);color:#fff;border-color:var(--ink)}
-.scard-num{font-family:"Cormorant Garamond",serif;font-size:26px;font-style:italic;font-weight:300;color:var(--gold2);margin-bottom:6px}
-.scard.selected .scard-num{color:#fff}
-.scard-text{font-size:11px;line-height:1.4}
-.q-footer{display:flex;align-items:center;justify-content:space-between;margin-top:40px}
-.q-next{font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:15px 32px;border:.5px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;font-family:"Inter",sans-serif;font-weight:400;transition:all .3s}
-.q-next:hover{background:transparent;color:var(--ink)}
-.q-next:disabled{background:transparent;color:var(--ink3);border-color:var(--rule);cursor:not-allowed}
-.q-back{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);background:none;border:none;cursor:pointer;font-family:"Inter",sans-serif;font-weight:400}
-.q-back:hover{color:var(--ink)}
-.q-skip{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);background:none;border:none;cursor:pointer;margin-right:16px;font-family:"Inter",sans-serif}
-.q-enter{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);margin-top:16px;opacity:.6}
-#a-micro{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-family:"Cormorant Garamond",serif;font-style:italic;font-size:26px;color:var(--gold2);opacity:0;pointer-events:none;transition:opacity .5s;z-index:20;text-align:center}
-#a-micro.show{opacity:1}
-/* access confirmation */
-.a-conf{text-align:center;padding:20px 0}
-.a-conf h1{font-family:"Cormorant Garamond",serif;font-size:clamp(44px,5.5vw,66px);font-weight:300;font-style:italic;color:var(--gold2);margin-bottom:36px}
-.a-conf-body{font-size:15px;line-height:1.85;color:var(--ink2);max-width:380px;margin:0 auto 48px;font-weight:300}
-.a-meta{padding:24px 0;margin-bottom:48px;border-top:.5px solid var(--rule);border-bottom:.5px solid var(--rule);display:flex;flex-direction:column;gap:12px}
-.a-meta-row{display:flex;justify-content:space-between}
-.a-meta-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3)}
-.a-meta-val{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:15px}
-.a-seal-wrap{display:flex;justify-content:center;margin-bottom:36px}
-.a-seal{width:56px;height:56px;border:.5px solid var(--seal);display:flex;align-items:center;justify-content:center;font-family:"Cormorant Garamond",serif;font-style:italic;font-size:24px;color:var(--seal)}
-.a-sig{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:17px;margin-top:32px}
-/* honesty screen */
-.a-honesty{text-align:center}
-.a-honesty h2{font-family:"Cormorant Garamond",serif;font-size:clamp(30px,4vw,44px);font-weight:300;margin-bottom:32px}
-.a-honesty h2 em{color:var(--gold2)}
-.a-honesty-body{font-size:16px;line-height:1.85;color:var(--ink2);max-width:460px;margin:0 auto 40px;font-weight:300}
-.a-honesty-body strong{color:var(--ink);font-weight:400}
-.a-honesty-footer{display:flex;flex-direction:column;align-items:center;gap:20px}
-
-/* ════════ SIGN IN OVERLAY ════════ */
-#si{position:fixed;inset:0;background:#fff;z-index:9100;display:none;flex-direction:column}
-#si.open{display:flex}
-.si-nav{height:64px;border-bottom:.5px solid var(--rule);display:flex;align-items:center;justify-content:space-between;padding:0 52px;flex-shrink:0}
-.si-logo{display:flex;align-items:center;gap:9px}
-.si-logo img{height:80px;width:80px}
-.si-logo span{font-family:"Cormorant Garamond",serif;font-size:20px;font-weight:400}
-.si-close{background:none;border:none;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink3);cursor:pointer;font-family:"Inter",sans-serif;font-weight:400}
-.si-close:hover{color:var(--ink)}
-.si-body{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 32px}
-.si-card{width:100%;max-width:420px}
-.si-step{display:none}
-.si-step.on{display:block}
-.si-eyebrow{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold2);margin-bottom:20px;display:flex;align-items:center;gap:12px}
-.si-eyebrow::before{content:"";width:20px;height:.5px;background:var(--gold)}
-.si-title{font-family:"Cormorant Garamond",serif;font-size:clamp(30px,5vw,46px);font-weight:300;line-height:1.1;letter-spacing:-.015em;margin-bottom:12px}
-.si-title em{font-style:italic;color:var(--gold2)}
-.si-hint{font-size:14px;color:var(--ink2);margin-bottom:28px;font-weight:300;line-height:1.65}
-.si-note{font-size:11px;color:var(--gold2);font-style:italic;margin-top:4px;display:block}
-.si-inp{display:block;width:100%;font-family:"Cormorant Garamond",serif;font-size:clamp(22px,4vw,34px);font-weight:300;color:var(--ink);background:transparent;border:none;border-bottom:.5px solid var(--rule);padding:12px 0;outline:none;transition:border-color .3s}
-.si-inp:focus{border-bottom-color:var(--gold2)}
-.si-inp::placeholder{color:rgba(26,24,22,.3);font-style:italic}
-.si-code{letter-spacing:.35em;font-family:"Inter",sans-serif;font-size:clamp(28px,4vw,42px)}
-.si-code::-webkit-inner-spin-button,.si-code::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.si-code{-moz-appearance:textfield}
-.si-actions{display:flex;align-items:center;justify-content:space-between;margin-top:36px}
-.si-btn{background:var(--ink);color:#fff;border:none;font-size:11px;letter-spacing:.24em;text-transform:uppercase;padding:15px 32px;cursor:pointer;font-family:"Inter",sans-serif;font-weight:400;transition:background .3s}
-.si-btn:hover{background:var(--ink2)}
-.si-btn:disabled{background:var(--rule);cursor:not-allowed;color:var(--ink3)}
-.si-link{font-size:12px;color:var(--ink3);cursor:pointer;background:none;border:none;font-family:"Inter",sans-serif}
-.si-link:hover{color:var(--ink)}
-.si-no-access{margin-top:28px;font-size:13px;color:var(--ink3);font-weight:300}
-.si-no-access span{color:var(--gold2);cursor:pointer}
-.si-google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 20px;border:.5px solid var(--rule);background:#fff;color:var(--ink);font-size:14px;font-family:"Inter",sans-serif;font-weight:400;cursor:pointer;transition:border-color .2s,box-shadow .2s;letter-spacing:.01em}
-.si-google-btn:hover{border-color:rgba(26,24,22,.35);box-shadow:0 1px 8px rgba(0,0,0,.06)}
-.si-divider{display:flex;align-items:center;gap:14px;margin:22px 0;color:var(--ink3);font-size:11px;letter-spacing:.18em;text-transform:uppercase}
-.si-divider::before,.si-divider::after{content:"";flex:1;height:.5px;background:var(--rule)}
-.si-fallback{margin-top:24px;padding-top:20px;border-top:.5px solid var(--rule)}
-.si-fallback-label{font-size:12px;color:var(--ink3);letter-spacing:.08em;margin-bottom:12px;font-weight:300}
-.si-fallback-opts{display:flex;flex-direction:column;gap:0}
-.si-fallback-btn{background:none;border:none;text-align:left;padding:9px 0;font-size:13px;color:var(--ink2);cursor:pointer;font-family:"Inter",sans-serif;font-weight:300;border-bottom:.5px solid var(--rule);transition:color .2s}
-.si-fallback-btn:last-child{border-bottom:none}
-.si-fallback-btn:hover{color:var(--ink)}
-.si-loader{display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 0}
-.si-spin{width:28px;height:28px;border:1.5px solid var(--rule);border-top-color:var(--gold2);border-radius:50%;animation:spin .9s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.si-loading-title{font-family:"Cormorant Garamond",serif;font-size:32px;font-weight:300;text-align:center;margin-top:16px}
-.si-loading-title em{color:var(--gold2)}
-.si-loading-sub{font-size:14px;color:var(--ink3);font-weight:300}
-
-/* RESPONSIVE */
-/* ── Tablet (881px – 1200px) ──────────────────────────────────────────── */
-@media(min-width:881px) and (max-width:1200px){
-  .hero{padding:80px 36px 52px;gap:32px}
-  .phone{width:240px}
-  .pscreen{height:460px}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0A0A0A;--ink2:#2D2D2D;--ink3:#6B7280;--ink4:#9CA3AF;
+  --bg:#FFFFFF;--bg2:#F9FAFB;--bg3:#F3F4F6;--border:#E5E7EB;
+  --green:#16A34A;--greenl:#DCFCE7;--greenbdr:#86EFAC;--greendark:#166534;
+  --amber:#D97706;--amberl:#FEF3C7;--amberbdr:#FCD34D;
+  --red:#DC2626;--redl:#FEE2E2;--blue:#1D4ED8;--bluel:#EFF6FF;
+  --r:10px;--r-lg:14px;--r-xl:20px;
 }
-
-/* ── Mobile (≤ 880px) ────────────────────────────────────────────────── */
-@media(max-width:880px){
-  .hero{grid-template-columns:1fr;padding:28px 24px 48px;gap:40px}
-  .hero-text{padding:60px 0 0}
-  .phone-wrap{align-items:center}
-  .phone{width:260px}
-  .pscreen{height:500px}
-  nav{padding:0 24px}
-  .nl:not(.btn){display:none}
-  .handles{padding:52px 24px}.handles-inner{grid-template-columns:1fr;gap:36px}
-  #how,.statement{padding:60px 24px}
-  .behaviours{padding:52px 24px}
-  .brow{grid-template-columns:1fr;gap:12px;padding:40px 0}
-  .bnum{font-size:44px}
-  .qsec{padding:64px 24px}
-  .closing{padding:72px 24px}
-  footer{padding:52px 24px 28px}.f-in{grid-template-columns:1fr 1fr;gap:28px}
-  .a-topbar{padding:0 24px}.a-stage{padding:80px 24px 40px}
-  .scard-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .si-nav{padding:0 24px}.si-body{padding:32px 20px}
-  .si-title{font-size:clamp(26px,6vw,36px)}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:15px;line-height:1.6;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.container{max-width:1120px;margin:0 auto;padding:0 24px}
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:60px;gap:32px}
+.nav-logo{font-size:18px;font-weight:800;letter-spacing:-.04em;color:var(--ink)}
+.nav-logo em{font-style:normal;color:var(--green)}
+.nav-logo-sub{font-size:10px;font-weight:500;color:var(--ink4);display:block;letter-spacing:.04em;margin-top:-3px}
+.nav-links{display:flex;gap:28px}
+.nav-link{font-size:13px;font-weight:500;color:var(--ink3);transition:color .12s}
+.nav-link:hover{color:var(--ink)}
+.nav-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.btn-sign{font-size:13px;font-weight:500;color:var(--ink2);padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:#fff;cursor:pointer}
+.btn-sign:hover{background:var(--bg2)}
+.btn-cta{font-size:13px;font-weight:600;color:#fff;padding:8px 18px;border-radius:7px;background:var(--green);border:none;cursor:pointer;transition:background .12s}
+.btn-cta:hover{background:var(--greendark)}
+/* HERO */
+.hero{padding:80px 0 72px;background:#fff}
+.hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:60px;align-items:center}
+.hero-badge{display:inline-flex;align-items:center;gap:7px;background:var(--greenl);border:1px solid var(--greenbdr);border-radius:20px;padding:5px 13px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);margin-bottom:20px}
+.badge-pulse{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.hero-h1{font-size:54px;font-weight:800;line-height:1.08;letter-spacing:-.04em;color:var(--ink);margin-bottom:20px}
+.hero-h1 em{font-style:normal;color:var(--green)}
+.hero-p{font-size:16px;color:var(--ink3);line-height:1.72;max-width:430px;margin-bottom:32px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:36px}
+.btn-hero-p{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fff;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;transition:all .12s}
+.btn-hero-p:hover{background:var(--greendark);transform:translateY(-1px)}
+.btn-hero-s{display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--ink2);font-size:14px;font-weight:500;padding:12px 22px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .12s}
+.btn-hero-s:hover{border-color:var(--ink3)}
+.hero-trust{display:flex;gap:20px;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--ink3)}
+/* PREVIEW */
+.preview{background:#fff;border:1px solid var(--border);border-radius:var(--r-xl);box-shadow:0 24px 64px rgba(0,0,0,.10),0 4px 16px rgba(0,0,0,.06);overflow:hidden}
+.preview-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%}
+.pb{padding:16px}
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.pst{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
+.pst-v{font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.pst-l{font-size:10px;color:var(--ink3);margin-top:3px;font-weight:500}
+.pst-v.g{color:var(--green)}.pst-v.a{color:var(--amber)}.pst-v.m{color:var(--ink4)}
+.plabel{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+.pjob{display:flex;align-items:center;gap:10px;padding:9px 11px;background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
+.pjav{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.pjinfo{flex:1;min-width:0}
+.pjt{font-size:12px;font-weight:600;color:var(--ink)}
+.pjc{font-size:10px;color:var(--ink3)}
+.pjw{font-size:10px;color:var(--ink3);margin-top:2px;line-height:1.35}
+.pjsc{font-size:12px;font-weight:700;color:var(--green)}
+.pview{font-size:11px;font-weight:600;color:var(--green);text-align:right;margin-top:6px;cursor:pointer}
+.pbot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.pipe-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.pipe-row:last-child{border-bottom:none}
+.pipe-name{font-weight:500;color:var(--ink2);display:flex;align-items:center;gap:4px}
+.pipe-n{font-weight:700}
+.cv-box{background:var(--greenl);border:1px solid var(--greenbdr);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.cv-ring{width:44px;height:44px;border-radius:50%;border:4px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--green);flex-shrink:0}
+/* LOGOS */
+.logos{padding:26px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2)}
+.logos-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.logos-lbl{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);white-space:nowrap;margin-right:8px}
+.source{background:#fff;border:1px solid var(--border);border-radius:6px;padding:5px 13px;font-size:12px;font-weight:600;color:var(--ink3)}
+/* SECTIONS */
+.section{padding:96px 0}
+.sec-lbl{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:10px;text-align:center}
+.sec-title{font-size:38px;font-weight:800;letter-spacing:-.03em;color:var(--ink);text-align:center;margin-bottom:12px}
+.sec-sub{font-size:15px;color:var(--ink3);text-align:center;max-width:520px;margin:0 auto 52px;line-height:1.7}
+/* STEPS */
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.step{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px}
+.step-num{width:30px;height:30px;border-radius:50%;background:var(--greenl);border:2px solid var(--greenbdr);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--green);margin-bottom:14px}
+.step-ico{font-size:24px;margin-bottom:10px}
+.step-title{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.step-desc{font-size:13px;color:var(--ink3);line-height:1.6}
+/* WHY */
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.why-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:26px}
+.why-ico{width:44px;height:44px;border-radius:10px;background:var(--greenl);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px}
+.why-title{font-size:16px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin-bottom:8px}
+.why-desc{font-size:13px;color:var(--ink3);line-height:1.7}
+/* SHOWCASE */
+.showcase-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+.sc-lbl{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:10px}
+.sc-title{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
+.sc-body{font-size:14px;color:var(--ink3);line-height:1.75;margin-bottom:26px}
+.checks{display:flex;flex-direction:column;gap:10px;margin-bottom:30px}
+.check{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:var(--ink2)}
+.check-ico{width:20px;height:20px;border-radius:50%;background:var(--greenl);border:1.5px solid var(--greenbdr);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+/* Job card */
+.jcard{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.jcard-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.jcard-title{font-size:15px;font-weight:700;color:var(--ink)}
+.jcard-co{font-size:12px;color:var(--ink3);margin-top:2px}
+.score-bdg{background:var(--greenl);border:1px solid var(--greenbdr);border-radius:6px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--green);flex-shrink:0}
+.jmeta-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.jmeta{background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:11px;color:var(--ink3);font-weight:500}
+.jcard-why{font-size:12px;color:var(--ink2);line-height:1.55;padding:10px 12px;background:var(--greenl);border-radius:7px;margin-bottom:10px}
+.jcard-miss{margin-bottom:10px}
+.miss-lbl{font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.miss-chips{display:flex;gap:6px;flex-wrap:wrap}
+.miss-chip{background:var(--redl);color:var(--red);border-radius:5px;padding:3px 9px;font-size:12px;font-weight:500}
+.jcard-rec{background:var(--amberl);border:1px solid var(--amberbdr);border-radius:7px;padding:10px 12px;font-size:12px;color:var(--ink2);margin-bottom:12px;line-height:1.55}
+.jcard-actions{display:flex;gap:7px}
+.jbtn{border-radius:7px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+/* FEATURES */
+.feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.feat{border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;transition:all .15s}
+.feat:hover{border-color:var(--green);box-shadow:0 4px 16px rgba(22,163,74,.1)}
+.feat-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px}
+.feat-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:5px}
+.feat-desc{font-size:12px;color:var(--ink3);line-height:1.6}
+/* TESTIMONIALS */
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.tcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);padding:24px}
+.tquote{font-size:28px;color:var(--green);font-weight:800;line-height:1;margin-bottom:12px}
+.tbody{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:18px}
+.tauthor{display:flex;align-items:center;gap:10px}
+.tav{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.tname{font-size:13px;font-weight:700;color:var(--ink)}
+.trole{font-size:11px;color:var(--ink3)}
+.stars{color:#FBBF24;font-size:12px;margin-top:3px}
+/* CTA */
+.cta-sec{padding:96px 0;background:var(--ink)}
+.cta-inner{text-align:center;max-width:620px;margin:0 auto}
+.cta-title{font-size:42px;font-weight:800;letter-spacing:-.04em;color:#fff;margin-bottom:12px;line-height:1.15}
+.cta-title em{font-style:normal;color:var(--green)}
+.cta-sub{font-size:15px;color:rgba(255,255,255,.55);margin-bottom:32px;line-height:1.7}
+.cta-checks{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:22px}
+.ccheck{display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,.6)}
+.ccheck em{font-style:normal;color:var(--green)}
+/* FOOTER */
+footer{background:var(--ink);border-top:1px solid rgba(255,255,255,.07);padding:36px 0}
+.foot-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.flogo{font-size:16px;font-weight:800;letter-spacing:-.04em;color:#fff}
+.flogo em{font-style:normal;color:var(--green)}
+.flinks{display:flex;gap:20px;flex-wrap:wrap}
+.flink{font-size:12px;color:rgba(255,255,255,.45);transition:color .12s}
+.flink:hover{color:rgba(255,255,255,.8)}
+.fcopy{font-size:12px;color:rgba(255,255,255,.3)}
+/* RESPONSIVE */
+@media(max-width:900px){
+  .hero-grid,.showcase-grid{grid-template-columns:1fr;gap:40px}
+  .preview{display:none}
+  .hero-h1{font-size:38px}
+  .steps{grid-template-columns:1fr 1fr}
+  .why-grid,.feat-grid{grid-template-columns:1fr 1fr}
+  .testi-grid{grid-template-columns:1fr}
+  .sec-title{font-size:28px}.cta-title{font-size:30px}
+}
+@media(max-width:600px){
+  .nav-links{display:none}
+  .hero-h1{font-size:30px}
+  .steps,.why-grid{grid-template-columns:1fr}
+  .hero-btns{flex-direction:column}
+  .btn-hero-p,.btn-hero-s{justify-content:center}
+  .feat-grid{grid-template-columns:1fr 1fr}
+  .stat-strip{grid-template-columns:1fr 1fr}
+  .container{padding:0 16px}
 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
-<nav id="nav">
-  <div class="brand" id="brand">
-    <img src="data:image/png;base64,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" alt="FEN" style="height:80px;width:80px;display:inline-block;vertical-align:middle;margin-right:8px;"/>
-    <span class="wordmark">FEN</span>
-  </div>
-  <div class="nav-links">
-    <button class="nl" onclick="navScroll('how')">How it works</button>
-    <a class="nl" href="/frontend/privacy.html">Privacy</a>
-    <button class="nl" onclick="siOpen()">Sign in</button>
-    <button class="nl btn" onclick="openAccess()">Request access</button>
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <div>
+        <div class="nav-logo">FEN<em>.</em></div>
+        <span class="nav-logo-sub">Find Employment Now</span>
+      </div>
+      <div class="nav-links">
+        <a class="nav-link" href="#how-it-works">How it works</a>
+        <a class="nav-link" href="#features">Features</a>
+        <a class="nav-link" href="#matches">Match analysis</a>
+      </div>
+      <div class="nav-actions">
+        <a href="/frontend/fen_app.html" class="btn-sign">Sign in</a>
+        <a href="/frontend/fen_app.html" class="btn-cta">Get started free</a>
+      </div>
+    </div>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-text">
-    <div class="eyebrow">Job search · On your terms</div>
-    <h1 class="serif">Your job search,<br/><em>handled for you.</em></h1>
-    <p class="hero-sub">Upload your CV. FEN scans hundreds of live jobs daily, scores each one against your skills and preferences, and sends you only the best matches — straight to Telegram.</p>
-    <p class="hero-outcome">One tap to apply. FEN writes your tailored CV and cover letter. You approve. It sends.</p>
-    <div class="btns">
-      <button class="btn-p" onclick="openAccess()">Get early access</button>
-      <button class="btn-g" onclick="navScroll('how')">See how it works ↓</button>
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-badge"><div class="badge-pulse"></div>AI Job Search Agent</div>
+        <h1 class="hero-h1">Stop applying blindly. FEN finds <em>the jobs worth your time.</em></h1>
+        <p class="hero-p">Upload your CV once. FEN searches jobs daily, scores each role, explains why it fits, helps tailor your CV and cover letter, and tracks your applications from interested to offer.</p>
+        <div class="hero-btns">
+          <a href="/frontend/fen_app.html" class="btn-hero-p">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload your CV
+          </a>
+          <a href="#how-it-works" class="btn-hero-s">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            See how FEN works
+          </a>
+        </div>
+        <div class="hero-trust">
+          <div class="trust-item">📋 Daily matched jobs</div>
+          <div class="trust-item">🎯 Why this matches</div>
+          <div class="trust-item">✏️ Tailored applications</div>
+          <div class="trust-item">📊 Application tracking</div>
+        </div>
+      </div>
+      <div class="preview">
+        <div class="preview-bar">
+          <div class="dot" style="background:#FF5F57"></div>
+          <div class="dot" style="background:#FFBD2E"></div>
+          <div class="dot" style="background:#28CA41"></div>
+        </div>
+        <div class="pb">
+          <div class="stat-strip">
+            <div class="pst"><div class="pst-v">126</div><div class="pst-l">Jobs scanned today</div></div>
+            <div class="pst"><div class="pst-v g">4</div><div class="pst-l">Strong matches for you</div></div>
+            <div class="pst"><div class="pst-v a">9</div><div class="pst-l">Possible matches to review</div></div>
+            <div class="pst"><div class="pst-v m">113</div><div class="pst-l">Hidden as irrelevant</div></div>
+          </div>
+          <div class="plabel">Today's strongest matches</div>
+          <div class="pjob">
+            <div class="pjav" style="background:#2563EB">J</div>
+            <div class="pjinfo"><div class="pjt">Java Developer</div><div class="pjc">Reed · London, UK · £40k–£45k</div><div class="pjw">Java, Spring Boot, backend APIs, London preference.</div></div>
+            <div class="pjsc">82%</div>
+          </div>
+          <div class="pjob">
+            <div class="pjav" style="background:#7C3AED">B</div>
+            <div class="pjinfo"><div class="pjt">Backend Engineer</div><div class="pjc">Monzo · London, UK · £50k–£60k</div><div class="pjw">Microservices, Spring Boot, AWS, REST APIs.</div></div>
+            <div class="pjsc">78%</div>
+          </div>
+          <div class="pjob">
+            <div class="pjav" style="background:#059669">F</div>
+            <div class="pjinfo"><div class="pjt">Full Stack Developer</div><div class="pjc">Stripe · London, UK · £45k–£55k</div><div class="pjw">JavaScript, APIs, AWS, Docker, full stack.</div></div>
+            <div class="pjsc">74%</div>
+          </div>
+          <div class="pview">View all matches →</div>
+          <div class="pbot">
+            <div>
+              <div class="plabel">Application pipeline</div>
+              <div class="pipe-row"><div class="pipe-name"><span style="color:var(--green)">●</span> Shortlisted</div><div class="pipe-n" style="color:var(--green)">12</div></div>
+              <div class="pipe-row"><div class="pipe-name"><span style="color:var(--amber)">●</span> Ready to apply</div><div class="pipe-n" style="color:var(--amber)">8</div></div>
+              <div class="pipe-row"><div class="pipe-name"><span style="color:var(--green)">●</span> Applied</div><div class="pipe-n" style="color:var(--green)">14</div></div>
+              <div class="pipe-row"><div class="pipe-name"><span style="color:#7C3AED">●</span> Interview</div><div class="pipe-n" style="color:#7C3AED">5</div></div>
+              <div class="pipe-row"><div class="pipe-name"><span style="color:var(--amber)">●</span> Offer</div><div class="pipe-n" style="color:var(--amber)">2</div></div>
+            </div>
+            <div>
+              <div class="plabel">CV readiness</div>
+              <div class="cv-box">
+                <div class="cv-ring">87%</div>
+                <div>
+                  <div style="font-size:11px;font-weight:700;color:var(--green)">Great job!</div>
+                  <div style="font-size:10px;color:var(--greendark);line-height:1.4">Your CV is well-optimised.</div>
+                  <div style="font-size:10px;font-weight:600;color:var(--green);margin-top:4px">Improve CV →</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="phone-wrap">
-    <div class="phone"><div class="pscreen">
-      <div class="ps-bar"><span id="ps-time">9:41</span><span>●●●</span></div>
-      <div class="ps-head"><div class="ps-sub">Telegram</div><div class="ps-name serif">FEN</div></div>
-      <div class="ps-msgs" id="ps-msgs"></div>
-      <div class="ps-inp"><div class="ps-ib">Reply to FEN…</div></div>
-    </div></div>
-    <div class="phone-cap" id="ps-cap">Matched before you searched.</div>
   </div>
 </section>
 
-<!-- WHAT FEN DOES -->
-<section class="handles">
-  <div class="handles-inner">
-    <div class="h-left">
-      <h2 class="serif">What FEN <em>actually does.</em></h2>
-      <p>Not a job board. Not a CV tool. FEN is an agent that runs your entire job search — silently, daily, without you lifting a finger.</p>
-      <div class="h-end">Not more scrolling through listings.<br/><em>Fewer missed opportunities.</em></div>
+<!-- SOURCE BAR -->
+<div class="logos">
+  <div class="container">
+    <div class="logos-row">
+      <div class="logos-lbl">Jobs sourced from</div>
+      <div class="source">Reed</div><div class="source">LinkedIn</div><div class="source">Indeed</div>
+      <div class="source">Guardian Jobs</div><div class="source">Greenhouse</div>
+      <div class="source">Lever</div><div class="source">Remotive</div><div class="source">+more daily</div>
     </div>
-    <ul class="h-list">
-      <li class="h-item"><div class="h-dot"></div><div class="h-item-text"><strong>Scans 8 job sources daily</strong><span>Adzuna, Reed, LinkedIn boards, Greenhouse, Lever and more — all checked at 8am.</span></div></li>
-      <li class="h-item"><div class="h-dot"></div><div class="h-item-text"><strong>Scores every job against your CV</strong><span>Skills, role fit, location, salary — combined with semantic matching. Only the best land in your inbox.</span></div></li>
-      <li class="h-item"><div class="h-dot"></div><div class="h-item-text"><strong>Sends matches to Telegram with one-tap actions</strong><span>Interested, skip, or ask why it matched. No app to open.</span></div></li>
-      <li class="h-item"><div class="h-dot"></div><div class="h-item-text"><strong>Writes a tailored CV and cover letter for each job</strong><span>Rewritten around the job description. Ready in 30 seconds. You approve before anything is sent.</span></div></li>
-      <li class="h-item"><div class="h-dot"></div><div class="h-item-text"><strong>Watches your inbox for replies</strong><span>Interview invite, rejection, offer — FEN spots it and notifies you immediately.</span></div></li>
-    </ul>
   </div>
-</section>
-
-<div class="rdiv"><svg width="80" height="16" viewBox="0 0 80 16" fill="none"><path d="M4 8 Q20 3,40 8 T76 8" stroke="#B8976B" stroke-width=".8" stroke-linecap="round" opacity=".5"/></svg></div>
-
-<!-- HOW IT WORKS -->
-<div id="how">
-  <div class="how-head">
-    <div style="font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold2);margin-bottom:16px">The journey</div>
-    <h2 class="serif">From CV upload <em>to interview invite.</em></h2>
-    <p>Five steps. All handled. You just say yes or no.</p>
-  </div>
-  <div class="journey">
-    <div class="step"><div class="snum">I</div><div class="sbody"><div class="stag">Upload once</div><h3 class="stitle serif">Drop your CV. <em>FEN reads it.</em></h3><p class="sdesc">Upload your CV and FEN extracts your skills, experience, target roles, and salary expectations. Your profile is built in seconds — and it improves every time you give feedback.</p><div class="sdemo"><b>FEN extracted:</b> TypeScript · React · Node.js · 6 years exp · Target: Senior Engineer · £90k+</div></div></div>
-    <div class="step"><div class="snum">II</div><div class="sbody"><div class="stag">Daily scan</div><h3 class="stitle serif">FEN searches. <em>Every morning.</em></h3><p class="sdesc">At 8am, FEN scans 8 job sources and scores every new listing against your profile — skills match, role fit, location, salary, and semantic similarity. You only see the best.</p><div class="skicker">Hundreds of jobs checked. You see five.</div></div></div>
-    <div class="step"><div class="snum">III</div><div class="sbody"><div class="stag">Your Telegram</div><h3 class="stitle serif">Matches arrive. <em>You decide.</em></h3><p class="sdesc">Each match arrives as a Telegram card with a score, summary, and three buttons. One tap and you're done.</p><div class="sdemo"><b>Senior TypeScript Engineer — Monzo · London · 🟢 87%</b><br/><em>Strong TypeScript and distributed systems background matches well.</em><br/>✅ Interested &nbsp; ❌ Skip &nbsp; ❓ Why matched</div></div></div>
-    <div class="step"><div class="snum">IV</div><div class="sbody"><div class="stag">Tailored in 30s</div><h3 class="stitle serif">CV rewritten. <em>Cover letter drafted.</em></h3><p class="sdesc">Tap Interested and FEN rewrites your CV to mirror the job description — highlighting the right experience in the right order. A cover letter follows. Both land in Telegram for your review.</p><div class="skicker">Nothing is sent without your approval.</div><div class="sdemo"><b>FEN:</b> Your documents are ready — CV tailored for Monzo's stack, cover letter written. Approve to apply?<br/>✅ Approve &amp; Apply &nbsp; 🔄 Regenerate</div></div></div>
-    <div class="step"><div class="snum">V</div><div class="sbody"><div class="stag">Applied. Tracked.</div><h3 class="stitle serif">FEN applies. <em>Then watches.</em></h3><p class="sdesc">Once approved, FEN sends your application. It then monitors your inbox for replies — interview invites, rejections, assessments — and notifies you the moment something arrives.</p><div class="skicker">Your pipeline runs itself.</div><div class="sdemo"><b>FEN:</b> 🎉 Interview invite from Monzo! Check your inbox — they want to book a call this week.</div></div></div>
-  </div>
-  <div class="cta-block"><h3>"The search runs itself. You just say yes."</h3><p>Upload your CV and let FEN do the rest.</p><button class="btn-p" onclick="openAccess()">Get early access →</button></div>
 </div>
 
-<div class="rdiv"><svg width="80" height="16" viewBox="0 0 80 16" fill="none"><path d="M4 8 Q20 3,40 8 T76 8" stroke="#B8976B" stroke-width=".8" stroke-linecap="round" opacity=".5"/></svg></div>
-
-<!-- STATEMENT -->
-<section class="statement">
-  <div class="s-ey">The philosophy</div>
-  <h2 class="s-h serif">Job searching is a <em>full-time job.</em><br/>You already have one.</h2>
-  <p class="s-p">Most people miss good opportunities not because they aren't qualified — but because they never saw them, or didn't have the time to apply properly.</p>
-  <p class="s-p">FEN removes that problem entirely. It scans, scores, writes, and applies — while you're doing everything else.</p>
-  <p class="s-p">You stay in control of every decision. FEN just handles everything before it.</p>
-  <p class="s-contrast">Less searching.<br/><em>More interviewing.</em></p>
+<!-- HOW IT WORKS -->
+<section class="section" id="how-it-works" style="background:#fff">
+  <div class="container">
+    <div class="sec-lbl">How it works</div>
+    <h2 class="sec-title">From CV to interview in 4 steps</h2>
+    <p class="sec-sub">FEN does the hard work. You focus on the opportunities that actually fit.</p>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-ico">📄</div><div class="step-title">Upload your CV</div><div class="step-desc">Upload once. FEN parses your experience, skills, and preferences to build your candidate profile.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-ico">🔍</div><div class="step-title">Get matched jobs daily</div><div class="step-desc">FEN finds and ranks the best jobs that truly fit you every day. Strong matches at the top, irrelevant jobs hidden.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-ico">✏️</div><div class="step-title">Tailor your application</div><div class="step-desc">Get AI-crafted CVs and cover letters customised for each role. FEN identifies missing keywords and fills the gaps.</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-ico">📊</div><div class="step-title">Track every application</div><div class="step-desc">See your pipeline move from shortlisted to interview to offer. Never lose track of where you stand.</div></div>
+    </div>
+  </div>
 </section>
 
-<div class="rdiv"><svg width="80" height="16" viewBox="0 0 80 16" fill="none"><path d="M4 8 Q20 3,40 8 T76 8" stroke="#B8976B" stroke-width=".8" stroke-linecap="round" opacity=".5"/></svg></div>
-
-<!-- BEHAVIOURS -->
-<section class="behaviours">
-  <div class="brow"><div class="bnum">I.</div><div><div class="btag">Works while you sleep</div><h3 class="btit serif">Every morning. <em>Without asking.</em></h3><p class="bdesc">FEN runs at 8am every day. New jobs are fetched, scored, and waiting for you in Telegram before you've had your first coffee. No login. No search.</p></div></div>
-  <div class="brow"><div class="bnum">II.</div><div><div class="btag">Quality, not volume</div><h3 class="btit serif">Hundreds scanned. <em>Five sent to you.</em></h3><p class="bdesc">A weighted scoring engine filters by skills, role, location, and salary — then a semantic model boosts matches where your background genuinely fits. You only see the jobs worth your time.</p></div></div>
-  <div class="brow"><div class="bnum">III.</div><div><div class="btag">You always decide</div><h3 class="btit serif">FEN prepares. <em>You approve.</em></h3><p class="bdesc">Every tailored CV and cover letter requires your sign-off before anything is sent. One tap to approve, one to regenerate. No surprises, no applications you didn't sanction.</p></div></div>
+<!-- WHY FEN -->
+<section class="section" style="background:var(--bg2)">
+  <div class="container">
+    <div class="sec-lbl">Why job seekers choose FEN</div>
+    <h2 class="sec-title">Built for the modern job search</h2>
+    <p class="sec-sub">Most job boards show hundreds of irrelevant listings. FEN shows only the roles worth your time — and explains why.</p>
+    <div class="why-grid">
+      <div class="why-card"><div class="why-ico">🎯</div><div class="why-title">Stop applying blindly</div><div class="why-desc">We filter out irrelevant jobs and surface only the ones worth your time. No more scrolling through hundreds of listings that don't fit.</div></div>
+      <div class="why-card"><div class="why-ico">🔍</div><div class="why-title">See why each job fits</div><div class="why-desc">Every match includes a clear explanation of why you're a strong candidate — and what's missing from your CV for that role.</div></div>
+      <div class="why-card"><div class="why-ico">🚀</div><div class="why-title">Move to interview faster</div><div class="why-desc">Tailored CVs, AI-written cover letters, and smart tracking help you get noticed and move forward faster.</div></div>
+    </div>
+  </div>
 </section>
 
-<!-- QUOTE -->
-<section class="qsec">
-  <div class="qmark">"</div>
-  <p class="qtext">You shouldn't have to spend your evenings tailoring CVs.<br/>That's not <em>effort well spent.</em><br/>That's a job for <em>a machine that cares.</em></p>
-  <div style="font-size:11px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3)">— The FEN idea</div>
+<!-- SHOWCASE -->
+<section class="section" id="matches" style="background:var(--bg2)">
+  <div class="container">
+    <div class="showcase-grid">
+      <div>
+        <div class="sc-lbl">Match analysis</div>
+        <h2 class="sc-title">FEN doesn't just find jobs — it explains why they fit</h2>
+        <p class="sc-body">Every match comes with a score, the reasons it matches your CV, the keywords you're missing, and FEN's recommendation on whether to apply.</p>
+        <div class="checks">
+          <div class="check"><div class="check-ico">✓</div>Match score 0–100% based on your full profile</div>
+          <div class="check"><div class="check-ico">✓</div>Keywords your CV covers — shown in green</div>
+          <div class="check"><div class="check-ico">✓</div>Missing keywords to add before applying — shown in red</div>
+          <div class="check"><div class="check-ico">✓</div>FEN's recommendation: apply now, tailor first, or skip</div>
+        </div>
+        <a href="/frontend/fen_app.html" class="btn-hero-p" style="display:inline-flex">See your matches →</a>
+      </div>
+      <div>
+        <div class="jcard">
+          <div class="jcard-head">
+            <div><div class="jcard-title">Java Developer</div><div class="jcard-co">Reed · London · Hybrid · £40k–£45k</div></div>
+            <div class="score-bdg">82% Strong match</div>
+          </div>
+          <div class="jmeta-row">
+            <div class="jmeta">💰 £40k–£45k</div><div class="jmeta">🏠 Hybrid</div>
+            <div class="jmeta">📍 London</div><div class="jmeta">Reed</div>
+          </div>
+          <div class="jcard-why"><div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">✅ Why it matches</div>Your CV shows Java, Spring Boot, SQL, backend APIs, Agile delivery, and London preference.</div>
+          <div class="jcard-miss">
+            <div class="miss-lbl">⚠ Missing from your CV</div>
+            <div class="miss-chips"><span class="miss-chip">AWS</span><span class="miss-chip">Docker</span><span class="miss-chip">CI/CD</span></div>
+          </div>
+          <div class="jcard-rec"><strong>FEN recommendation:</strong> Apply after tailoring — add AWS and Docker to your skills section to become a strong applicant.</div>
+          <div class="jcard-actions">
+            <button class="jbtn" style="background:var(--green);color:#fff">Prepare application</button>
+            <button class="jbtn" style="background:var(--bg2);border:1px solid var(--border);color:var(--ink2)">Full analysis</button>
+            <button class="jbtn" style="background:var(--redl);color:var(--red)">Skip</button>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--ink3);text-align:center;margin-top:8px">FEN analyses every job against your full CV and profile</div>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- CLOSING -->
-<section class="closing">
-  <div style="font-size:10px;letter-spacing:.26em;text-transform:uppercase;color:var(--gold2);margin-bottom:20px">Early access · UK job seekers</div>
-  <h2 class="serif">For people who are <em>too good</em><br/>to be spending nights on job applications.</h2>
-  <p class="closing-def">Upload your CV once. FEN scans daily, scores ruthlessly, writes your documents, and sends your applications — with your approval, always.</p>
-  <button class="btn-p" onclick="openAccess()">Get early access</button>
-  <div style="font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-top:36px">Free to start · UK focused · Your CV stays private</div>
+<!-- FEATURES -->
+<section class="section" id="features" style="background:#fff">
+  <div class="container">
+    <div class="sec-lbl">Everything included</div>
+    <h2 class="sec-title">Everything you need to land your next role</h2>
+    <p class="sec-sub">FEN is a complete job search system — not just a job board.</p>
+    <div class="feat-grid">
+      <div class="feat"><div class="feat-ico" style="background:#DCFCE7">🤖</div><div class="feat-title">ATS &amp; CV readiness</div><div class="feat-desc">Get an ATS score and improve your CV to beat the filters that reject most applications.</div></div>
+      <div class="feat"><div class="feat-ico" style="background:#EFF6FF">💼</div><div class="feat-title">LinkedIn optimisation</div><div class="feat-desc">Optimise your profile to attract recruiters and unlock more opportunities.</div></div>
+      <div class="feat"><div class="feat-ico" style="background:#EFF6FF">📱</div><div class="feat-title">Telegram alerts</div><div class="feat-desc">Get daily job matches straight to your Telegram. Never miss a strong match.</div></div>
+      <div class="feat"><div class="feat-ico" style="background:#F3E8FF">🎤</div><div class="feat-title">Interview preparation</div><div class="feat-desc">Practice common questions and get AI feedback to interview with confidence.</div></div>
+      <div class="feat"><div class="feat-ico" style="background:#FEF3C7">⭐</div><div class="feat-title">Job match scoring</div><div class="feat-desc">AI scores every role based on your skills, experience, and goals — not just keywords.</div></div>
+      <div class="feat"><div class="feat-ico" style="background:#DCFCE7">📊</div><div class="feat-title">Application tracking</div><div class="feat-desc">Track every application and follow up at the right time. Your pipeline in one place.</div></div>
+      <div class="feat"><div class="feat-ico" style="background:#FEE2E2">📄</div><div class="feat-title">Tailored CVs</div><div class="feat-desc">AI-tailored CVs that highlight what matters to each employer and role.</div></div>
+      <div class="feat"><div class="feat-ico" style="background:#F0FDF4">✉️</div><div class="feat-title">Cover letters</div><div class="feat-desc">AI-generated cover letters that speak directly to the job and company.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section" style="background:#fff">
+  <div class="container">
+    <div class="sec-lbl">Trusted by job seekers</div>
+    <h2 class="sec-title">Real people. Real interviews.</h2>
+    <p class="sec-sub">Job seekers and career changers using FEN to land roles faster.</p>
+    <div class="testi-grid">
+      <div class="tcard"><div class="tquote">"</div><div class="tbody">FEN completely changed how I search for jobs. I finally get matches that make sense and interviews every week. The match explanations are genuinely useful.</div><div class="tauthor"><div class="tav" style="background:#2563EB">A</div><div><div class="tname">Alex K.</div><div class="trole">Product Manager</div><div class="stars">★★★★★</div></div></div></div>
+      <div class="tcard"><div class="tquote">"</div><div class="tbody">The match explanations are spot on and the tailored CVs save me hours. I used to spend a weekend on each application — now it's 20 minutes.</div><div class="tauthor"><div class="tav" style="background:#7C3AED">P</div><div><div class="tname">Priya M.</div><div class="trole">Software Engineer</div><div class="stars">★★★★★</div></div></div></div>
+      <div class="tcard"><div class="tquote">"</div><div class="tbody">As a career changer, FEN helped me position my experience and land my dream role. It told me exactly what was missing from my CV for each job.</div><div class="tauthor"><div class="tav" style="background:#059669">J</div><div><div class="tname">James L.</div><div class="trole">Data Analyst</div><div class="stars">★★★★★</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec">
+  <div class="container">
+    <div class="cta-inner">
+      <h2 class="cta-title">Turn your experience into <em>interviews.</em></h2>
+      <p class="cta-sub">Let FEN do the searching, matching, and tracking — so you can focus on landing your next role.</p>
+      <a href="/frontend/fen_app.html" class="btn-hero-p" style="font-size:15px;padding:14px 28px;display:inline-flex">Get started free →</a>
+      <div class="cta-checks">
+        <div class="ccheck"><em>✓</em> No credit card required</div>
+        <div class="ccheck"><em>✓</em> Free to get started</div>
+        <div class="ccheck"><em>✓</em> Cancel anytime</div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
-  <div class="f-in">
-    <div><div class="fbrand"><span class="fname serif">FEN</span></div><p class="ftag">Your job search agent. Scans daily, scores ruthlessly, applies with your approval.</p></div>
-    <div class="fcol"><h4>Product</h4><a onclick="navScroll('how')">How it works</a><a>Channels</a><a>Pricing</a></div>
-    <div class="fcol"><h4>Principles</h4><a href="/frontend/privacy.html">Privacy</a><a>Permissions</a><a>Your data</a></div>
-    <div class="fcol"><h4>Company</h4><a>About</a><a>Contact</a><a>Press</a></div>
+  <div class="container">
+    <div class="foot-inner">
+      <div>
+        <div class="flogo">FEN<em>.</em></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:3px">Find Employment Now</div>
+      </div>
+      <div class="flinks">
+        <a href="/frontend/privacy.html" class="flink">Privacy</a>
+        <a href="https://t.me/fen_ai_bot" class="flink" target="_blank" rel="noopener">Telegram</a>
+        <a href="/frontend/fen_app.html" class="flink">Dashboard</a>
+      </div>
+      <div class="fcopy">© 2026 FEN. All rights reserved.</div>
+    </div>
   </div>
-  <div class="fbot"><span>© FEN 2026</span><div style="display:flex;align-items:center;gap:16px"><div class="fseal">美</div><span>Made with restraint</span></div></div>
 </footer>
 
-<!-- ════════ REQUEST ACCESS OVERLAY ════════ -->
-<div id="access-view">
-  <div class="a-topbar">
-    <div class="a-tb-brand"><img src="data:image/png;base64,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" class="a-tb-fox"/><span class="a-tb-name serif">FEN</span></div>
-    <button class="a-tb-close" onclick="closeAccess()">← Take me back</button>
-  </div>
-  <div class="a-stage">
-
-    <!-- Screen 0: Request form -->
-    <div class="a-screen active" data-screen="0">
-      <div style="max-width:480px">
-        <div style="font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold2);margin-bottom:24px;display:flex;align-items:center;gap:12px"><span style="width:20px;height:.5px;background:var(--gold);display:inline-block"></span>Invitation only<span style="width:20px;height:.5px;background:var(--gold);display:inline-block"></span></div>
-        <h2 class="serif" style="font-size:clamp(32px,4vw,50px);font-weight:300;line-height:1.1;letter-spacing:-.015em;margin-bottom:16px">Request <em>access.</em></h2>
-        <p style="font-size:15px;line-height:1.8;color:var(--ink2);font-weight:300;margin-bottom:36px">FEN is invitation-only. Leave your name and email and we'll be in touch within 48 hours.</p>
-        <input type="text" class="q-input" id="ans-name" placeholder="Your first name" autocomplete="given-name" style="margin-bottom:14px"/>
-        <input type="email" class="q-input" id="ans-email" placeholder="your@email.com" autocomplete="email"/>
-        <p id="acc-error" style="font-size:13px;color:#c0392b;margin:10px 0 0;display:none"></p>
-        <div class="q-footer" style="margin-top:28px">
-          <button class="q-back" onclick="closeAccess()">← Cancel</button>
-          <button class="q-next" id="acc-submit" onclick="submitRequest()" disabled>Request access →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Screen 1: Confirmation -->
-    <div class="a-screen" data-screen="1">
-      <div class="a-conf">
-        <h1>Received.</h1>
-        <p class="a-conf-body">We'll review your request and if accepted you'll get an email with a sign-in link.</p>
-        <div class="a-meta">
-          <div class="a-meta-row"><span class="a-meta-label">Request ID</span><span class="a-meta-val" id="req-id">—</span></div>
-          <div class="a-meta-row"><span class="a-meta-label">Submitted</span><span class="a-meta-val" id="req-date">—</span></div>
-          <div class="a-meta-row"><span class="a-meta-label">Name</span><span class="a-meta-val" id="req-name">—</span></div>
-        </div>
-        <div class="a-seal-wrap"><div class="a-seal">美</div></div>
-        <p class="a-sig">Until soon.</p>
-        <button class="q-back" style="margin-top:40px;display:inline-block" onclick="closeAccess()">← Return to FEN</button>
-      </div>
-    </div>
-
-    <!-- Screen 2: Already registered -->
-    <div class="a-screen" data-screen="2">
-      <div class="a-conf">
-        <h1>You're already with us.</h1>
-        <p class="a-conf-body">Your request is being reviewed. We haven't forgotten you.</p>
-        <div class="a-meta">
-          <div class="a-meta-row"><span class="a-meta-label">Request ID</span><span class="a-meta-val" id="existing-req-id">—</span></div>
-          <div class="a-meta-row"><span class="a-meta-label">Submitted</span><span class="a-meta-val" id="existing-req-date">—</span></div>
-          <div class="a-meta-row"><span class="a-meta-label">Name</span><span class="a-meta-val" id="existing-req-name">—</span></div>
-        </div>
-        <div class="a-seal-wrap"><div class="a-seal">美</div></div>
-        <p class="a-sig">Sit tight.</p>
-        <button class="q-back" style="margin-top:40px;display:inline-block" onclick="closeAccess()">← Return to FEN</button>
-      </div>
-    </div>
-
-  </div><!-- end a-stage -->
-</div><!-- end access-view -->
-
-<!-- ════════ SIGN IN OVERLAY ════════ -->
-<div id="si">
-  <div class="si-nav">
-    <div class="si-logo"><img src="data:image/png;base64,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" alt="FEN"/><span>FEN</span></div>
-    <button class="si-close" onclick="siClose()">← Back to FEN</button>
-  </div>
-  <div class="si-body">
-    <div class="si-card">
-      <div class="si-step on" id="si-step-0">
-        <div class="si-eyebrow">Sign in</div>
-        <h2 class="si-title serif">Welcome <em>back.</em></h2>
-        <p class="si-hint" style="margin-bottom:28px">Sign in to your FEN account.</p>
-        <!-- Google button -->
-        <button class="si-google-btn" onclick="siGoogleSignIn()">
-          <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/><path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.175 0 7.55 0 9s.348 2.825.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
-          Continue with Google
-        </button>
-        <!-- Divider -->
-        <div class="si-divider"><span>or sign in with email</span></div>
-        <input id="si-email" class="si-inp" type="email" placeholder="your@email.com" autocomplete="email"/>
-        <p id="si-error" style="font-size:13px;color:#c0392b;margin:10px 0 0;display:none;font-weight:400"></p>
-        <div class="si-actions">
-          <button class="si-link" onclick="siClose()">Cancel</button>
-          <button id="si-btn-0" class="si-btn" disabled onclick="siStep1()">Send magic link →</button>
-        </div>
-        <p class="si-no-access">No access yet? <span onclick="siClose();openAccess()">Request it →</span></p>
-      </div>
-      <div class="si-step" id="si-step-1">
-        <div class="si-eyebrow">Check your inbox</div>
-        <h2 class="si-title serif">Magic link <em>sent.</em></h2>
-        <p class="si-hint" id="si-sent-hint">We emailed you a sign-in link. Click it to continue — it expires in 15 minutes.</p>
-        <div class="si-actions" style="margin-top:28px">
-          <button class="si-link" onclick="siShowStep(0)">← Try a different email</button>
-          <button class="si-fallback-btn" onclick="siResend()" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:13px 22px;border:.5px solid var(--rule2);background:none;cursor:pointer;font-family:inherit">Resend</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div><!-- end si -->
-
-<script>
-/* ── Phone mockup animation ── */
-var phoneScenes = [
-  {
-    cap: 'Matched before you searched.',
-    time: '8:04',
-    messages: [
-      { side: 'i', text: '🔍 FEN found 3 new job matches for you today', delay: 0 },
-      { side: 'i', text: '🟢 Senior TypeScript Engineer\nMonzo · London · £90k–£110k\n87% match — strong skills fit.\n\n<i>Tap to apply or skip.</i>', delay: 1000 },
-      { side: 'a', al: 'Your move', aw: 'Monzo · Senior Engineer', al2: 'One tap to decide.', ad: '"Interested" — FEN tailors your CV and cover letter, ready in 30 seconds.', delay: 2200 }
-    ]
-  },
-  {
-    cap: 'CV tailored in 30 seconds.',
-    time: '8:06',
-    messages: [
-      { side: 'i', text: '📄 Your documents are ready!\n\nSenior TypeScript Engineer @ Monzo', delay: 0 },
-      { side: 'i', text: 'CV rewritten to match their stack.\nCover letter drafted — 3 paragraphs, specific to Monzo\'s mission.', delay: 1200 },
-      { side: 'a', al: 'Approve to apply', aw: 'Monzo application', al2: 'Nothing sent without your word.', ad: 'Approve & Apply — FEN emails your application directly.', delay: 2400 }
-    ]
-  },
-  {
-    cap: 'Applied. Just like that.',
-    time: '8:07',
-    messages: [
-      { side: 'o', text: '✅ Approve', delay: 0 },
-      { side: 'i', text: '🚀 Application sent!\n\nMonzo · Senior TypeScript Engineer\nEmailed to careers@monzo.com', delay: 900 },
-      { side: 'i', text: 'I\'ll watch your inbox and tell you the moment they reply.', delay: 2000 }
-    ]
-  },
-  {
-    cap: 'The interview invite arrives.',
-    time: '14:32',
-    messages: [
-      { side: 'i', text: '🎉 Interview invite from Monzo!', delay: 0 },
-      { side: 'i', text: 'Subject: "We\'d love to chat — Senior Engineer role"\n\nThey want to book a call this week.', delay: 1000 },
-      { side: 'o', text: 'amazing, what should I know before the call', delay: 2400 },
-      { side: 'i', text: 'Monzo is Series G, ~£4bn valuation. They\'re rebuilding their lending stack. You interviewed there in 2022 — went to final round.', delay: 3400 }
-    ]
-  }
-];
-
-var phoneSceneIdx = 0;
-var phoneAnimTimeout = null;
-
-function phoneBuildMsg(m) {
-  var el = document.createElement('div');
-  if (m.side === 'a') {
-    el.className = 'pm a';
-    el.innerHTML = '<div class="al">' + m.al + '</div><div class="aw">' + m.aw + '</div><div class="al2">' + m.al2 + '</div><div class="ad">' + m.ad + '</div><div class="abs"><button class="ab s">Send</button><button class="ab e">Edit</button></div>';
-  } else {
-    el.className = 'pm ' + m.side;
-    el.innerHTML = m.text.replace(/\n/g, '<br>');
-  }
-  el.style.opacity = '0';
-  el.style.transform = 'translateY(6px)';
-  el.style.transition = 'opacity .35s, transform .35s';
-  return el;
-}
-
-function phoneRunScene(scene) {
-  var msgs = document.getElementById('ps-msgs');
-  var cap = document.getElementById('ps-cap');
-  var time = document.getElementById('ps-time');
-  if (!msgs) return;
-  msgs.innerHTML = '<div class="ps-t">Today · ' + scene.time + '</div>';
-  if (cap) cap.textContent = scene.cap;
-  if (time) time.textContent = scene.time;
-  scene.messages.forEach(function(m) {
-    phoneAnimTimeout = setTimeout(function() {
-      var el = phoneBuildMsg(m);
-      msgs.appendChild(el);
-      requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-          el.style.opacity = '1';
-          el.style.transform = 'translateY(0)';
-          msgs.scrollTop = msgs.scrollHeight;
-        });
-      });
-    }, m.delay);
-  });
-  var lastDelay = scene.messages[scene.messages.length - 1].delay + 4500;
-  phoneAnimTimeout = setTimeout(function() {
-    msgs.style.opacity = '0';
-    msgs.style.transition = 'opacity .5s';
-    setTimeout(function() {
-      phoneSceneIdx = (phoneSceneIdx + 1) % phoneScenes.length;
-      msgs.style.opacity = '1';
-      phoneRunScene(phoneScenes[phoneSceneIdx]);
-    }, 600);
-  }, lastDelay);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  phoneRunScene(phoneScenes[0]);
-});
-
-/* ── API helper ── */
-function api(method, path, body) {
-  var token = localStorage.getItem('fen_token');
-  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
-  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
-  if (body)  opts.body = JSON.stringify(body);
-  return fetch(path, opts).then(function(r) {
-    if (r.status === 401) {
-      localStorage.removeItem('fen_token');
-      window.location.href = 'fen_site.html';
-      return null;
-    }
-    return r.json();
-  });
-}
-/* ══════════════════════════════════════
-   ROBIN JS — clean, no patches
-   ══════════════════════════════════════ */
-
-/* NAV SCROLL */
-function navScroll(id) {
-  var el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-/* FOX */
-var foxEl = document.getElementById('fox');
-var brandEl = document.getElementById('brand');
-var navDom = document.getElementById('nav');
-var foxAwake = false, foxAnim = false, foxTimer = null;
-
-function foxPosture() {
-  if (foxAwake || foxAnim || !foxEl) return;
-  var p = Math.min(window.scrollY / 300, 1);
-  foxEl.style.animation = 'none';
-  foxEl.style.transform = 'scaleY(' + (1 + p * 0.06) + ') rotate(' + (-0.6 + p * 0.6) + 'deg) translateY(' + (-p * 3) + 'px)';
-  foxEl.style.filter = 'brightness(' + (0.93 + p * 0.1) + ')';
-  foxEl.style.transition = 'transform .5s cubic-bezier(.4,0,.2,1), filter .5s ease';
-  if (window.scrollY < 5) setTimeout(function() { if (!foxAwake && !foxAnim && foxEl) foxEl.style.animation = 'breathe 5s ease-in-out infinite'; }, 500);
-}
-
-window.addEventListener('scroll', function() {
-  if (navDom) navDom.classList.toggle('lifted', window.scrollY > 10);
-  foxPosture();
-}, { passive: true });
-
-if (foxEl) foxEl.style.animation = 'breathe 5s ease-in-out infinite';
-
-if (brandEl) {
-  brandEl.addEventListener('click', function() {
-    if (foxAnim || !foxEl) return;
-    foxAnim = true; foxAwake = true;
-    foxEl.style.animation = 'none'; foxEl.style.transition = 'none';
-    foxEl.style.transform = ''; foxEl.style.filter = '';
-    void foxEl.offsetWidth;
-    foxEl.style.transition = '';
-    foxEl.style.animation = 'standUp 0.85s cubic-bezier(.34,1.56,.64,1) forwards';
-    foxEl.style.filter = 'brightness(1.08)';
-    clearTimeout(foxTimer);
-    setTimeout(function() { foxAnim = false; foxEl.style.animation = ''; foxEl.style.transform = 'scaleY(1.06) translateY(-3px)'; }, 870);
-    foxTimer = setTimeout(foxSit, 4500);
-  });
-  brandEl.addEventListener('mouseenter', function() {
-    if (foxAwake || foxAnim || !foxEl) return;
-    foxEl.style.animation = 'none'; foxEl.style.transition = 'transform .35s cubic-bezier(.34,1.56,.64,1), filter .35s';
-    foxEl.style.transform = 'scaleY(1.05) translateY(-2px)'; foxEl.style.filter = 'brightness(1.05)';
-  });
-  brandEl.addEventListener('mouseleave', function() {
-    if (foxAwake || foxAnim || !foxEl) return;
-    foxEl.style.transition = 'transform .4s, filter .4s';
-    foxEl.style.transform = ''; foxEl.style.filter = '';
-    setTimeout(function() { if (!foxAwake && !foxAnim && foxEl) foxEl.style.animation = 'breathe 5s ease-in-out infinite'; }, 420);
-  });
-}
-
-function foxSit() {
-  if (!foxAwake || !foxEl) return;
-  foxAwake = false; foxAnim = true;
-  foxEl.style.animation = 'none'; foxEl.style.transform = '';
-  void foxEl.offsetWidth;
-  foxEl.style.animation = 'sitDown 0.7s ease forwards';
-  setTimeout(function() {
-    foxAnim = false; foxEl.style.animation = 'breathe 5s ease-in-out infinite';
-    foxEl.style.transform = ''; foxEl.style.filter = ''; foxPosture();
-  }, 720);
-}
-
-/* HOW SECTION REVEAL */
-var howEl = document.getElementById('how');
-if (howEl) {
-  var obs = new IntersectionObserver(function(e) { e.forEach(function(x) { if (x.isIntersecting) x.target.classList.add('visible'); }); }, { threshold: 0.08 });
-  obs.observe(howEl);
-}
-
-/* ══ ACCESS FLOW ══ */
-var accInited = false;
-function openAccess() {
-  var v = document.getElementById('access-view');
-  if (!v) return;
-  v.style.display = 'block';
-  document.body.classList.add('locked');
-  requestAnimationFrame(function() { v.classList.add('show'); });
-  v.querySelectorAll('.a-screen').forEach(function(s) { s.classList.remove('active'); });
-  v.querySelector('.a-screen[data-screen="0"]').classList.add('active');
-  var nm = document.getElementById('ans-name');
-  var em = document.getElementById('ans-email');
-  var sb = document.getElementById('acc-submit');
-  var er = document.getElementById('acc-error');
-  if (er) er.style.display = 'none';
-  function checkForm() {
-    if (sb) sb.disabled = !(nm && nm.value.trim().length >= 1 && em && em.value.includes('@'));
-  }
-  if (nm) { nm.addEventListener('input', checkForm); nm.addEventListener('keydown', function(e) { if (e.key==='Enter') em && em.focus(); }); }
-  if (em) { em.addEventListener('input', checkForm); em.addEventListener('keydown', function(e) { if (e.key==='Enter' && !sb.disabled) submitRequest(); }); }
-  setTimeout(function() { if (nm) nm.focus(); }, 150);
-}
-
-function closeAccess() {
-  var v = document.getElementById('access-view');
-  if (!v) return;
-  v.classList.remove('show');
-  document.body.classList.remove('locked');
-  setTimeout(function() { v.style.display = 'none'; }, 500);
-}
-
-function accShowScreen(n) {
-  var v = document.getElementById('access-view');
-  v.querySelectorAll('.a-screen').forEach(function(s) { s.classList.remove('active'); });
-  var next = v.querySelector('.a-screen[data-screen="' + n + '"]');
-  if (next) next.classList.add('active');
-}
-
-function submitRequest() {
-  var nm = document.getElementById('ans-name');
-  var em = document.getElementById('ans-email');
-  var sb = document.getElementById('acc-submit');
-  var er = document.getElementById('acc-error');
-  var name  = nm ? nm.value.trim() : '';
-  var email = em ? em.value.trim().toLowerCase() : '';
-  if (!name || !email.includes('@')) return;
-  if (sb) { sb.disabled = true; sb.textContent = 'Sending…'; }
-  if (er) er.style.display = 'none';
-  api('POST', '/signup', { name: name, email: email }).then(function(data) {
-    if (!data) { if (sb) { sb.disabled = false; sb.textContent = 'Request access →'; } return; }
-    if (data.already_exists) {
-      var r = document.getElementById('existing-req-id');   if (r)  r.textContent = data.request_id || '—';
-      var d = document.getElementById('existing-req-date'); if (d)  d.textContent = data.submitted  || '—';
-      var n = document.getElementById('existing-req-name'); if (n)  n.textContent = data.name       || name || '—';
-      accShowScreen(2);
-    } else {
-      var r2 = document.getElementById('req-id');   if (r2)  r2.textContent  = data.request_id || '—';
-      var d2 = document.getElementById('req-date'); if (d2)  d2.textContent  = data.submitted  || '—';
-      var n2 = document.getElementById('req-name'); if (n2)  n2.textContent  = data.name       || name || '—';
-      accShowScreen(1);
-    }
-  }).catch(function() {
-    if (sb) { sb.disabled = false; sb.textContent = 'Request access →'; }
-    if (er) { er.textContent = 'Something went wrong — please try again.'; er.style.display = 'block'; }
-  });
-}
-
-/* ══ SIGN IN ══ */
-var siReady = false;
-var _siEmail = '';
-
-function siOpen() {
-  var el = document.getElementById('si');
-  if (!el) return;
-  el.classList.add('open');
-  document.body.classList.add('locked');
-  siShowStep(0);
-  if (!siReady) { siSetup(); siReady = true; }
-  var t = document.getElementById('si-email');
-  if (t) { t.value = ''; setTimeout(function(){ t.focus(); }, 150); }
-  var b = document.getElementById('si-btn-0'); if (b) b.disabled = true;
-  var err = document.getElementById('si-error'); if (err) err.style.display = 'none';
-}
-
-function siClose() {
-  var el = document.getElementById('si');
-  if (!el) return;
-  el.classList.remove('open');
-  document.body.classList.remove('locked');
-}
-
-function siShowStep(n) {
-  for (var i = 0; i <= 2; i++) {
-    var s = document.getElementById('si-step-' + i);
-    if (s) s.className = 'si-step' + (i === n ? ' on' : '');
-  }
-}
-
-function siSetup() {
-  var emailInp = document.getElementById('si-email');
-  if (emailInp) {
-    emailInp.addEventListener('input', function() {
-      var b = document.getElementById('si-btn-0');
-      if (b) b.disabled = !emailInp.value.includes('@');
-      var err = document.getElementById('si-error');
-      if (err) err.style.display = 'none';
-    });
-    emailInp.addEventListener('keydown', function(e) { if (e.key==='Enter') siStep1(); });
-  }
-}
-
-function siGoogleSignIn() {
-  window.location.href = '/auth/google'
-}
-
-// Handle redirect-back errors from Google OAuth
-(function() {
-  var params = new URLSearchParams(window.location.search)
-  var err = params.get('error')
-  if (!err) return
-  var msgs = {
-    not_accepted:        'That Google account doesn\'t have access yet.',
-    google_denied:       'Google sign-in was cancelled.',
-    google_token_failed: 'Google sign-in failed. Try again.',
-    google_no_email:     'Could not read your Google email.',
-    google_failed:       'Google sign-in failed. Try again.',
-  }
-  if (msgs[err]) {
-    siOpen()
-    setTimeout(function() {
-      var el = document.getElementById('si-error')
-      if (el) {
-        var detail = params.get('detail')
-        el.textContent = msgs[err] + (detail ? ' (' + detail + ')' : '')
-        el.style.display = 'block'
-      }
-      if (err === 'not_accepted') {
-        siClose(); openAccess();
-        var emailInput = document.getElementById('ans-email');
-        var prefill = params.get('email') || '';
-        if (emailInput && prefill) emailInput.value = prefill;
-      }
-    }, 300)
-  }
-  history.replaceState({}, '', window.location.pathname)
-})()
-
-function siResend() {
-  if (!_siEmail) { siShowStep(0); return; }
-  var btn = document.querySelector('.si-fallback-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-  api('POST', '/auth/send-magic-link', { email: _siEmail }).then(function(data) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Resend'; }
-    if (data && data.ok) {
-      siToast('New link sent to ' + _siEmail + '.');
-    } else {
-      siToast(data && data.message ? data.message : 'Could not resend — try again.');
-    }
-  }).catch(function() {
-    if (btn) { btn.disabled = false; btn.textContent = 'Resend'; }
-    siToast('Something went wrong — try again.');
-  });
-}
-
-function siStep1() {
-  var emailInp = document.getElementById('si-email');
-  if (!emailInp || !emailInp.value.includes('@')) return;
-  var email = emailInp.value.trim().toLowerCase();
-  var b0 = document.getElementById('si-btn-0'); if (b0) { b0.disabled = true; b0.textContent = 'Sending…'; }
-  var err = document.getElementById('si-error'); if (err) err.style.display = 'none';
-  api('POST', '/auth/send-magic-link', { email: email }).then(function(data) {
-    if (b0) { b0.disabled = false; b0.textContent = 'Send magic link →'; }
-    if (data && data.error === 'not_accepted') {
-      if (err) { err.textContent = "That email doesn't have access yet."; err.style.display = 'block'; }
-      return;
-    }
-    if (data && data.error) {
-      if (err) { err.textContent = data.message || 'Something went wrong.'; err.style.display = 'block'; }
-      return;
-    }
-    _siEmail = email;
-    var h = document.getElementById('si-sent-hint');
-    if (h) h.textContent = 'We emailed a sign-in link to ' + email + '. Click it to continue — it expires in 15 minutes.';
-    siShowStep(1);
-  }).catch(function() {
-    if (b0) { b0.disabled = false; b0.textContent = 'Send magic link →'; }
-    siToast('Something went wrong — try again.');
-  });
-}
-
-function siStep2() { /* no-op — sign-in now uses magic link only */ }
-
-function siToast(msg) {
-  var t = document.createElement('div');
-  t.textContent = msg;
-  t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(8px);background:#1A1816;color:#fff;padding:13px 26px;font-size:13px;letter-spacing:.04em;z-index:99999;opacity:0;transition:opacity .35s,transform .35s;font-family:Inter,sans-serif;white-space:nowrap';
-  document.body.appendChild(t);
-  requestAnimationFrame(function() { t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; });
-  setTimeout(function() {
-    t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(8px)';
-    setTimeout(function() { if(t.parentNode) t.parentNode.removeChild(t); }, 400);
-  }, 3000);
-}
-</script>
 </body>
 </html>
