@@ -46,7 +46,7 @@ html, body { height: 100%; font-family: 'Inter', -apple-system, BlinkMacSystemFo
 .screen.on { display: block; }
 
 /* ─── ONBOARDING ──────────────────────────────────── */
-#screen-ob { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
+#screen-ob { min-height: 100vh; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
 #screen-ob.on { display: flex; }
 
 .ob-wrap { width: 100%; max-width: 440px; }
@@ -360,7 +360,7 @@ html, body { height: 100%; font-family: 'Inter', -apple-system, BlinkMacSystemFo
         <div class="dz-hint">PDF, Word or plain text · Max 2 MB</div>
         <div class="dz-name" id="dz-name" style="display:none"></div>
       </div>
-      <button class="btn btn-primary btn-w" id="btn-ob1" style="margin-top:16px" onclick="ob1Next()" disabled>Continue →</button>
+      <button class="btn btn-primary btn-w" id="btn-ob1" style="margin-top:16px" onclick="ob1Next()">Continue →</button>
       <div class="ob-dots"><div class="ob-dot on"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>
     </div>
   </div>
@@ -1139,6 +1139,7 @@ async function ob1Next(){
   try{
     const p=await api('/profile')
     if(p?.id){profileD=p;fillOb(p);goApp();return}
+    if(!cvFileOb){toast('Please select your CV file first');return}
     obStep(2)
   } finally{btn.disabled=false;btn.innerHTML='Continue →'}
 }
