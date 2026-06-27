@@ -508,36 +508,39 @@ async function saveProfile() {
 // ── Profile CV upload ─────────────────────────────────────────────────────────
 let profileCvFile = null
 
+function setProfileCvFile(f) {
+  if (!f) return
+  profileCvFile = f
+  document.getElementById('profile-upload-icon').textContent = '✅'
+  const lbl = document.getElementById('profile-file-name')
+  lbl.textContent = f.name
+  lbl.style.display = 'block'
+  document.getElementById('profile-drop-zone').classList.add('has-file')
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('profile-cv-file')
-  if (!inp) return
-  inp.addEventListener('change', e => {
-    profileCvFile = e.target.files[0]
-    if (profileCvFile) {
-      document.getElementById('profile-upload-icon').textContent = '✅'
-      const lbl = document.getElementById('profile-file-name')
-      lbl.textContent = profileCvFile.name
-      lbl.style.display = 'block'
-      document.getElementById('profile-drop-zone').classList.add('has-file')
-    }
-  })
+  const pz  = document.getElementById('profile-drop-zone')
+  if (!inp || !pz) return
 
-  // Drag & drop on profile zone
-  const pz = document.getElementById('profile-drop-zone')
-  pz.addEventListener('dragover', e => { e.preventDefault(); pz.classList.add('drag') })
-  pz.addEventListener('dragleave', () => pz.classList.remove('drag'))
-  pz.addEventListener('drop', e => {
+  // File picker selection
+  inp.addEventListener('change', e => setProfileCvFile(e.target.files[0]))
+
+  // The input sits on top (position:absolute, inset:0) so drag events fire on it —
+  // we must listen on BOTH the input and the wrapper div for reliable drag handling.
+  function onDragOver(e) { e.preventDefault(); e.stopPropagation(); pz.classList.add('drag') }
+  function onDragLeave(e) { if (!pz.contains(e.relatedTarget)) pz.classList.remove('drag') }
+  function onDrop(e) {
     e.preventDefault()
+    e.stopPropagation()
     pz.classList.remove('drag')
-    const f = e.dataTransfer.files[0]
-    if (f) {
-      profileCvFile = f
-      document.getElementById('profile-upload-icon').textContent = '✅'
-      const lbl = document.getElementById('profile-file-name')
-      lbl.textContent = f.name
-      lbl.style.display = 'block'
-      pz.classList.add('has-file')
-    }
+    setProfileCvFile(e.dataTransfer.files[0])
+  }
+
+  ;[pz, inp].forEach(el => {
+    el.addEventListener('dragover',  onDragOver)
+    el.addEventListener('dragleave', onDragLeave)
+    el.addEventListener('drop',      onDrop)
   })
 })
 
@@ -595,12 +598,19 @@ const fileInput = document.getElementById('cv-file')
 fileInput.addEventListener('change', () => {
   if (fileInput.files[0]) selectFile(fileInput.files[0])
 })
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag') })
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'))
-dropZone.addEventListener('drop', e => {
-  e.preventDefault()
+
+// The input sits on top — listen on both elements for drag events
+function obDragOver(e)  { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('drag') }
+function obDragLeave(e) { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag') }
+function obDrop(e) {
+  e.preventDefault(); e.stopPropagation()
   dropZone.classList.remove('drag')
   if (e.dataTransfer.files[0]) selectFile(e.dataTransfer.files[0])
+}
+;[dropZone, fileInput].forEach(el => {
+  el.addEventListener('dragover',  obDragOver)
+  el.addEventListener('dragleave', obDragLeave)
+  el.addEventListener('drop',      obDrop)
 })
 
 function selectFile(f) {
