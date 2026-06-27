@@ -1157,23 +1157,35 @@ async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
 
   const { items } = await client.dataset(defaultDatasetId).listItems()
 
-  return (items as Record<string, unknown>[]).map(j => ({
-    source:          'apify_indeed',
-    external_id:     String(j.id ?? j.url ?? ''),
-    title:           String(j.positionName ?? ''),
-    company:         j.company as string ?? null,
-    location:        j.location as string ?? null,
-    country:         'GB',
-    salary_min:      parseSalaryMin(String(j.salary ?? '')),
-    salary_max:      parseSalaryMax(String(j.salary ?? '')),
-    currency:        'GBP',
-    employment_type: j.jobType as string ?? null,
-    remote_type:     detectRemote(String(j.positionName ?? '') + ' ' + String(j.description ?? '')),
-    description:     String(j.description ?? '').slice(0, 5000),
-    url:             j.url as string ?? null,
-    posted_at:       j.datePosted as string ?? null,
-    raw_payload:     j,
-  })).filter(j => j.external_id && j.title)
+  if (items.length > 0) {
+    console.log('[jobFetcher] apify_indeed sample fields:', Object.keys(items[0] as object).join(', '))
+  }
+
+  return (items as Record<string, unknown>[]).map(j => {
+    // Handle multiple possible field names from borderline/indeed-scraper
+    const title   = String(j.title ?? j.positionName ?? j.jobTitle ?? '')
+    const url     = String(j.url ?? j.link ?? j.jobUrl ?? j.externalApplyLink ?? '')
+    const extId   = String(j.id ?? j.jobId ?? url)
+    const salary  = String(j.salary ?? j.salaryRange ?? j.compensation ?? '')
+    const desc    = String(j.description ?? j.jobDescription ?? j.snippet ?? '')
+    return {
+      source:          'apify_indeed',
+      external_id:     extId,
+      title,
+      company:         String(j.company ?? j.companyName ?? j.employer ?? '') || null,
+      location:        String(j.location ?? j.city ?? '') || null,
+      country:         'GB',
+      salary_min:      parseSalaryMin(salary),
+      salary_max:      parseSalaryMax(salary),
+      currency:        'GBP',
+      employment_type: String(j.jobType ?? j.employmentType ?? j.contractType ?? '') || null,
+      remote_type:     detectRemote(title + ' ' + desc),
+      description:     desc.slice(0, 5000),
+      url:             url || null,
+      posted_at:       String(j.datePosted ?? j.postedAt ?? j.date ?? '') || null,
+      raw_payload:     j,
+    }
+  }).filter(j => j.external_id && j.title)
 }
 
 // ── Apify: LinkedIn Jobs ──────────────────────────────────────────────────────
