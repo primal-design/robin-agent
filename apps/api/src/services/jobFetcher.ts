@@ -1149,7 +1149,7 @@ async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
   if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_indeed'); return [] }
 
   const { defaultDatasetId } = await client.actor('borderline/indeed-scraper').call({
-    position: keywords,
+    query:    keywords,
     country:  'uk',
     location: 'London',
     maxItems: 50,
@@ -1177,7 +1177,7 @@ async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
 }
 
 // ── Apify: LinkedIn Jobs ──────────────────────────────────────────────────────
-// Actor: curious_coder/linkedin-jobs-search-scraper (4.9★, 4K runs, no login)
+// Actor: delicious_zebu/linkedin-jobs-scraper-no-login-required (5.0★, free, no login)
 
 async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
   const client = await getApifyClient()
@@ -1185,13 +1185,13 @@ async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
 
   // Build LinkedIn search URLs from keywords (one per role term)
   const terms = keywords.split(' OR ').slice(0, 3).map(k => k.trim())
-  const urls = terms.map(t => ({
-    url: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(t)}&location=London%2C%20United%20Kingdom&f_TPR=r604800`,
-  }))
+  const searchUrls = terms.map(t =>
+    `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(t)}&location=London%2C%20United%20Kingdom&f_TPR=r604800`
+  )
 
-  const { defaultDatasetId } = await client.actor('curious_coder/linkedin-jobs-search-scraper').call({
-    urls,
-    maxJobs: 50,
+  const { defaultDatasetId } = await client.actor('delicious_zebu/linkedin-jobs-scraper-no-login-required').call({
+    startUrls:  searchUrls.map(url => ({ url })),
+    maxResults: 50,
   })
 
   const { items } = await client.dataset(defaultDatasetId).listItems()
