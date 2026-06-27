@@ -56,10 +56,10 @@ export const env = {
   reedApiKey:               process.env.REED_API_KEY       ?? '',
   cvLibraryApiKey:          process.env.CV_LIBRARY_API_KEY ?? '',
   // Model routing
-  modelFast:      process.env.FEN_MODEL_FAST      ?? 'claude-haiku-4-5-20251001',
-  modelReasoning: process.env.FEN_MODEL_REASONING ?? 'claude-sonnet-4-6',
-  modelDeep:      process.env.FEN_MODEL_DEEP      ?? 'claude-opus-4-7',
-  modelDefault:   process.env.FEN_MODEL_DEFAULT   ?? 'claude-sonnet-4-6',
+  modelFast:      process.env.FEN_MODEL_FAST      ?? 'claude-opus-4-8',
+  modelReasoning: process.env.FEN_MODEL_REASONING ?? 'claude-opus-4-8',
+  modelDeep:      process.env.FEN_MODEL_DEEP      ?? 'claude-opus-4-8',
+  modelDefault:   process.env.FEN_MODEL_DEFAULT   ?? 'claude-opus-4-8',
 }
 
 export function assertRequired() {

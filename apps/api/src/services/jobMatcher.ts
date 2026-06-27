@@ -111,12 +111,31 @@ function scoreRole(profile: UserProfile, job: JobForScoring): number {
   if (!profile.target_roles.length) return 50
 
   const title = job.title.toLowerCase()
+  const desc  = (job.description ?? '').toLowerCase().slice(0, 600)
+
+  // Generic words that don't signal role alignment on their own
+  const stopWords = new Set(['developer','engineer','manager','lead','senior','junior','mid','staff','principal','specialist','analyst','consultant','associate'])
+
   for (const role of profile.target_roles) {
-    const words = role.toLowerCase().split(/\s+/)
-    const matchedWords = words.filter(w => title.includes(w))
-    if (matchedWords.length / words.length >= 0.5) return 90
+    const words     = role.toLowerCase().split(/\s+/).filter(w => w.length > 2)
+    const meaningful = words.filter(w => !stopWords.has(w))
+    const checkWords = meaningful.length ? meaningful : words
+
+    const titleHits = checkWords.filter(w => title.includes(w))
+
+    // Strong match: majority of meaningful words in title
+    if (checkWords.length > 0 && titleHits.length / checkWords.length >= 0.6) return 90
+
+    // Partial title: at least one meaningful word AND a stop-word also matches
+    const stopHits = words.filter(w => stopWords.has(w) && title.includes(w))
+    if (titleHits.length >= 1 && stopHits.length >= 1) return 70
+
+    // Description fallback
+    const descHits = checkWords.filter(w => desc.includes(w))
+    if (checkWords.length > 0 && descHits.length / checkWords.length >= 0.6) return 55
   }
-  return 30
+
+  return 10  // no match — hard penalty, will fall below min threshold
 }
 
 function scoreLocation(profile: UserProfile, job: JobForScoring): number {
@@ -270,7 +289,7 @@ export async function matchJobsForProfile(
       finalScore = Math.round(score * 0.7 + sim * 100 * 0.3)
     }
 
-    if (finalScore < 30) continue  // drop very low matches
+    if (finalScore < 45) continue  // drop weak matches
 
     // Only call LLM for decent matches to control cost — skip if no API credits
     let explanation = { match_reasons: [] as string[], missing_skills: [] as string[], llm_summary: '' }
