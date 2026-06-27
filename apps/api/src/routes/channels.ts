@@ -5,7 +5,6 @@ import { withTenant } from '../db/withTenant.js'
 import { requireAuth } from '../lib/auth.js'
 import { encryptToken, decryptToken } from '../lib/encrypt.js'
 import { sendTelegram, registerWebhook, deleteWebhook, getBotInfo } from '../lib/telegram.js'
-import { eventQueue } from '../queues/eventQueue.js'
 import { env } from '../config/env.js'
 
 const router = Router()
@@ -152,15 +151,12 @@ router.post('/webhooks/telegram/:channelId/:secret', async (req, res) => {
     const storedSecret  = decryptToken(cfg.webhook_secret)
     if (storedSecret && storedSecret !== secret) return
 
-    await eventQueue.add('telegram_channel_message', {
+    // Queue removed — log for now
+    console.log('[channels] telegram message received', {
       channelId,
       tenantId:      channel.tenant_id,
-      workerId:      channel.worker_id,
       chatId,
-      externalUserId,
-      text,
-      firstName,
-      encryptedToken: cfg.bot_token,
+      text: text?.slice(0, 100),
     })
   } catch (err) {
     console.error('[channels] webhook error:', err)

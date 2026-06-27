@@ -1,6 +1,4 @@
 import { Router } from 'express'
-import { eventQueue } from '../queues/eventQueue.js'
-import { audit } from '../services/audit.js'
 import { handleJobCallback } from '../services/jobCallbackHandler.js'
 import { handleApplyCallback } from '../services/jobNotifier.js'
 import { handleOnboardingReply, handleWorkTypeCallback, handleOnboardingCallback } from '../services/telegramOnboarding.js'
@@ -92,15 +90,13 @@ telegramRouter.post('/webhooks/telegram/:workerId', async (req, res) => {
 
   if (!req.body?.message) return
 
-  audit({ action: 'webhook_received', actor: 'telegram', target: workerId, metadata: { update_id: updateId, chat_id: req.body.message?.chat?.id } })
-
-  await eventQueue.add(
-    'telegram_message',
-    { workerId, payload: req.body },
-    { jobId: `telegram_${updateId}` }
-  )
-
-  audit({ action: 'job_queued', actor: 'telegram', target: workerId, metadata: { update_id: updateId, job_id: `telegram_${updateId}` } })
+  // Per-worker webhook: process message inline (queue removed)
+  const msg2 = req.body?.message
+  if (msg2?.text) {
+    const botToken2 = env.telegramBotToken
+    const { handleOnboardingReply: handleReply } = await import('../services/telegramOnboarding.js')
+    await handleReply(msg2, botToken2).catch(e => console.error('[telegram] worker message error:', e))
+  }
 })
 
 // Job agent webhook — handles callbacks + /start to register chat ID

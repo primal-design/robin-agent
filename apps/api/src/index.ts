@@ -3,13 +3,11 @@ import { assertRequired, env } from './config/env.js'
 import { createApp } from './app.js'
 import { runDataRetention } from './jobs/dataRetention.js'
 import { startDispatcher }         from './services/scheduler.js'
-import { startConnectorScheduler } from './services/connectorScheduler.js'
 import { startEmbeddingWorker }    from './services/embeddingWorker.js'
 
 assertRequired()
 
 startDispatcher().catch(err => console.warn('[scheduler] dispatcher start failed:', err))
-startConnectorScheduler()
 startEmbeddingWorker()
 
 const app = createApp()
