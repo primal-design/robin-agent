@@ -86,6 +86,20 @@ router.post('/admin/waitlist/notify', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+router.post('/admin/reset-matches', async (req, res, next) => {
+  if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' })
+  try {
+    const { pool } = await import('../db/pool.js')
+    const { profile_id } = req.body as { profile_id?: string }
+    if (profile_id) {
+      await pool.query(`DELETE FROM job_matches WHERE profile_id = $1`, [profile_id])
+    } else {
+      await pool.query(`DELETE FROM job_matches`)
+    }
+    res.json({ ok: true, deleted: true })
+  } catch (err) { next(err) }
+})
+
 router.post('/admin/run-digest', async (req, res, next) => {
   if (!isAuthorized(req)) return res.status(401).json({ error: 'unauthorized' })
   try {

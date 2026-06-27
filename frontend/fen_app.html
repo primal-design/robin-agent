@@ -562,13 +562,9 @@ async function uploadProfileCV() {
       status.textContent = '✅ CV uploaded & profile updated'
       status.style.color = 'var(--green)'
       toast('CV uploaded — FEN will re-match your jobs 🎉')
-      // Populate form fields from parsed result
-      const p = r.profile || r
-      if (p.target_roles?.length)     document.getElementById('p-target-roles').value = p.target_roles.join(', ')
-      if (p.skills?.length)           document.getElementById('p-skills').value = p.skills.join(', ')
-      if (p.min_salary)               document.getElementById('p-min-salary').value = p.min_salary
-      if (p.target_locations?.length) document.getElementById('p-locations').value = p.target_locations.join(', ')
-      matchesLoaded = false  // force matches refresh
+      // Reload profile from server to get fresh parsed data
+      await loadProfileTab()
+      matchesLoaded = false  // force matches refresh next time
     } else {
       status.textContent = '❌ Upload failed — try again'
       status.style.color = 'var(--red)'
