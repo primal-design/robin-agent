@@ -4,827 +4,725 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <title>FEN — AI Job Search Agent</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{
-  --bg:#F7F4EF;
-  --card:#FFFFFF;
-  --ink:#111111;
-  --ink2:#374151;
-  --ink3:#6B7280;
-  --ink4:#9CA3AF;
-  --border:#E7E2DA;
-  --border2:#F0EBE3;
-  --primary:#171412;
-  --green:#16A34A;--greenl:#DCFCE7;--greenborder:#BBF7D0;
-  --amber:#D97706;--ambl:#FEF3C7;--amberborder:#FDE68A;
-  --red:#DC2626;--redl:#FEE2E2;
-  --blue:#2563EB;--bluel:#EFF6FF;
-  --cream:#F3E8D0;
-  --sidebar-w:220px;
-  --r:10px;
-  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg:       #F8F7F4;
+  --surface:  #FFFFFF;
+  --surface2: #F4F2EE;
+  --border:   #E8E4DC;
+  --border2:  #F0EDE6;
+  --ink:      #0D0D0D;
+  --ink2:     #3B3936;
+  --ink3:     #6E6B66;
+  --ink4:     #A8A49E;
+  --green:    #15803D;
+  --greenl:   #DCFCE7;
+  --greenbdr: #86EFAC;
+  --amber:    #B45309;
+  --amberl:   #FEF3C7;
+  --amberbdr: #FCD34D;
+  --red:      #B91C1C;
+  --redl:     #FEE2E2;
+  --blue:     #1D4ED8;
+  --bluel:    #EFF6FF;
+  --sidebar:  220px;
+  --radius:   8px;
+  --radius-lg:12px;
+  --shadow-s: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-m: 0 2px 8px rgba(0,0,0,.07), 0 0 0 1px rgba(0,0,0,.03);
+  --shadow-l: 0 8px 24px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.04);
 }
-html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",sans-serif;font-weight:400;line-height:1.5;font-size:14px}
 
-/* ══ SCREENS ═══════════════════════════════════════════════════════════ */
-.screen{display:none}
-.screen.on{display:block}
+html, body { height: 100%; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; line-height: 1.5; background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
 
-/* ══ ONBOARDING ══════════════════════════════════════════════════════════ */
-#screen-onboard{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-#screen-onboard.on{display:flex}
-.ob-shell{width:100%;max-width:460px}
-.ob-logo{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:400;color:var(--ink);margin-bottom:4px;letter-spacing:-.01em}
-.ob-logo span{color:var(--amber)}
-.ob-tagline{font-size:13px;color:var(--ink3);margin-bottom:32px}
-.ob-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;box-shadow:var(--shadow-md)}
-.ob-step-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:8px}
-.ob-title{font-size:20px;font-weight:600;color:var(--ink);margin-bottom:6px}
-.ob-desc{font-size:13px;color:var(--ink3);margin-bottom:24px;line-height:1.6}
-.ob-dots{display:flex;gap:5px;justify-content:center;margin-top:24px}
-.ob-dot{width:5px;height:5px;border-radius:50%;background:var(--border);transition:background .2s}
-.ob-dot.on{background:var(--ink)}
+/* ─── UTILITY ─────────────────────────────────────── */
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+.hidden  { display: none !important; }
+.screen  { display: none; }
+.screen.on { display: block; }
 
-/* ══ UPLOAD ZONE ══════════════════════════════════════════════════════ */
-.upload-zone{border:1.5px dashed var(--border);border-radius:var(--r);padding:28px 20px;text-align:center;cursor:pointer;transition:all .15s;position:relative;background:var(--bg)}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--amber);background:rgba(243,232,208,.2)}
-.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;font-size:0}
-.upload-zone.has-file{border-style:solid;border-color:var(--green);background:var(--greenl)}
-.uz-icon{font-size:28px;margin-bottom:8px}
-.uz-label{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:3px}
-.uz-hint{font-size:12px;color:var(--ink3)}
-.uz-filename{font-size:12px;color:var(--green);font-weight:500;margin-top:6px}
+/* ─── ONBOARDING ──────────────────────────────────── */
+#screen-ob { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); }
+#screen-ob.on { display: flex; }
 
-/* ══ FIELD ══════════════════════════════════════════════════════════════ */
-.field{margin-bottom:16px}
-.field:last-child{margin-bottom:0}
-.field-label{display:block;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:5px}
-.field input,.field select,.finput{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:"Inter",sans-serif;background:var(--card);color:var(--ink);outline:none;transition:border .15s}
-.field input:focus,.field select:focus,.finput:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(17,17,17,.06)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ob-wrap { width: 100%; max-width: 440px; }
 
-/* ══ CHIP TAGS ══════════════════════════════════════════════════════════ */
-.chip-wrap{border:1px solid var(--border);border-radius:7px;background:var(--card);padding:6px 8px;display:flex;flex-wrap:wrap;gap:5px;min-height:42px;align-items:flex-start;transition:border .15s;cursor:text}
-.chip-wrap:focus-within{border-color:var(--ink);box-shadow:0 0 0 3px rgba(17,17,17,.06)}
-.chip{display:flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:500;color:var(--ink2)}
-.chip-remove{background:none;border:none;color:var(--ink3);cursor:pointer;font-size:13px;line-height:1;padding:0 0 0 3px}
-.chip-remove:hover{color:var(--red)}
-.chip-input{border:none;outline:none;background:none;font-size:13px;font-family:"Inter",sans-serif;color:var(--ink);min-width:80px;flex:1;padding:2px 4px}
+.ob-brand { font-size: 20px; font-weight: 700; letter-spacing: -.03em; color: var(--ink); margin-bottom: 4px; }
+.ob-brand em { font-style: normal; color: var(--amber); }
+.ob-tagline { font-size: 13px; color: var(--ink3); margin-bottom: 28px; }
 
-/* ══ TOGGLE ════════════════════════════════════════════════════════════ */
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border2)}
-.toggle-row:last-child{border-bottom:none}
-.toggle-label{font-size:13px;color:var(--ink2)}
-.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0}
-.toggle-track{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:background .2s}
-.toggle input:checked+.toggle-track{background:var(--green)}
-.toggle-thumb{position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;pointer-events:none}
-.toggle input:checked~.toggle-thumb{transform:translateX(16px)}
+.ob-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow-m); }
 
-/* ══ BUTTONS ════════════════════════════════════════════════════════════ */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:7px;font-size:13px;font-weight:500;font-family:"Inter",sans-serif;cursor:pointer;border:none;transition:all .12s;text-decoration:none;white-space:nowrap}
-.btn-primary{background:var(--primary);color:#fff}
-.btn-primary:hover{background:#2a2724}
-.btn-primary:disabled{opacity:.4;cursor:not-allowed}
-.btn-outline{background:transparent;color:var(--ink);border:1px solid var(--border)}
-.btn-outline:hover{border-color:var(--ink3);background:var(--bg)}
-.btn-green{background:var(--green);color:#fff}
-.btn-green:hover{background:#15803d}
-.btn-amber{background:var(--ambl);color:var(--amber);border:1px solid var(--amberborder)}
-.btn-amber:hover{background:#fde68a}
-.btn-red{background:var(--redl);color:var(--red)}
-.btn-red:hover{background:#fecaca}
-.btn-blue{background:var(--blue);color:#fff}
-.btn-full{width:100%}
-.btn-sm{padding:6px 12px;font-size:12px}
-.btn-icon{padding:7px;border-radius:6px}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-.spinner-dark{border-color:rgba(0,0,0,.12);border-top-color:var(--ink3)}
-@keyframes spin{to{transform:rotate(360deg)}}
+.ob-step { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); margin-bottom: 6px; }
+.ob-title { font-size: 19px; font-weight: 700; color: var(--ink); margin-bottom: 5px; letter-spacing: -.02em; }
+.ob-sub { font-size: 13px; color: var(--ink3); line-height: 1.6; margin-bottom: 22px; }
 
-/* ══ BADGES ══════════════════════════════════════════════════════════════ */
-.badge{border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;letter-spacing:.01em}
-.badge-green{background:var(--greenl);color:var(--green);border:1px solid var(--greenborder)}
-.badge-amber{background:var(--ambl);color:var(--amber);border:1px solid var(--amberborder)}
-.badge-grey{background:var(--bg);color:var(--ink3);border:1px solid var(--border)}
-.badge-red{background:var(--redl);color:var(--red)}
+.ob-dots { display: flex; gap: 5px; justify-content: center; margin-top: 22px; }
+.ob-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border); transition: background .2s; }
+.ob-dot.on { background: var(--ink); }
 
-/* ══ APP SHELL ════════════════════════════════════════════════════════ */
-#screen-app{display:none;min-height:100vh}
-#screen-app.on{display:flex}
+/* Drop zone */
+.dropzone { border: 1.5px dashed var(--border); border-radius: var(--radius); padding: 32px 20px; text-align: center; cursor: pointer; position: relative; transition: all .15s; background: var(--bg); }
+.dropzone:hover, .dropzone.drag { border-color: var(--amber); background: #FEF9EE; }
+.dropzone.has-file { border-color: var(--green); border-style: solid; background: var(--greenl); }
+.dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; font-size: 0; }
+.dz-icon { font-size: 28px; margin-bottom: 8px; }
+.dz-main { font-size: 14px; font-weight: 500; color: var(--ink); margin-bottom: 3px; }
+.dz-hint { font-size: 12px; color: var(--ink3); }
+.dz-name { font-size: 12px; color: var(--green); font-weight: 500; margin-top: 6px; }
 
-/* ── Sidebar ── */
-.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;position:fixed;top:0;left:0;bottom:0;z-index:30}
-.sidebar-logo{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:400;color:var(--ink);padding:0 18px 20px;border-bottom:1px solid var(--border2);letter-spacing:-.01em}
-.sidebar-logo span{color:var(--amber)}
-.sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;transition:all .12s;user-select:none}
-.nav-item:hover{background:var(--bg);color:var(--ink)}
-.nav-item.on{background:var(--bg);color:var(--ink);font-weight:600}
-.nav-item.on .nav-icon{opacity:1}
-.nav-icon{font-size:15px;opacity:.6;width:18px;text-align:center;flex-shrink:0}
-.nav-section{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);padding:12px 10px 4px}
-.sidebar-footer{padding:12px 10px;border-top:1px solid var(--border2)}
-.sb-user{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;cursor:pointer}
-.sb-user:hover{background:var(--bg)}
-.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--cream);color:var(--amber);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.sb-user-name{font-size:12px;font-weight:500;color:var(--ink2)}
-.sb-user-sub{font-size:11px;color:var(--ink3)}
-.tg-status{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:7px;font-size:12px;margin-bottom:6px;cursor:pointer}
-.tg-status:hover{background:var(--bg)}
-.tg-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.tg-dot.on{background:var(--green)}
-.tg-dot.off{background:var(--ink4)}
+/* ─── INPUTS ──────────────────────────────────────── */
+.label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); margin-bottom: 5px; }
+.input { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; font-family: inherit; background: var(--surface); color: var(--ink); outline: none; transition: border .12s, box-shadow .12s; }
+.input:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(13,13,13,.07); }
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
 
-/* ── Main content ── */
-.main{flex:1;margin-left:var(--sidebar-w);min-height:100vh;display:flex;flex-direction:column}
-.page{display:none;flex:1;flex-direction:column}
-.page.on{display:flex}
-.page-head{padding:28px 32px 0;border-bottom:1px solid var(--border2)}
-.page-title{font-size:22px;font-weight:700;color:var(--ink);margin-bottom:2px}
-.page-sub{font-size:13px;color:var(--ink3);margin-bottom:20px}
-.page-body{flex:1;padding:24px 32px;max-width:1200px}
+/* Chip input */
+.chip-field { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 5px 7px; display: flex; flex-wrap: wrap; gap: 5px; min-height: 40px; align-items: flex-start; transition: border .12s, box-shadow .12s; cursor: text; }
+.chip-field:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(13,13,13,.07); }
+.chip { display: inline-flex; align-items: center; gap: 4px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 5px; padding: 2px 8px; font-size: 12px; font-weight: 500; color: var(--ink2); }
+.chip-x { background: none; border: none; cursor: pointer; font-size: 13px; color: var(--ink3); line-height: 1; padding: 0; }
+.chip-x:hover { color: var(--red); }
+.chip-input { border: none; outline: none; background: none; font-size: 13px; font-family: inherit; color: var(--ink); min-width: 90px; flex: 1; padding: 2px 3px; }
 
-/* ══ TODAY ══════════════════════════════════════════════════════════════ */
-.today-greeting{font-size:24px;font-weight:700;color:var(--ink);margin-bottom:4px}
-.today-sub{font-size:14px;color:var(--ink3);margin-bottom:24px}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
-.stat-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
-.stat-value{font-size:28px;font-weight:700;color:var(--ink);line-height:1}
-.stat-sub{font-size:12px;color:var(--ink3);margin-top:4px}
-.stat-card.green .stat-value{color:var(--green)}
-.stat-card.amber .stat-value{color:var(--amber)}
-.action-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
-.action-card-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
-.action-card-body{font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:16px}
-.readiness-bar-wrap{margin:12px 0 4px}
-.readiness-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.readiness-fill{height:100%;border-radius:3px;transition:width .4s}
-.tg-today-card{background:var(--bluel);border:1px solid #BFDBFE;border-radius:var(--r);padding:16px;display:flex;align-items:center;gap:14px}
-.tg-today-icon{font-size:24px;flex-shrink:0}
-.tg-today-body{flex:1;min-width:0}
-.tg-today-title{font-size:13px;font-weight:600;color:var(--blue);margin-bottom:2px}
-.tg-today-sub{font-size:12px;color:#3B82F6}
+/* Toggle */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--border2); font-size: 13px; color: var(--ink2); }
+.toggle-row:last-child { border-bottom: none; }
+.toggle { position: relative; display: inline-block; width: 34px; height: 18px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.t-track { position: absolute; inset: 0; background: var(--border); border-radius: 18px; cursor: pointer; transition: background .18s; }
+.toggle input:checked + .t-track { background: var(--green); }
+.t-thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; transition: transform .18s; pointer-events: none; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.toggle input:checked ~ .t-thumb { transform: translateX(16px); }
 
-/* ══ MATCHES ════════════════════════════════════════════════════════════ */
-.matches-layout{display:grid;grid-template-columns:340px 1fr;gap:0;flex:1;min-height:0}
-.matches-list-col{border-right:1px solid var(--border);overflow-y:auto;padding:16px}
-.matches-detail-col{overflow-y:auto;padding:24px}
-.match-section-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;margin-top:20px;display:flex;align-items:center;gap:7px}
-.match-section-title:first-child{margin-top:0}
-.job-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px;cursor:pointer;transition:all .12s;box-shadow:var(--shadow)}
-.job-card:hover{border-color:var(--ink3);box-shadow:var(--shadow-md)}
-.job-card.selected{border-color:var(--ink);box-shadow:0 0 0 2px rgba(17,17,17,.08)}
-.job-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
-.job-card-title{font-size:13px;font-weight:600;color:var(--ink);line-height:1.3}
-.job-card-company{font-size:12px;color:var(--ink3);margin-top:1px}
-.job-card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.meta-tag{font-size:11px;color:var(--ink3);background:var(--bg);border:1px solid var(--border2);border-radius:20px;padding:2px 8px}
-.job-card-reasons{font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.5}
-.job-card.dim{opacity:.5}
-/* Detail panel */
-.detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;color:var(--ink3);text-align:center;gap:8px}
-.detail-empty-icon{font-size:36px;opacity:.4}
-.detail-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:4px}
-.detail-company{font-size:14px;color:var(--ink3);margin-bottom:16px}
-.score-ring{width:72px;height:72px;border-radius:50%;border:4px solid;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
-.detail-score-row{display:flex;align-items:center;gap:16px;margin-bottom:20px}
-.detail-score-label{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:2px}
-.detail-score-sub{font-size:12px;color:var(--ink3)}
-.kw-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 16px}
-.kw{border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500}
-.kw-match{background:var(--greenl);color:var(--green);border:1px solid var(--greenborder)}
-.kw-missing{background:var(--redl);color:var(--red)}
-.section-h{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;margin-top:20px}
-.section-h:first-child{margin-top:0}
-.fen-rec{background:var(--cream);border:1px solid #E8D5B0;border-radius:8px;padding:12px 14px;font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:16px}
-.detail-actions{display:flex;flex-direction:column;gap:8px}
-.detail-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-.detail-meta-item{background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:10px 12px}
-.detail-meta-key{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:2px}
-.detail-meta-val{font-size:13px;font-weight:500;color:var(--ink)}
+/* ─── BUTTONS ─────────────────────────────────────── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; border: none; transition: all .12s; text-decoration: none; white-space: nowrap; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: var(--ink); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #1a1a1a; }
+.btn-secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface2); }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover { background: #166534; }
+.btn-red { background: var(--redl); color: var(--red); }
+.btn-red:hover { background: #fecaca; }
+.btn-blue { background: var(--blue); color: #fff; }
+.btn-blue:hover { background: #1e40af; }
+.btn-ghost { background: transparent; color: var(--ink3); border: none; }
+.btn-ghost:hover { background: var(--surface2); color: var(--ink); }
+.btn-w { width: 100%; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* ─── SPINNER ─────────────────────────────────────── */
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: rot .7s linear infinite; }
+.spin-dk { border-color: rgba(0,0,0,.1); border-top-color: var(--ink3); }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* ─── BADGES ──────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: 600; }
+.badge-green { background: var(--greenl); color: var(--green); border: 1px solid var(--greenbdr); }
+.badge-amber { background: var(--amberl); color: var(--amber); border: 1px solid var(--amberbdr); }
+.badge-grey  { background: var(--surface2); color: var(--ink3); border: 1px solid var(--border); }
+.badge-red   { background: var(--redl); color: var(--red); }
+
+/* ─── APP SHELL ───────────────────────────────────── */
+#screen-app { display: none; min-height: 100vh; }
+#screen-app.on { display: flex; }
+
+/* Sidebar */
+.sidebar { width: var(--sidebar); flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; inset: 0 auto 0 0; z-index: 40; }
+.sb-logo { padding: 18px 16px 14px; border-bottom: 1px solid var(--border2); }
+.sb-logo-text { font-size: 17px; font-weight: 700; letter-spacing: -.03em; color: var(--ink); }
+.sb-logo-text em { font-style: normal; color: var(--amber); }
+.sb-nav { flex: 1; padding: 8px 8px; display: flex; flex-direction: column; gap: 1px; overflow-y: auto; }
+.sb-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--ink3); cursor: pointer; transition: all .1s; user-select: none; }
+.sb-item:hover { background: var(--surface2); color: var(--ink); }
+.sb-item.active { background: var(--surface2); color: var(--ink); font-weight: 600; }
+.sb-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.sb-footer { padding: 10px 8px; border-top: 1px solid var(--border2); display: flex; flex-direction: column; gap: 3px; }
+.sb-tg { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px; font-size: 12px; color: var(--ink3); cursor: pointer; }
+.sb-tg:hover { background: var(--surface2); }
+.tg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sb-user { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+.sb-user:hover { background: var(--surface2); }
+.sb-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--amberl); color: var(--amber); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--amberbdr); }
+.sb-name { font-size: 12px; font-weight: 600; color: var(--ink2); }
+.sb-sub { font-size: 11px; color: var(--ink3); }
+
+/* Main area */
+.main { flex: 1; margin-left: var(--sidebar); display: flex; flex-direction: column; min-height: 100vh; }
+.page { display: none; flex: 1; flex-direction: column; min-height: 0; }
+.page.on { display: flex; }
+.page-inner { flex: 1; padding: 28px 32px; overflow-y: auto; }
+.page-inner.no-pad { padding: 0; }
+
+/* Mobile header + nav */
+.mob-header { display: none; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
+.mob-logo { font-size: 17px; font-weight: 700; letter-spacing: -.03em; color: var(--ink); }
+.mob-logo em { font-style: normal; color: var(--amber); }
+.mob-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; background: var(--surface); border-top: 1px solid var(--border); padding: 6px 0 env(safe-area-inset-bottom,0); }
+.mob-nav-inner { display: flex; }
+.mob-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 4px; font-size: 9px; font-weight: 500; color: var(--ink3); cursor: pointer; }
+.mob-tab.active { color: var(--ink); }
+.mob-tab-icon { font-size: 18px; }
+
+/* ─── TODAY ───────────────────────────────────────── */
+.today-greeting { font-size: 22px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); margin-bottom: 3px; }
+.today-sub { font-size: 14px; color: var(--ink3); margin-bottom: 24px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-s); }
+.stat-lbl { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ink3); margin-bottom: 8px; }
+.stat-val { font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); line-height: 1; }
+.stat-hint { font-size: 11px; color: var(--ink4); margin-top: 4px; }
+.stat-card.c-green .stat-val { color: var(--green); }
+.stat-card.c-amber .stat-val { color: var(--amber); }
+.readiness-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.readiness-fill { height: 100%; border-radius: 2px; transition: width .4s; }
+
+.action-banner { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow-s); }
+.action-banner-title { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; margin-bottom: 5px; }
+.action-banner-body { font-size: 13px; color: var(--ink3); line-height: 1.65; margin-bottom: 16px; }
+.tg-banner { background: var(--bluel); border: 1px solid #BFDBFE; border-radius: var(--radius-lg); padding: 16px; display: flex; align-items: center; gap: 14px; }
+.tg-banner-ico { font-size: 22px; flex-shrink: 0; }
+.tg-banner-body { flex: 1; }
+.tg-banner-title { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 2px; }
+.tg-banner-sub { font-size: 12px; color: #3B82F6; }
+
+/* ─── MATCHES ─────────────────────────────────────── */
+.matches-shell { display: grid; grid-template-columns: 320px 1fr; flex: 1; min-height: 0; overflow: hidden; }
+.match-list { overflow-y: auto; border-right: 1px solid var(--border); padding: 16px; background: var(--bg); }
+.match-list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.match-list-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.match-section-head { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink3); margin: 16px 0 8px; display: flex; align-items: center; gap: 6px; }
+.match-section-head:first-child { margin-top: 0; }
+
+.jcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 6px; cursor: pointer; transition: all .1s; }
+.jcard:hover { border-color: var(--ink3); box-shadow: var(--shadow-s); }
+.jcard.sel { border-color: var(--ink); box-shadow: 0 0 0 2px rgba(13,13,13,.08); }
+.jcard-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.jcard-title { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.jcard-co { font-size: 11px; color: var(--ink3); margin-top: 1px; }
+.jcard-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.jpill { font-size: 11px; color: var(--ink3); background: var(--surface2); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 7px; }
+.jcard-reasons { font-size: 11px; color: var(--ink3); margin-top: 5px; line-height: 1.45; }
+.jcard.dim { opacity: .5; }
+
 /* Collapse */
-.collapse-btn{background:none;border:none;font-family:"Inter",sans-serif;font-size:12px;color:var(--ink3);cursor:pointer;display:flex;align-items:center;gap:5px;padding:6px 0;width:100%}
-.collapse-btn:hover{color:var(--ink)}
-#hidden-list{display:none}
-#hidden-list.open{display:block}
+.collapse-btn { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: var(--ink3); background: none; border: none; cursor: pointer; padding: 4px 0; font-family: inherit; width: 100%; }
+.collapse-btn:hover { color: var(--ink); }
+#hidden-list { display: none; }
+#hidden-list.open { display: block; }
 
-/* ══ APPLICATIONS ════════════════════════════════════════════════════ */
-.pipe-filters{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap}
-.pipe-chip{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--ink3);transition:all .12s}
-.pipe-chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
-.pipe-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow)}
-.pipe-info{flex:1;min-width:0}
-.pipe-title{font-size:14px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pipe-company{font-size:12px;color:var(--ink3);margin-top:2px}
-.pipe-actions-row{display:flex;gap:6px;flex-shrink:0}
-.status-badge{border-radius:20px;padding:3px 11px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;flex-shrink:0}
-.s-interested,.s-shortlisted{background:var(--bluel);color:var(--blue)}
-.s-drafting{background:var(--ambl);color:var(--amber)}
-.s-draft_ready{background:var(--ambl);color:var(--amber)}
-.s-approved,.s-applied{background:var(--greenl);color:var(--green)}
-.s-interview{background:#F3E8FF;color:#7C3AED}
-.s-offer{background:#FEF9C3;color:#854D0E}
-.s-rejected,.s-withdrawn{background:var(--redl);color:var(--red)}
+/* Detail panel */
+.detail-panel { flex: 1; overflow-y: auto; padding: 28px 32px; background: var(--surface); }
+.detail-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--ink3); text-align: center; gap: 8px; }
+.detail-empty-icon { font-size: 32px; opacity: .3; }
+.detail-empty-text { font-size: 13px; font-weight: 500; }
+.detail-empty-sub { font-size: 12px; color: var(--ink4); }
 
-/* ══ CV LAB ══════════════════════════════════════════════════════════ */
-.cv-layout{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
-.cv-score-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;box-shadow:var(--shadow)}
-.cv-ring-row{display:flex;align-items:center;gap:18px;margin-bottom:16px}
-.cv-ring{width:80px;height:80px;border-radius:50%;border:5px solid;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex-shrink:0}
-.cv-ring-label{font-size:16px;font-weight:600;color:var(--ink);margin-bottom:3px}
-.cv-ring-sub{font-size:12px;color:var(--ink3)}
-.issue-list{}
-.issue-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2)}
-.issue-row:last-child{border-bottom:none}
-.issue-icon{font-size:16px;flex-shrink:0;margin-top:1px}
-.issue-body{flex:1}
-.issue-title{font-size:12px;font-weight:600;color:var(--red);margin-bottom:2px}
-.issue-title.warn{color:var(--amber)}
-.issue-title.ok{color:var(--green)}
-.issue-desc{font-size:12px;color:var(--ink3);line-height:1.5}
-.cv-action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.cv-action-btn{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .12s;text-align:left;font-family:"Inter",sans-serif}
-.cv-action-btn:hover{border-color:var(--ink3);box-shadow:var(--shadow)}
-.cv-action-icon{font-size:20px;margin-bottom:8px}
-.cv-action-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:2px}
-.cv-action-sub{font-size:11px;color:var(--ink3)}
+.dp-title { font-size: 20px; font-weight: 700; letter-spacing: -.02em; color: var(--ink); margin-bottom: 3px; }
+.dp-co { font-size: 13px; color: var(--ink3); margin-bottom: 18px; }
+.score-row { display: flex; align-items: center; gap: 14px; padding: 16px; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px; }
+.score-circle { width: 60px; height: 60px; border-radius: 50%; border: 4px solid; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.score-label { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.score-sub { font-size: 12px; color: var(--ink3); }
+.dp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.dp-meta { background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 12px; }
+.dp-meta-key { font-size: 10px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink3); margin-bottom: 3px; }
+.dp-meta-val { font-size: 13px; font-weight: 500; color: var(--ink); }
+.dp-section { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); margin: 18px 0 8px; }
+.kw-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.kw { border-radius: 5px; padding: 3px 9px; font-size: 12px; font-weight: 500; }
+.kw-match { background: var(--greenl); color: var(--green); border: 1px solid var(--greenbdr); }
+.kw-miss  { background: var(--redl); color: var(--red); }
+.dp-rec { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: var(--radius); padding: 13px 14px; font-size: 13px; color: var(--ink2); line-height: 1.65; margin-bottom: 18px; }
+.dp-actions { display: flex; flex-direction: column; gap: 8px; }
 
-/* ══ PROFILE ═════════════════════════════════════════════════════════ */
-.profile-layout{display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start}
-.profile-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px;box-shadow:var(--shadow)}
-.profile-card-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:16px}
-.work-type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px}
-.wt-option{border:1.5px solid var(--border);border-radius:8px;padding:10px 6px;text-align:center;cursor:pointer;transition:all .12s;font-size:12px;font-weight:500;color:var(--ink3)}
-.wt-option:hover{border-color:var(--ink3);color:var(--ink)}
-.wt-option.on{border-color:var(--ink);color:var(--ink);background:var(--bg);font-weight:600}
-.wt-icon{font-size:18px;margin-bottom:4px}
-.agent-status-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px;box-shadow:var(--shadow);position:sticky;top:24px}
-.agent-status-title{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px}
-.agent-stat-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2);font-size:12px}
-.agent-stat-row:last-child{border-bottom:none}
-.agent-stat-key{color:var(--ink3)}
-.agent-stat-val{font-weight:500;color:var(--ink)}
-.agent-stat-val.ok{color:var(--green)}
-.agent-stat-val.warn{color:var(--amber)}
+/* ─── PIPELINE ────────────────────────────────────── */
+.pipe-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.pf-chip { padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--ink3); transition: all .1s; }
+.pf-chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.pcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 13px 16px; margin-bottom: 7px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-s); }
+.pcard-info { flex: 1; min-width: 0; }
+.pcard-title { font-size: 14px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pcard-co { font-size: 12px; color: var(--ink3); margin-top: 2px; }
+.pcard-right { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.sbadge { border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+.s-interested,.s-shortlisted { background: var(--bluel); color: var(--blue); }
+.s-drafting { background: var(--amberl); color: var(--amber); }
+.s-draft_ready { background: var(--amberl); color: var(--amber); }
+.s-approved,.s-applied { background: var(--greenl); color: var(--green); }
+.s-interview { background: #F3E8FF; color: #7C3AED; }
+.s-offer { background: #FEF9C3; color: #92400E; }
+.s-rejected,.s-withdrawn { background: var(--redl); color: var(--red); }
 
-/* ══ EMPTY STATE ══════════════════════════════════════════════════════ */
-.empty{text-align:center;padding:60px 20px}
-.empty-icon{font-size:36px;margin-bottom:12px;opacity:.4}
-.empty-title{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:6px}
-.empty-sub{font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:20px}
+/* ─── CV LAB ──────────────────────────────────────── */
+.cvlab-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow-s); }
+.card-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 14px; }
+.cv-ring-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.cv-ring { width: 72px; height: 72px; border-radius: 50%; border: 5px solid; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.cv-ring-label { font-size: 15px; font-weight: 600; color: var(--ink); letter-spacing: -.01em; margin-bottom: 2px; }
+.cv-ring-sub { font-size: 12px; color: var(--ink3); }
+.issue-row { display: flex; gap: 11px; padding: 11px 0; border-bottom: 1px solid var(--border2); }
+.issue-row:last-child { border-bottom: none; }
+.issue-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.issue-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+.issue-title.err { color: var(--red); }
+.issue-title.wrn { color: var(--amber); }
+.issue-title.ok  { color: var(--green); }
+.issue-desc { font-size: 12px; color: var(--ink3); line-height: 1.5; }
+.action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.action-tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; cursor: pointer; transition: all .12s; text-align: left; font-family: inherit; }
+.action-tile:hover { border-color: var(--ink3); box-shadow: var(--shadow-m); }
+.action-tile-icon { font-size: 18px; margin-bottom: 7px; }
+.action-tile-title { font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.action-tile-sub { font-size: 11px; color: var(--ink3); }
 
-/* ══ MISC ════════════════════════════════════════════════════════════ */
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;white-space:nowrap;max-width:90vw;text-align:center;box-shadow:var(--shadow-md)}
-#toast.show{opacity:1}
-#loading-bar{height:2px;background:var(--amber);position:fixed;top:0;left:0;width:0;z-index:100;transition:width .3s;display:none}
-#loading-bar.active{display:block;animation:lbar 1.4s ease-in-out infinite}
-@keyframes lbar{0%{width:0;left:0}50%{width:60%;left:20%}100%{width:0;left:100%}}
-.divider{height:1px;background:var(--border2);margin:16px 0}
-hr.divider{border:none}
+/* ─── PROFILE ─────────────────────────────────────── */
+.profile-grid { display: grid; grid-template-columns: 1fr 264px; gap: 20px; align-items: start; }
+.wt-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; margin-top: 6px; }
+.wt-opt { border: 1.5px solid var(--border); border-radius: var(--radius); padding: 10px 6px; text-align: center; cursor: pointer; transition: all .1s; font-size: 11px; font-weight: 600; color: var(--ink3); }
+.wt-opt:hover { border-color: var(--ink3); color: var(--ink); }
+.wt-opt.on { border-color: var(--ink); color: var(--ink); background: var(--surface2); }
+.wt-icon { font-size: 17px; display: block; margin-bottom: 4px; }
+.agent-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px; position: sticky; top: 24px; box-shadow: var(--shadow-s); }
+.agent-card-title { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink3); margin-bottom: 12px; }
+.astat { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border2); font-size: 12px; }
+.astat:last-child { border-bottom: none; }
+.astat-key { color: var(--ink3); }
+.astat-val { font-weight: 600; color: var(--ink); }
+.astat-val.ok { color: var(--green); }
+.astat-val.wrn { color: var(--amber); }
 
-/* ══ MOBILE ══════════════════════════════════════════════════════════ */
-@media(max-width:768px){
-  .sidebar{display:none}
-  .main{margin-left:0}
-  .mobile-topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
-  .mobile-logo{font-family:"Cormorant Garamond",serif;font-size:20px;font-weight:400;color:var(--ink)}
-  .mobile-logo span{color:var(--amber)}
-  .mobile-nav{display:flex;background:var(--card);border-top:1px solid var(--border);position:fixed;bottom:0;left:0;right:0;z-index:20;padding:6px 0 env(safe-area-inset-bottom)}
-  .mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;cursor:pointer;font-size:9px;font-weight:500;color:var(--ink3)}
-  .mobile-nav-item.on{color:var(--ink)}
-  .mobile-nav-icon{font-size:18px}
-  .page-body{padding:16px;padding-bottom:80px}
-  .page-head{padding:16px 16px 0}
-  .matches-layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-  .matches-list-col{border-right:none;border-bottom:1px solid var(--border)}
-  .cv-layout,.profile-layout{grid-template-columns:1fr}
-  .work-type-grid{grid-template-columns:repeat(2,1fr)}
-  .stat-grid{grid-template-columns:1fr 1fr}
-  .detail-meta-grid{grid-template-columns:1fr}
-  .cv-action-grid{grid-template-columns:1fr}
-  .row2{grid-template-columns:1fr}
-  .profile-layout>div:last-child{order:-1}
-  .agent-status-card{position:static}
+/* ─── EMPTY ───────────────────────────────────────── */
+.empty { text-align: center; padding: 56px 20px; }
+.empty-ico { font-size: 32px; margin-bottom: 12px; opacity: .35; }
+.empty-title { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 5px; }
+.empty-sub { font-size: 13px; color: var(--ink3); line-height: 1.65; margin-bottom: 18px; }
+
+/* ─── TOAST ───────────────────────────────────────── */
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 9px 16px; border-radius: var(--radius); font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .18s; pointer-events: none; z-index: 99; white-space: nowrap; max-width: 90vw; box-shadow: var(--shadow-l); }
+#toast.on { opacity: 1; }
+#lbar { position: fixed; top: 0; left: 0; width: 0; height: 2px; background: var(--amber); z-index: 100; display: none; }
+#lbar.on { display: block; animation: lbani 1.3s ease-in-out infinite; }
+@keyframes lbani { 0%{left:0;width:0} 50%{left:15%;width:60%} 100%{left:100%;width:0} }
+
+/* ─── RESPONSIVE ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .mob-header { display: flex; }
+  .mob-nav { display: block; }
+  .page-inner { padding: 16px; padding-bottom: 80px; }
+  .matches-shell { grid-template-columns: 1fr; overflow: visible; }
+  .match-list { border-right: none; border-bottom: 1px solid var(--border); max-height: 60vh; }
+  .detail-panel { padding: 18px; }
+  .cvlab-grid, .profile-grid { grid-template-columns: 1fr; }
+  .wt-grid { grid-template-columns: repeat(2,1fr); }
+  .dp-grid { grid-template-columns: 1fr; }
+  .action-grid { grid-template-columns: 1fr; }
+  .agent-card { position: static; }
+  .stat-row { grid-template-columns: 1fr 1fr; }
+  .input-row { grid-template-columns: 1fr; }
+  .profile-grid > div:last-child { order: -1; }
 }
-@media(min-width:769px){
-  .mobile-topbar,.mobile-nav{display:none}
+@media (min-width: 769px) {
+  .mob-header, .mob-nav { display: none !important; }
 }
 </style>
 </head>
 <body>
-<div id="loading-bar"></div>
+<div id="lbar"></div>
 
-<!-- ══════════════════ ONBOARDING ══════════════════ -->
-<div class="screen on" id="screen-onboard">
-  <div id="ob-step-1">
-    <div class="ob-shell">
-      <div class="ob-logo">FEN<span>.</span></div>
-      <div class="ob-tagline">Your AI job search agent</div>
-      <div class="ob-card">
-        <div class="ob-step-label">Step 1 of 3</div>
-        <div class="ob-title">Upload your CV</div>
-        <div class="ob-desc">FEN reads your CV to understand your skills and experience, then finds and ranks jobs every day.</div>
-        <div class="upload-zone" id="drop-zone">
-          <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.txt"/>
-          <div class="uz-icon" id="uz-icon">📄</div>
-          <div class="uz-label">Drop CV here or click to browse</div>
-          <div class="uz-hint">PDF, Word, or plain text · Max 2 MB</div>
-          <div class="uz-filename" id="uz-filename" style="display:none"></div>
-        </div>
-        <div style="margin-top:20px">
-          <button class="btn btn-primary btn-full" id="btn-ob1" onclick="ob1Next()" disabled>Continue →</button>
-        </div>
-        <div class="ob-dots" style="margin-top:20px">
-          <div class="ob-dot on"></div><div class="ob-dot"></div><div class="ob-dot"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- ═══════════════════ ONBOARDING ═══════════════════ -->
+<div class="screen on" id="screen-ob">
 
-  <div id="ob-step-2" style="display:none">
-    <div class="ob-shell">
-      <div class="ob-logo">FEN<span>.</span></div>
-      <div class="ob-tagline">Tell FEN what to search for</div>
-      <div class="ob-card">
-        <div class="ob-step-label">Step 2 of 3</div>
-        <div class="ob-title">Your job preferences</div>
-        <div class="ob-desc">FEN uses these as rules to filter and rank jobs every day.</div>
-        <div class="field">
-          <label class="field-label">Your name</label>
-          <input type="text" id="pref-name" placeholder="Jane Smith"/>
-        </div>
-        <div class="row2">
-          <div class="field">
-            <label class="field-label">Location</label>
-            <input type="text" id="pref-location" placeholder="London, UK"/>
-          </div>
-          <div class="field">
-            <label class="field-label">Min salary (£/yr)</label>
-            <input type="number" id="pref-salary" placeholder="50000"/>
-          </div>
-        </div>
-        <div class="field">
-          <label class="field-label">Work type</label>
-          <select id="pref-remote">
-            <option value="">Any</option>
-            <option value="remote">Remote only</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="onsite">On-site</option>
-          </select>
-        </div>
-        <div class="field">
-          <label class="field-label">Target roles</label>
-          <div class="chip-wrap" id="roles-wrap" onclick="this.querySelector('input').focus()">
-            <input class="chip-input" id="roles-input" placeholder="Add role, press Enter" onkeydown="addChip(event,'roles')"/>
-          </div>
-        </div>
-        <div class="field">
-          <label class="field-label">Target locations</label>
-          <div class="chip-wrap" id="locs-wrap" onclick="this.querySelector('input').focus()">
-            <input class="chip-input" id="locs-input" placeholder="Add city, press Enter" onkeydown="addChip(event,'locs')"/>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:8px">
-          <button class="btn btn-outline" onclick="obGo(1)" style="flex-shrink:0">← Back</button>
-          <button class="btn btn-primary btn-full" id="btn-ob2" onclick="ob2Next()">Save &amp; Continue →</button>
-        </div>
-        <div class="ob-dots" style="margin-top:20px">
-          <div class="ob-dot"></div><div class="ob-dot on"></div><div class="ob-dot"></div>
-        </div>
+<div id="ob1">
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)">
+  <div class="ob-wrap">
+    <div class="ob-brand">FEN<em>.</em></div>
+    <div class="ob-tagline">Your AI job search agent</div>
+    <div class="ob-card">
+      <div class="ob-step">Step 1 of 3</div>
+      <div class="ob-title">Upload your CV</div>
+      <div class="ob-sub">FEN reads your CV to understand your skills, then finds and ranks jobs that actually match — every day.</div>
+      <div class="dropzone" id="dz">
+        <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.txt"/>
+        <div class="dz-icon" id="dz-icon">📄</div>
+        <div class="dz-main">Drop your CV here or click to browse</div>
+        <div class="dz-hint">PDF, Word or plain text · Max 2 MB</div>
+        <div class="dz-name" id="dz-name" style="display:none"></div>
       </div>
-    </div>
-  </div>
-
-  <div id="ob-step-3" style="display:none">
-    <div class="ob-shell">
-      <div class="ob-logo">FEN<span>.</span></div>
-      <div class="ob-card" style="text-align:center">
-        <div style="font-size:48px;margin-bottom:16px">🎯</div>
-        <div style="font-size:20px;font-weight:700;margin-bottom:8px">FEN is on the case</div>
-        <div style="font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:24px">
-          Your CV is uploaded. FEN scans thousands of jobs every day, scores each one against your profile, and shows only the ones worth your time.<br/><br/>
-          Your first matches appear within 24 hours.
-        </div>
-        <div style="background:var(--bluel);border:1px solid #BFDBFE;border-radius:var(--r);padding:16px;margin-bottom:20px">
-          <div style="font-size:13px;color:var(--blue);font-weight:500;margin-bottom:10px">Get your best matches on Telegram every morning</div>
-          <a class="btn btn-blue" href="https://t.me/fen_ai_bot" target="_blank" style="display:inline-flex">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.414 13.85l-2.94-.918c-.638-.203-.649-.638.136-.948l11.473-4.424c.531-.194.995.131.811.661z"/></svg>
-            Connect Telegram
-          </a>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="goApp()">Open FEN dashboard →</button>
-        <div class="ob-dots" style="margin-top:20px">
-          <div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot on"></div>
-        </div>
-      </div>
+      <button class="btn btn-primary btn-w" id="btn-ob1" style="margin-top:16px" onclick="ob1Next()" disabled>Continue →</button>
+      <div class="ob-dots"><div class="ob-dot on"></div><div class="ob-dot"></div><div class="ob-dot"></div></div>
     </div>
   </div>
 </div>
+</div>
 
-<!-- ══════════════════ MAIN APP ══════════════════════ -->
-<div class="screen" id="screen-app">
-
-  <!-- Sidebar (desktop) -->
-  <div class="sidebar">
-    <div class="sidebar-logo">FEN<span>.</span></div>
-    <div class="sidebar-nav">
-      <div class="nav-item on" id="nav-today" onclick="switchPage('today')">
-        <span class="nav-icon">⚡</span>Today
+<div id="ob2" style="display:none">
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)">
+  <div class="ob-wrap">
+    <div class="ob-brand">FEN<em>.</em></div>
+    <div class="ob-tagline">Tell FEN what to search for</div>
+    <div class="ob-card">
+      <div class="ob-step">Step 2 of 3</div>
+      <div class="ob-title">Your job preferences</div>
+      <div class="ob-sub">FEN uses these as rules to filter and rank jobs every day.</div>
+      <div class="field">
+        <label class="label">Your name</label>
+        <input class="input" type="text" id="pref-name" placeholder="Jane Smith"/>
       </div>
-      <div class="nav-item" id="nav-matches" onclick="switchPage('matches')">
-        <span class="nav-icon">🎯</span>Matches
-      </div>
-      <div class="nav-item" id="nav-pipeline" onclick="switchPage('pipeline')">
-        <span class="nav-icon">📋</span>Applications
-      </div>
-      <div class="nav-item" id="nav-cv" onclick="switchPage('cv')">
-        <span class="nav-icon">📄</span>CV Lab
-      </div>
-      <div class="nav-item" id="nav-profile" onclick="switchPage('profile')">
-        <span class="nav-icon">⚙️</span>Agent Settings
-      </div>
-    </div>
-    <div class="sidebar-footer">
-      <div class="tg-status" id="tg-sidebar-status" onclick="switchPage('profile');setTimeout(()=>document.getElementById('tg-profile-section').scrollIntoView({behavior:'smooth'}),200)">
-        <div class="tg-dot off" id="tg-dot"></div>
-        <span style="font-size:12px;color:var(--ink3)" id="tg-sidebar-label">Telegram not connected</span>
-      </div>
-      <div class="sb-user" onclick="switchPage('profile')">
-        <div class="sb-avatar" id="sb-avatar">?</div>
+      <div class="input-row" style="margin-bottom:14px">
         <div>
-          <div class="sb-user-name" id="sb-name">Loading…</div>
-          <div class="sb-user-sub">FEN account</div>
+          <label class="label">Location</label>
+          <input class="input" type="text" id="pref-loc" placeholder="London, UK"/>
+        </div>
+        <div>
+          <label class="label">Min salary (£/yr)</label>
+          <input class="input" type="number" id="pref-sal" placeholder="50000"/>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">Work type</label>
+        <select class="input" id="pref-wt">
+          <option value="">Any</option><option value="remote">Remote</option>
+          <option value="hybrid">Hybrid</option><option value="onsite">On-site</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="label">Target roles</label>
+        <div class="chip-field" id="ob-roles-wrap" onclick="this.querySelector('input').focus()">
+          <input class="chip-input" id="ob-roles-inp" placeholder="Add role, press Enter" onkeydown="addChip(event,'ob-roles')"/>
+        </div>
+      </div>
+      <div class="field">
+        <label class="label">Target locations</label>
+        <div class="chip-field" id="ob-locs-wrap" onclick="this.querySelector('input').focus()">
+          <input class="chip-input" id="ob-locs-inp" placeholder="Add city, press Enter" onkeydown="addChip(event,'ob-locs')"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-secondary" onclick="obStep(1)" style="flex-shrink:0">← Back</button>
+        <button class="btn btn-primary btn-w" id="btn-ob2" onclick="ob2Next()">Save &amp; Continue →</button>
+      </div>
+      <div class="ob-dots"><div class="ob-dot"></div><div class="ob-dot on"></div><div class="ob-dot"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="ob3" style="display:none">
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)">
+  <div class="ob-wrap">
+    <div class="ob-card" style="text-align:center">
+      <div style="font-size:44px;margin-bottom:14px">🎯</div>
+      <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px">FEN is on the case</div>
+      <div style="font-size:13px;color:var(--ink3);line-height:1.7;margin-bottom:22px">
+        Your CV is uploaded. FEN scans thousands of jobs every day, scores each one, and shows only the ones worth your time.<br/><br/>Your first matches appear within 24 hours.
+      </div>
+      <div style="background:var(--bluel);border:1px solid #BFDBFE;border-radius:var(--radius);padding:16px;margin-bottom:18px">
+        <div style="font-size:13px;font-weight:600;color:var(--blue);margin-bottom:10px">Get daily matches on Telegram</div>
+        <a class="btn btn-blue" href="https://t.me/fen_ai_bot" target="_blank" rel="noopener" style="display:inline-flex">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.9 8.2l-2 9.3c-.1.7-.5.8-1.1.5l-3-2.2-1.4 1.4c-.2.2-.3.3-.6.3l.2-3.1 5.6-5c.2-.2-.1-.3-.4-.1L7.4 13.9l-2.9-.9c-.6-.2-.7-.6.1-.9l11.5-4.4c.5-.2 1 .1.8.5z"/></svg>
+          Connect Telegram
+        </a>
+      </div>
+      <button class="btn btn-primary btn-w" onclick="goApp()">Open FEN dashboard →</button>
+      <div class="ob-dots" style="margin-top:20px"><div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot on"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- /screen-ob -->
+
+<!-- ═══════════════════ MAIN APP ═══════════════════ -->
+<div class="screen" id="screen-app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sb-logo"><div class="sb-logo-text">FEN<em>.</em></div></div>
+    <div class="sb-nav">
+      <div class="sb-item active" id="nav-today"    onclick="go('today')"><span class="sb-icon">⚡</span>Today</div>
+      <div class="sb-item"       id="nav-matches"  onclick="go('matches')"><span class="sb-icon">🎯</span>Matches</div>
+      <div class="sb-item"       id="nav-pipeline" onclick="go('pipeline')"><span class="sb-icon">📋</span>Applications</div>
+      <div class="sb-item"       id="nav-cv"       onclick="go('cv')"><span class="sb-icon">🧪</span>CV Lab</div>
+      <div class="sb-item"       id="nav-profile"  onclick="go('profile')"><span class="sb-icon">⚙️</span>Agent Settings</div>
+    </div>
+    <div class="sb-footer">
+      <div class="sb-tg" id="sb-tg-btn" onclick="go('profile');setTimeout(()=>document.getElementById('tg-section').scrollIntoView({behavior:'smooth'}),200)">
+        <div class="tg-dot" id="tg-dot" style="background:var(--ink4)"></div>
+        <span style="font-size:12px" id="tg-label">Telegram not connected</span>
+      </div>
+      <div class="sb-user" onclick="go('profile')">
+        <div class="sb-avatar" id="sb-av">?</div>
+        <div>
+          <div class="sb-name" id="sb-uname">Account</div>
+          <div class="sb-sub">FEN agent</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Mobile topbar -->
-  <div class="mobile-topbar">
-    <div class="mobile-logo">FEN<span>.</span></div>
-    <div class="sb-avatar" id="sb-avatar-mobile" style="width:30px;height:30px;font-size:12px">?</div>
-  </div>
-
-  <!-- Main -->
+  <!-- Mobile header -->
   <div class="main">
+    <div class="mob-header">
+      <div class="mob-logo">FEN<em>.</em></div>
+      <div class="sb-avatar" id="mob-av" style="width:28px;height:28px;font-size:11px">?</div>
+    </div>
 
-    <!-- ── TODAY ── -->
+    <!-- TODAY -->
     <div class="page on" id="page-today">
-      <div class="page-body" style="max-width:800px">
-        <div class="today-greeting" id="today-greeting">Good morning</div>
-        <div class="today-sub" id="today-sub" style="margin-bottom:24px">FEN is searching for jobs that match your profile.</div>
-
-        <div class="stat-grid" id="stat-grid">
-          <div class="stat-card">
-            <div class="stat-label">Jobs scanned</div>
-            <div class="stat-value" id="st-scanned">—</div>
-            <div class="stat-sub">in the last 24h</div>
-          </div>
-          <div class="stat-card green">
-            <div class="stat-label">Strong matches</div>
-            <div class="stat-value" id="st-strong">—</div>
-            <div class="stat-sub">score ≥ 75%</div>
-          </div>
-          <div class="stat-card amber">
-            <div class="stat-label">Possible matches</div>
-            <div class="stat-value" id="st-possible">—</div>
-            <div class="stat-sub">score 55–74%</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">In pipeline</div>
-            <div class="stat-value" id="st-pipeline">—</div>
-            <div class="stat-sub">applications tracked</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">CV readiness</div>
-            <div class="stat-value" id="st-cvready" style="font-size:22px">—</div>
-            <div class="readiness-bar-wrap">
-              <div class="readiness-bar"><div class="readiness-fill" id="st-cvbar" style="width:0%"></div></div>
-            </div>
+      <div class="page-inner" style="max-width:820px">
+        <div class="today-greeting" id="today-hi">Good morning</div>
+        <div class="today-sub" id="today-sub">FEN is searching for jobs that match your profile.</div>
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-lbl">Jobs scanned</div><div class="stat-val" id="s-total">—</div><div class="stat-hint">last 24 h</div></div>
+          <div class="stat-card c-green"><div class="stat-lbl">Strong matches</div><div class="stat-val" id="s-strong">—</div><div class="stat-hint">score ≥ 75%</div></div>
+          <div class="stat-card c-amber"><div class="stat-lbl">Possible matches</div><div class="stat-val" id="s-possible">—</div><div class="stat-hint">score 55–74%</div></div>
+          <div class="stat-card"><div class="stat-lbl">In pipeline</div><div class="stat-val" id="s-pipe">—</div><div class="stat-hint">applications</div></div>
+          <div class="stat-card" style="grid-column:span 1">
+            <div class="stat-lbl">CV readiness</div>
+            <div class="stat-val" id="s-cv" style="font-size:20px">—</div>
+            <div class="readiness-bar"><div class="readiness-fill" id="s-cvbar" style="width:0"></div></div>
           </div>
         </div>
-
-        <div class="action-card" id="today-action-card">
-          <div class="action-card-title" id="today-action-title">Your best action today</div>
-          <div class="action-card-body" id="today-action-body">Loading agent summary…</div>
-          <button class="btn btn-primary" onclick="switchPage('matches')">Review strong matches →</button>
+        <div class="action-banner">
+          <div class="action-banner-title" id="act-title">Your best action today</div>
+          <div class="action-banner-body" id="act-body">Loading…</div>
+          <button class="btn btn-primary" onclick="go('matches')">Review strong matches →</button>
         </div>
-
-        <div class="tg-today-card" id="tg-today-card" style="display:none">
-          <div class="tg-today-icon">📱</div>
-          <div class="tg-today-body">
-            <div class="tg-today-title">Get daily alerts on Telegram</div>
-            <div class="tg-today-sub">FEN sends your best matches every morning before you start work.</div>
+        <div class="tg-banner" id="tg-today" style="display:none">
+          <div class="tg-banner-ico">📱</div>
+          <div class="tg-banner-body">
+            <div class="tg-banner-title">Get daily alerts on Telegram</div>
+            <div class="tg-banner-sub">FEN sends your best matches every morning.</div>
           </div>
-          <button class="btn btn-blue btn-sm" onclick="switchPage('profile');setTimeout(()=>document.getElementById('tg-profile-section').scrollIntoView({behavior:'smooth'}),200)">Connect</button>
+          <button class="btn btn-blue btn-sm" onclick="go('profile');setTimeout(()=>document.getElementById('tg-section').scrollIntoView({behavior:'smooth'}),200)">Connect</button>
         </div>
       </div>
     </div>
 
-    <!-- ── MATCHES ── -->
+    <!-- MATCHES -->
     <div class="page" id="page-matches" style="overflow:hidden">
-      <div class="matches-layout" style="flex:1">
-        <!-- Left: job list -->
-        <div class="matches-list-col" id="matches-list-col">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div style="font-size:13px;font-weight:600;color:var(--ink)" id="match-list-headline">Matches</div>
-            <button class="btn btn-outline btn-sm" id="run-match-btn" onclick="runMatch()">🔄 Refresh</button>
+      <div class="matches-shell">
+        <div class="match-list" id="match-list-col">
+          <div class="match-list-header">
+            <div class="match-list-title" id="match-list-lbl">Matches</div>
+            <button class="btn btn-secondary btn-sm" id="run-btn" onclick="runMatch()">↺ Refresh</button>
           </div>
-          <div id="strong-section" style="display:none">
-            <div class="match-section-title">Strong matches <span class="badge badge-green" id="strong-count"></span></div>
+          <div id="strong-sec" class="hidden">
+            <div class="match-section-head">Strong <span class="badge badge-green" id="strong-ct"></span></div>
             <div id="strong-list"></div>
           </div>
-          <div id="possible-section" style="display:none">
-            <div class="match-section-title">Possible matches <span class="badge badge-amber" id="possible-count"></span></div>
+          <div id="possible-sec" class="hidden">
+            <div class="match-section-head">Possible <span class="badge badge-amber" id="possible-ct"></span></div>
             <div id="possible-list"></div>
           </div>
-          <div id="hidden-section" style="display:none">
-            <button class="collapse-btn" onclick="toggleHidden()" id="hidden-btn">
-              <span id="hidden-arrow">▸</span><span id="hidden-label"></span>
+          <div id="hidden-sec" class="hidden">
+            <button class="collapse-btn" onclick="toggleHidden()" id="collapse-btn">
+              <span id="collapse-arrow">▸</span><span id="collapse-lbl"></span>
             </button>
             <div id="hidden-list"></div>
           </div>
-          <div id="matches-empty" style="display:none">
-            <div class="empty">
-              <div class="empty-icon">🔍</div>
-              <div class="empty-title">No matches yet</div>
-              <div class="empty-sub">FEN scans for jobs daily. Click Refresh to fetch the latest now.</div>
-            </div>
+          <div id="no-matches" class="hidden">
+            <div class="empty"><div class="empty-ico">🔍</div><div class="empty-title">No matches yet</div><div class="empty-sub">Click Refresh to fetch the latest jobs now.</div></div>
           </div>
         </div>
-        <!-- Right: detail -->
-        <div class="matches-detail-col" id="matches-detail-col">
+        <div class="detail-panel" id="detail-panel">
           <div class="detail-empty" id="detail-empty">
             <div class="detail-empty-icon">←</div>
-            <div style="font-size:14px;font-weight:500">Select a job to see why it matches</div>
-            <div style="font-size:12px;color:var(--ink3)">FEN analyses each job against your CV and profile</div>
+            <div class="detail-empty-text">Select a job to see analysis</div>
+            <div class="detail-empty-sub">FEN analyses every job against your CV and profile</div>
           </div>
-          <div id="detail-panel" style="display:none"></div>
+          <div id="detail-content" class="hidden"></div>
         </div>
       </div>
     </div>
 
-    <!-- ── APPLICATIONS ── -->
+    <!-- PIPELINE -->
     <div class="page" id="page-pipeline">
-      <div class="page-body" style="max-width:800px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px">
-          <div>
-            <div class="page-title">Applications</div>
-            <div style="font-size:13px;color:var(--ink3)" id="pipe-count-label"></div>
-          </div>
+      <div class="page-inner" style="max-width:760px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px">
+          <div style="font-size:20px;font-weight:700;letter-spacing:-.02em">Applications</div>
+          <div style="font-size:12px;color:var(--ink3)" id="pipe-ct"></div>
         </div>
         <div class="pipe-filters" id="pipe-filters">
-          <div class="pipe-chip on" onclick="pipeFilter('all',this)">All</div>
-          <div class="pipe-chip" onclick="pipeFilter('interested',this)">Shortlisted</div>
-          <div class="pipe-chip" onclick="pipeFilter('draft_ready',this)">Ready to apply</div>
-          <div class="pipe-chip" onclick="pipeFilter('applied',this)">Applied</div>
-          <div class="pipe-chip" onclick="pipeFilter('interview',this)">Interview</div>
+          <div class="pf-chip on" onclick="pipeFilter('all',this)">All</div>
+          <div class="pf-chip" onclick="pipeFilter('interested',this)">Shortlisted</div>
+          <div class="pf-chip" onclick="pipeFilter('draft_ready',this)">Ready to apply</div>
+          <div class="pf-chip" onclick="pipeFilter('applied',this)">Applied</div>
+          <div class="pf-chip" onclick="pipeFilter('interview',this)">Interview</div>
         </div>
-        <div id="pipeline-list"></div>
+        <div id="pipe-list"></div>
       </div>
     </div>
 
-    <!-- ── CV LAB ── -->
+    <!-- CV LAB -->
     <div class="page" id="page-cv">
-      <div class="page-body" style="max-width:900px">
-        <div class="page-title" style="margin-bottom:4px">CV Lab</div>
-        <div style="font-size:13px;color:var(--ink3);margin-bottom:24px">Analyse and improve your CV for better matches.</div>
-        <div class="cv-layout">
+      <div class="page-inner" style="max-width:880px">
+        <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px">CV Lab</div>
+        <div style="font-size:13px;color:var(--ink3);margin-bottom:22px">Analyse and improve your CV for better matches.</div>
+        <div class="cvlab-grid">
           <div>
-            <!-- Score -->
-            <div class="cv-score-card">
+            <div class="card">
               <div class="cv-ring-row">
                 <div class="cv-ring" id="cv-ring">—</div>
                 <div>
-                  <div class="cv-ring-label" id="cv-ring-label">Analysing…</div>
+                  <div class="cv-ring-label" id="cv-ring-lbl">Calculating…</div>
                   <div class="cv-ring-sub" id="cv-ring-sub">Complete your profile for a full score.</div>
                 </div>
               </div>
-              <div class="issue-list" id="cv-issue-list"></div>
+              <div id="cv-issues"></div>
             </div>
-            <!-- Quick actions -->
-            <div class="cv-score-card">
-              <div style="font-size:13px;font-weight:600;margin-bottom:14px">Improve your CV</div>
-              <div class="cv-action-grid">
-                <button class="cv-action-btn" onclick="toast('Tailor CV — coming soon')">
-                  <div class="cv-action-icon">✏️</div>
-                  <div class="cv-action-title">Tailor CV for a role</div>
-                  <div class="cv-action-sub">Match keywords from a specific job</div>
-                </button>
-                <button class="cv-action-btn" onclick="toast('Cover letter — coming soon')">
-                  <div class="cv-action-icon">📝</div>
-                  <div class="cv-action-title">Generate cover letter</div>
-                  <div class="cv-action-sub">Role-specific, written by FEN</div>
-                </button>
-                <button class="cv-action-btn" onclick="toast('Interview prep — coming soon')">
-                  <div class="cv-action-icon">🎤</div>
-                  <div class="cv-action-title">Interview questions</div>
-                  <div class="cv-action-sub">Predicted questions for this role</div>
-                </button>
-                <button class="cv-action-btn" onclick="toast('ATS check — coming soon')">
-                  <div class="cv-action-icon">🤖</div>
-                  <div class="cv-action-title">ATS readability</div>
-                  <div class="cv-action-sub">Check if your CV passes screening</div>
-                </button>
+            <div class="card">
+              <div class="card-title">Improve your CV</div>
+              <div class="action-grid">
+                <button class="action-tile" onclick="toast('Tailor CV — coming soon')"><div class="action-tile-icon">✏️</div><div class="action-tile-title">Tailor CV for a role</div><div class="action-tile-sub">Match keywords from a specific job</div></button>
+                <button class="action-tile" onclick="toast('Cover letter — coming soon')"><div class="action-tile-icon">📝</div><div class="action-tile-title">Generate cover letter</div><div class="action-tile-sub">Role-specific, written by FEN</div></button>
+                <button class="action-tile" onclick="toast('Interview prep — coming soon')"><div class="action-tile-icon">🎤</div><div class="action-tile-title">Interview questions</div><div class="action-tile-sub">Predicted questions for this role</div></button>
+                <button class="action-tile" onclick="toast('ATS check — coming soon')"><div class="action-tile-icon">🤖</div><div class="action-tile-title">ATS readability</div><div class="action-tile-sub">Check if your CV passes screening</div></button>
               </div>
             </div>
           </div>
-          <!-- Upload -->
           <div>
-            <div class="cv-score-card">
-              <div style="font-size:13px;font-weight:600;margin-bottom:14px">Upload / Replace CV</div>
-              <div class="upload-zone" id="profile-drop-zone">
-                <input type="file" id="profile-cv-file" accept=".pdf,.doc,.docx,.txt"/>
-                <div class="uz-icon" id="profile-uz-icon">📄</div>
-                <div class="uz-label" style="font-size:13px">Drop CV here or click to browse</div>
-                <div class="uz-hint">PDF, Word, or text · Max 2 MB</div>
-                <div class="uz-filename" id="profile-uz-filename" style="display:none"></div>
+            <div class="card">
+              <div class="card-title">Upload / Replace CV</div>
+              <div class="dropzone" id="cv-dz" style="padding:22px 16px">
+                <input type="file" id="cv-file2" accept=".pdf,.doc,.docx,.txt"/>
+                <div class="dz-icon" id="cv-dz-ico">📄</div>
+                <div class="dz-main" style="font-size:13px">Drop CV or click to browse</div>
+                <div class="dz-hint">PDF, Word or text · Max 2 MB</div>
+                <div class="dz-name" id="cv-dz-name" style="display:none"></div>
               </div>
-              <button class="btn btn-primary btn-full" id="cv-upload-btn" style="margin-top:12px" onclick="uploadCV()">
-                Upload &amp; Re-parse
-              </button>
-              <div id="cv-upload-status" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:center;min-height:16px"></div>
+              <button class="btn btn-primary btn-w" id="cv-up-btn" style="margin-top:12px" onclick="uploadCV()">Upload &amp; Re-parse</button>
+              <div id="cv-up-status" style="font-size:12px;color:var(--ink3);text-align:center;margin-top:7px;min-height:15px"></div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── PROFILE / AGENT SETTINGS ── -->
+    <!-- PROFILE / AGENT SETTINGS -->
     <div class="page" id="page-profile">
-      <div class="page-body" style="max-width:960px">
-        <div class="page-title" style="margin-bottom:4px">Agent settings</div>
-        <div style="font-size:13px;color:var(--ink3);margin-bottom:24px">Tell FEN what jobs to find and what to avoid.</div>
-        <div class="profile-layout">
-          <!-- Left: settings -->
+      <div class="page-inner" style="max-width:920px">
+        <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:3px">Agent settings</div>
+        <div style="font-size:13px;color:var(--ink3);margin-bottom:22px">Tell FEN what jobs to find and what to avoid.</div>
+        <div class="profile-grid">
           <div>
-            <!-- Target roles -->
-            <div class="profile-card">
-              <div class="profile-card-title">🎯 Target roles</div>
+            <div class="card">
+              <div class="card-title">🎯 Target roles</div>
               <div class="field">
-                <label class="field-label">Roles FEN searches for</label>
-                <div class="chip-wrap" id="p-roles-wrap" onclick="this.querySelector('input').focus()">
-                  <input class="chip-input" id="p-roles-input" placeholder="Add role, press Enter" onkeydown="addChip(event,'p-roles')"/>
+                <label class="label">Roles FEN searches for</label>
+                <div class="chip-field" id="p-roles-wrap" onclick="this.querySelector('input').focus()">
+                  <input class="chip-input" id="p-roles-inp" placeholder="Add role, press Enter" onkeydown="addChip(event,'p-roles')"/>
                 </div>
               </div>
               <div class="field" style="margin-bottom:0">
-                <label class="field-label">Seniority</label>
-                <select id="p-seniority" class="finput">
-                  <option value="">Any level</option>
-                  <option value="junior">Junior</option>
-                  <option value="mid">Mid-level</option>
-                  <option value="senior">Senior</option>
+                <label class="label">Seniority</label>
+                <select class="input" id="p-seniority">
+                  <option value="">Any level</option><option value="junior">Junior</option>
+                  <option value="mid">Mid-level</option><option value="senior">Senior</option>
                   <option value="lead">Lead / Principal</option>
                 </select>
               </div>
             </div>
-
-            <!-- Location & salary -->
-            <div class="profile-card">
-              <div class="profile-card-title">📍 Location &amp; salary</div>
+            <div class="card">
+              <div class="card-title">📍 Location &amp; salary</div>
               <div class="field">
-                <label class="field-label">Target locations</label>
-                <div class="chip-wrap" id="p-locs-wrap" onclick="this.querySelector('input').focus()">
-                  <input class="chip-input" id="p-locs-input" placeholder="Add location, press Enter" onkeydown="addChip(event,'p-locs')"/>
+                <label class="label">Target locations</label>
+                <div class="chip-field" id="p-locs-wrap" onclick="this.querySelector('input').focus()">
+                  <input class="chip-input" id="p-locs-inp" placeholder="Add location, press Enter" onkeydown="addChip(event,'p-locs')"/>
                 </div>
               </div>
               <div class="field" style="margin-bottom:0">
-                <label class="field-label">Minimum salary (£/year)</label>
-                <input type="number" id="p-salary" class="finput" placeholder="e.g. 50000"/>
+                <label class="label">Minimum salary (£/year)</label>
+                <input class="input" type="number" id="p-salary" placeholder="e.g. 50000"/>
               </div>
             </div>
-
-            <!-- Work type -->
-            <div class="profile-card">
-              <div class="profile-card-title">💼 Work type</div>
-              <div class="work-type-grid">
-                <div class="wt-option" data-wt="any" onclick="selectWorkType('any')">
-                  <div class="wt-icon">🔀</div>Any
-                </div>
-                <div class="wt-option" data-wt="remote" onclick="selectWorkType('remote')">
-                  <div class="wt-icon">🌐</div>Remote
-                </div>
-                <div class="wt-option" data-wt="hybrid" onclick="selectWorkType('hybrid')">
-                  <div class="wt-icon">🏠</div>Hybrid
-                </div>
-                <div class="wt-option" data-wt="onsite" onclick="selectWorkType('onsite')">
-                  <div class="wt-icon">🏢</div>On-site
-                </div>
+            <div class="card">
+              <div class="card-title">💼 Work type</div>
+              <div class="wt-grid">
+                <div class="wt-opt" data-wt="any"    onclick="setWT('any')"><span class="wt-icon">🔀</span>Any</div>
+                <div class="wt-opt" data-wt="remote" onclick="setWT('remote')"><span class="wt-icon">🌐</span>Remote</div>
+                <div class="wt-opt" data-wt="hybrid" onclick="setWT('hybrid')"><span class="wt-icon">🏠</span>Hybrid</div>
+                <div class="wt-opt" data-wt="onsite" onclick="setWT('onsite')"><span class="wt-icon">🏢</span>On-site</div>
               </div>
             </div>
-
-            <!-- Skills -->
-            <div class="profile-card">
-              <div class="profile-card-title">🛠 Skills</div>
+            <div class="card">
+              <div class="card-title">🛠 Skills</div>
               <div class="field" style="margin-bottom:0">
-                <label class="field-label">Your skills (comma separated)</label>
-                <input type="text" id="p-skills" class="finput" placeholder="e.g. Java, Spring Boot, Angular, Kubernetes"/>
+                <label class="label">Skills (comma separated)</label>
+                <input class="input" type="text" id="p-skills" placeholder="e.g. Java, Spring Boot, Angular, Docker"/>
               </div>
             </div>
-
-            <!-- Eligibility -->
-            <div class="profile-card">
-              <div class="profile-card-title">✅ Work eligibility</div>
-              <div class="row2">
-                <div class="field">
-                  <label class="field-label">Right to work</label>
-                  <select id="p-rtw" class="finput">
+            <div class="card">
+              <div class="card-title">✅ Work eligibility</div>
+              <div class="input-row" style="margin-bottom:0">
+                <div class="field" style="margin-bottom:0">
+                  <label class="label">Right to work</label>
+                  <select class="input" id="p-rtw">
                     <option value="">Not specified</option>
                     <option value="yes">Right to work in UK</option>
                     <option value="sponsorship">Need sponsorship</option>
                   </select>
                 </div>
-                <div class="field">
-                  <label class="field-label">Notice period</label>
-                  <select id="p-notice" class="finput">
+                <div class="field" style="margin-bottom:0">
+                  <label class="label">Notice period</label>
+                  <select class="input" id="p-notice">
                     <option value="">Not specified</option>
                     <option value="immediate">Immediately available</option>
-                    <option value="1w">1 week</option>
-                    <option value="2w">2 weeks</option>
-                    <option value="1m">1 month</option>
-                    <option value="3m">3 months</option>
+                    <option value="1w">1 week</option><option value="2w">2 weeks</option>
+                    <option value="1m">1 month</option><option value="3m">3 months</option>
                   </select>
                 </div>
               </div>
             </div>
-
-            <!-- Exclusions -->
-            <div class="profile-card">
-              <div class="profile-card-title">🚫 Exclusion rules</div>
-              <div style="font-size:12px;color:var(--ink3);margin-bottom:12px">FEN will hide jobs that match these rules.</div>
-              <div class="toggle-row">
-                <span class="toggle-label">Hide jobs below my minimum salary</span>
-                <label class="toggle"><input type="checkbox" id="excl-salary" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+            <div class="card">
+              <div class="card-title">🚫 Exclusion rules</div>
+              <div style="font-size:12px;color:var(--ink3);margin-bottom:10px">FEN hides jobs that match these rules.</div>
+              <div class="toggle-row">Hide jobs below my minimum salary
+                <label class="toggle"><input type="checkbox" id="ex-sal" checked/><div class="t-track"></div><div class="t-thumb"></div></label>
               </div>
-              <div class="toggle-row">
-                <span class="toggle-label">Hide jobs older than 14 days</span>
-                <label class="toggle"><input type="checkbox" id="excl-old" checked/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+              <div class="toggle-row">Hide jobs older than 14 days
+                <label class="toggle"><input type="checkbox" id="ex-old" checked/><div class="t-track"></div><div class="t-thumb"></div></label>
               </div>
-              <div class="toggle-row">
-                <span class="toggle-label">Hide roles outside my target titles</span>
-                <label class="toggle"><input type="checkbox" id="excl-offtitle"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+              <div class="toggle-row">Hide roles outside my target titles
+                <label class="toggle"><input type="checkbox" id="ex-title"/><div class="t-track"></div><div class="t-thumb"></div></label>
               </div>
-              <div class="toggle-row">
-                <span class="toggle-label">Hide duplicate agency postings</span>
-                <label class="toggle"><input type="checkbox" id="excl-agency"/><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+              <div class="toggle-row">Hide duplicate agency postings
+                <label class="toggle"><input type="checkbox" id="ex-agency"/><div class="t-track"></div><div class="t-thumb"></div></label>
               </div>
             </div>
-
-            <button class="btn btn-primary btn-full" onclick="saveProfile()">Save agent settings</button>
-            <div id="profile-save-status" style="font-size:12px;color:var(--ink3);text-align:center;margin-top:8px;min-height:16px;margin-bottom:24px"></div>
-
-            <!-- Telegram -->
-            <div class="profile-card" id="tg-profile-section">
-              <div class="profile-card-title">📱 Telegram alerts</div>
-              <div style="font-size:13px;color:var(--ink3);margin-bottom:14px;line-height:1.6">
-                Get your best matches delivered to Telegram every morning.
-              </div>
-              <button class="btn btn-blue btn-full" onclick="connectTelegram()">Connect Telegram</button>
-              <div id="tg-connect-box" style="display:none;margin-top:14px;background:var(--bluel);border:1px solid #BFDBFE;border-radius:8px;padding:14px">
-                <div style="font-size:13px;font-weight:500;margin-bottom:8px">Send this to <b>@fen_ai_bot</b> on Telegram:</div>
-                <div id="tg-connect-cmd" style="font-family:monospace;background:rgba(37,99,235,.1);padding:8px 12px;border-radius:6px;font-size:13px;word-break:break-all;margin-bottom:10px"></div>
-                <a id="tg-connect-link" href="#" target="_blank" rel="noopener">
-                  <button class="btn btn-primary btn-full">Open in Telegram →</button>
-                </a>
+            <button class="btn btn-primary btn-w" onclick="saveProfile()">Save agent settings</button>
+            <div id="p-save-status" style="font-size:12px;color:var(--ink3);text-align:center;margin-top:8px;min-height:15px;margin-bottom:20px"></div>
+            <div class="card" id="tg-section">
+              <div class="card-title">📱 Telegram alerts</div>
+              <div style="font-size:13px;color:var(--ink3);line-height:1.65;margin-bottom:14px">Get your best matches delivered to Telegram every morning.</div>
+              <button class="btn btn-blue btn-w" onclick="connectTG()">Connect Telegram</button>
+              <div id="tg-box" style="display:none;margin-top:14px;background:var(--bluel);border:1px solid #BFDBFE;border-radius:var(--radius);padding:14px">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px">Send this to <b>@fen_ai_bot</b> on Telegram:</div>
+                <div id="tg-cmd" style="font-family:monospace;background:rgba(37,99,235,.08);padding:8px 11px;border-radius:5px;font-size:13px;word-break:break-all;margin-bottom:10px"></div>
+                <a id="tg-link" href="#" target="_blank" rel="noopener"><button class="btn btn-primary btn-w">Open in Telegram →</button></a>
               </div>
             </div>
           </div>
-
-          <!-- Right: agent status panel -->
           <div>
-            <div class="agent-status-card">
-              <div class="agent-status-title">Agent status</div>
-              <div class="agent-stat-row">
-                <span class="agent-stat-key">CV uploaded</span>
-                <span class="agent-stat-val" id="as-cv">—</span>
-              </div>
-              <div class="agent-stat-row">
-                <span class="agent-stat-key">Skills found</span>
-                <span class="agent-stat-val" id="as-skills">—</span>
-              </div>
-              <div class="agent-stat-row">
-                <span class="agent-stat-key">Target roles</span>
-                <span class="agent-stat-val" id="as-roles">—</span>
-              </div>
-              <div class="agent-stat-row">
-                <span class="agent-stat-key">Next scan</span>
-                <span class="agent-stat-val warn">Tomorrow 8:00 AM</span>
-              </div>
-              <div class="agent-stat-row">
-                <span class="agent-stat-key">Telegram</span>
-                <span class="agent-stat-val" id="as-tg">Not connected</span>
-              </div>
-              <div style="margin-top:14px">
-                <button class="btn btn-outline btn-full btn-sm" onclick="switchPage('cv')">View CV Lab →</button>
-              </div>
+            <div class="agent-card">
+              <div class="agent-card-title">Agent status</div>
+              <div class="astat"><span class="astat-key">CV uploaded</span><span class="astat-val" id="as-cv">—</span></div>
+              <div class="astat"><span class="astat-key">Skills found</span><span class="astat-val" id="as-skills">—</span></div>
+              <div class="astat"><span class="astat-key">Target roles</span><span class="astat-val" id="as-roles">—</span></div>
+              <div class="astat"><span class="astat-key">Next scan</span><span class="astat-val wrn">Tomorrow 8 AM</span></div>
+              <div class="astat"><span class="astat-key">Telegram</span><span class="astat-val" id="as-tg">Not connected</span></div>
+              <button class="btn btn-secondary btn-w btn-sm" style="margin-top:12px" onclick="go('cv')">Open CV Lab →</button>
             </div>
           </div>
         </div>
@@ -834,657 +732,455 @@ hr.divider{border:none}
   </div><!-- /main -->
 
   <!-- Mobile nav -->
-  <div class="mobile-nav">
-    <div class="mobile-nav-item on" id="mnav-today" onclick="switchPage('today')">
-      <span class="mobile-nav-icon">⚡</span>Today
-    </div>
-    <div class="mobile-nav-item" id="mnav-matches" onclick="switchPage('matches')">
-      <span class="mobile-nav-icon">🎯</span>Matches
-    </div>
-    <div class="mobile-nav-item" id="mnav-pipeline" onclick="switchPage('pipeline')">
-      <span class="mobile-nav-icon">📋</span>Apps
-    </div>
-    <div class="mobile-nav-item" id="mnav-cv" onclick="switchPage('cv')">
-      <span class="mobile-nav-icon">📄</span>CV Lab
-    </div>
-    <div class="mobile-nav-item" id="mnav-profile" onclick="switchPage('profile')">
-      <span class="mobile-nav-icon">⚙️</span>Settings
+  <div class="mob-nav">
+    <div class="mob-nav-inner">
+      <div class="mob-tab active" id="mt-today"    onclick="go('today')"><div class="mob-tab-icon">⚡</div>Today</div>
+      <div class="mob-tab"       id="mt-matches"  onclick="go('matches')"><div class="mob-tab-icon">🎯</div>Matches</div>
+      <div class="mob-tab"       id="mt-pipeline" onclick="go('pipeline')"><div class="mob-tab-icon">📋</div>Apps</div>
+      <div class="mob-tab"       id="mt-cv"       onclick="go('cv')"><div class="mob-tab-icon">🧪</div>CV Lab</div>
+      <div class="mob-tab"       id="mt-profile"  onclick="go('profile')"><div class="mob-tab-icon">⚙️</div>Settings</div>
     </div>
   </div>
-
 </div><!-- /screen-app -->
 
 <div id="toast"></div>
 
 <script>
-// ── State ─────────────────────────────────────────────────────────────────────
-let cvFile = null, profileCvFile = null
-let roleTags = [], locTags = [], pRoleTags = [], pLocTags = []
-let allMatches = [], allApplications = [], profileData = null
-let selectedMatchId = null, currentPipeFilter = 'all', matchesLoaded = false
-let workTypeSelected = 'any'
+/* ── state ── */
+let cvFileOb = null, cvFile2Ob = null
+let obRoles = [], obLocs = [], pRoles = [], pLocs = []
+let allMatches = [], allApps = [], profileD = null
+let selMid = null, pipeF = 'all', matchLoaded = false, workType = 'any'
 
-// ── API ───────────────────────────────────────────────────────────────────────
-async function api(path, opts = {}) {
-  try {
-    const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) } })
-    if (!r.ok) return null
-    const t = await r.text(); return t ? JSON.parse(t) : null
+/* ── helpers ── */
+const $ = id => document.getElementById(id)
+const show = (id,d='block') => { const e=$(id); if(e) e.style.display=d }
+const hide = id => { const e=$(id); if(e) e.style.display='none' }
+function esc(s){ return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function toast(msg,ms=3000){ const t=$('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),ms) }
+function loading(on){ const b=$('lbar'); if(on){b.style.display='block';b.classList.add('on')}else{b.classList.remove('on');b.style.display='none'} }
+
+async function api(path, opts={}){
+  try{
+    const r = await fetch(path, {...opts, headers:{'Content-Type':'application/json',...(opts.headers||{})}})
+    if(!r.ok) return null
+    const t = await r.text(); return t?JSON.parse(t):null
   } catch { return null }
 }
 
-// ── Loading bar ───────────────────────────────────────────────────────────────
-function setLoading(on) {
-  const lb = document.getElementById('loading-bar')
-  lb.style.display = on ? 'block' : 'none'
-  if (on) lb.classList.add('active'); else lb.classList.remove('active')
-}
+/* ── screens ── */
+function goScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); $(id).classList.add('on') }
+function goApp(){ goScreen('screen-app'); go('today') }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function toast(msg, ms = 3200) {
-  const t = document.getElementById('toast')
-  t.textContent = msg; t.classList.add('show')
-  setTimeout(() => t.classList.remove('show'), ms)
-}
-
-// ── Screens ───────────────────────────────────────────────────────────────────
-function goScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'))
-  document.getElementById(id).classList.add('on')
-  window.scrollTo(0, 0)
-}
-function goApp() { goScreen('screen-app'); switchPage('today') }
-
-// ── Pages ─────────────────────────────────────────────────────────────────────
+/* ── pages ── */
 const PAGES = ['today','matches','pipeline','cv','profile']
-function switchPage(p) {
-  PAGES.forEach(id => {
-    document.getElementById(`page-${id}`).classList.toggle('on', id === p)
-    const nav = document.getElementById(`nav-${id}`)
-    if (nav) nav.classList.toggle('on', id === p)
-    const mnav = document.getElementById(`mnav-${id}`)
-    if (mnav) mnav.classList.toggle('on', id === p)
+function go(p){
+  PAGES.forEach(id=>{
+    $(`page-${id}`).classList.toggle('on', id===p)
+    const n=$(`nav-${id}`);    if(n) n.classList.toggle('active', id===p)
+    const m=$(`mt-${id}`);     if(m) m.classList.toggle('active', id===p)
   })
-  window.scrollTo(0, 0)
-  if (p === 'today')    loadToday()
-  if (p === 'matches')  { if (!matchesLoaded) loadMatches() }
-  if (p === 'pipeline') loadPipeline()
-  if (p === 'cv')       loadCVLab()
-  if (p === 'profile')  loadProfilePage()
+  window.scrollTo(0,0)
+  if(p==='today')    loadToday()
+  if(p==='matches')  { if(!matchLoaded) loadMatches() }
+  if(p==='pipeline') loadPipeline()
+  if(p==='cv')       loadCVLab()
+  if(p==='profile')  loadProfile()
 }
 
-// ── TODAY ─────────────────────────────────────────────────────────────────────
-async function loadToday() {
+/* ── today ── */
+async function loadToday(){
   const h = new Date().getHours()
-  const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
-  const name  = profileData?.full_name?.split(' ')[0] || ''
-  document.getElementById('today-greeting').textContent = name ? `${greet}, ${name}` : greet
+  const g = h<12?'Good morning':h<18?'Good afternoon':'Good evening'
+  const n = profileD?.full_name?.split(' ')[0]||''
+  $('today-hi').textContent = n ? `${g}, ${n}` : g
 
-  setLoading(true)
-  const [matchData, apps] = await Promise.all([api('/matches?limit=100&min_score=10'), api('/applications')])
-  setLoading(false)
+  loading(true)
+  const [md, apps] = await Promise.all([api('/matches?limit=100&min_score=10'), api('/applications')])
+  loading(false)
 
-  const matches  = matchData?.matches ?? []
-  const strong   = matches.filter(m => (m.suitability_score||0) >= 75)
-  const possible = matches.filter(m => { const s = m.suitability_score||0; return s >= 55 && s < 75 })
+  const ms = md?.matches??[]
+  const strong   = ms.filter(m=>(m.suitability_score||0)>=75).length
+  const possible = ms.filter(m=>{const s=m.suitability_score||0;return s>=55&&s<75}).length
+  $('s-total').textContent    = ms.length||'0'
+  $('s-strong').textContent   = strong||'0'
+  $('s-possible').textContent = possible||'0'
+  $('s-pipe').textContent     = apps?.length||'0'
 
-  document.getElementById('st-scanned').textContent  = matches.length || '0'
-  document.getElementById('st-strong').textContent   = strong.length || '0'
-  document.getElementById('st-possible').textContent = possible.length || '0'
-  document.getElementById('st-pipeline').textContent = apps?.length || '0'
+  const pct = cvPct(profileD)
+  $('s-cv').textContent = `${pct}%`
+  const fill = $('s-cvbar')
+  fill.style.width = `${pct}%`
+  fill.style.background = pct>=80?'var(--green)':pct>=55?'var(--amber)':'var(--red)'
 
-  const cvPct = getCVReadiness(profileData)
-  document.getElementById('st-cvready').textContent = `${cvPct}%`
-  const fill = document.getElementById('st-cvbar')
-  fill.style.width = `${cvPct}%`
-  fill.style.background = cvPct >= 80 ? 'var(--green)' : cvPct >= 55 ? 'var(--amber)' : 'var(--red)'
-
-  // Action card
-  let actionTitle = 'Your best action today'
-  let actionBody  = 'Complete your profile and upload your CV so FEN can start finding jobs for you.'
-  if (strong.length > 0) {
-    actionTitle = `${strong.length} strong match${strong.length > 1 ? 'es' : ''} found today`
-    actionBody  = `FEN found ${strong.length} role${strong.length > 1 ? 's' : ''} that strongly match your CV. ${possible.length > 0 ? `There ${possible.length > 1 ? 'are' : 'is'} also ${possible.length} possible match${possible.length > 1 ? 'es' : ''} worth reviewing.` : ''} Review them now and shortlist the ones worth applying to.`
-  } else if (matches.length > 0) {
-    actionTitle = 'Possible matches found'
-    actionBody  = `FEN found ${possible.length} possible match${possible.length !== 1 ? 'es' : ''} — none scored above 75% yet. This could mean your profile needs updating or the CV keywords need refining.`
-  } else if (cvPct < 60) {
-    actionTitle = 'Improve your CV readiness'
-    actionBody  = 'Your profile is missing some key information. Adding target roles, skills, and location preferences will help FEN find better matches.'
+  let t='Your best action today', b='Complete your profile and upload your CV so FEN can start finding jobs for you.'
+  if(strong>0){
+    t=`${strong} strong match${strong>1?'es':''} found`
+    b=`FEN found ${strong} role${strong>1?'s':''} that strongly match your CV.${possible>0?' There are also '+possible+' possible match'+(possible>1?'es':'')+' worth reviewing.':''} Review them now and shortlist the best ones.`
+  } else if(ms.length>0){
+    t='Possible matches found'
+    b=`FEN found ${possible} possible match${possible!==1?'es':''}. Refine your profile or update your CV to improve match quality.`
+  } else if(pct<60){
+    t='Improve your CV readiness'
+    b='Add target roles, skills, and location preferences to help FEN find better matches.'
   }
-  document.getElementById('today-action-title').textContent = actionTitle
-  document.getElementById('today-action-body').textContent  = actionBody
-
-  document.getElementById('today-sub').textContent = strong.length > 0
-    ? `FEN found ${strong.length} strong match${strong.length > 1 ? 'es' : ''} for you today.`
-    : 'FEN is searching for jobs that match your profile.'
-
-  document.getElementById('tg-today-card').style.display = 'flex'
+  $('act-title').textContent = t
+  $('act-body').textContent  = b
+  $('today-sub').textContent = strong>0 ? `FEN found ${strong} strong match${strong>1?'es':''} for you today.` : 'FEN is scanning jobs that match your profile.'
+  show('tg-today','flex')
 }
 
-function getCVReadiness(p) {
-  if (!p) return 0
-  let s = 20
-  if ((p.skills?.length||0) >= 3) s += 20
-  if ((p.target_roles?.length||0) >= 1) s += 20
-  if ((p.target_locations?.length||0) >= 1) s += 10
-  if (p.min_salary) s += 10
-  if (p.full_name) s += 10
-  if (p.preferred_work_type && p.preferred_work_type !== 'any') s += 10
-  return Math.min(s, 100)
+function cvPct(p){
+  if(!p) return 0
+  let s=20
+  if((p.skills?.length||0)>=3) s+=20
+  if((p.target_roles?.length||0)>=1) s+=20
+  if((p.target_locations?.length||0)>=1) s+=10
+  if(p.min_salary) s+=10
+  if(p.full_name) s+=10
+  if(p.preferred_work_type&&p.preferred_work_type!=='any') s+=10
+  return Math.min(s,100)
 }
 
-// ── MATCHES ───────────────────────────────────────────────────────────────────
-async function loadMatches() {
-  matchesLoaded = true
-  setLoading(true)
-  document.getElementById('match-list-headline').textContent = 'Loading…'
-  ;['strong-section','possible-section','hidden-section','matches-empty'].forEach(id =>
-    document.getElementById(id).style.display = 'none')
+/* ── matches ── */
+async function loadMatches(){
+  matchLoaded = true
+  loading(true)
+  $('match-list-lbl').textContent = 'Loading…'
+  ;['strong-sec','possible-sec','hidden-sec','no-matches'].forEach(id=>$$(id,'hidden',true))
 
   const data = await api('/matches?limit=60&min_score=10')
-  setLoading(false)
+  loading(false)
+  const ms = data?.matches??[]
+  allMatches = ms
 
-  const matches = data?.matches ?? []
-  allMatches = matches
+  if(!ms.length){ $$(  'no-matches','hidden',false); $('match-list-lbl').textContent='No matches'; return }
 
-  if (!matches.length) {
-    document.getElementById('matches-empty').style.display = 'block'
-    document.getElementById('match-list-headline').textContent = 'No matches yet'
-    return
-  }
+  const strong   = ms.filter(m=>(m.suitability_score||0)>=75)
+  const possible = ms.filter(m=>{const s=m.suitability_score||0;return s>=55&&s<75})
+  const hidden   = ms.filter(m=>(m.suitability_score||0)<55)
+  $('match-list-lbl').textContent = `${ms.length} job${ms.length>1?'s':''} · ${strong.length} strong`
 
-  const strong   = matches.filter(m => (m.suitability_score||0) >= 75)
-  const possible = matches.filter(m => { const s = m.suitability_score||0; return s >= 55 && s < 75 })
-  const hidden   = matches.filter(m => (m.suitability_score||0) < 55)
-
-  document.getElementById('match-list-headline').textContent =
-    `${matches.length} job${matches.length > 1 ? 's' : ''} · ${strong.length} strong`
-
-  if (strong.length) {
-    document.getElementById('strong-section').style.display = 'block'
-    document.getElementById('strong-count').textContent = String(strong.length)
-    renderJobList('strong-list', strong)
-  }
-  if (possible.length) {
-    document.getElementById('possible-section').style.display = 'block'
-    document.getElementById('possible-count').textContent = String(possible.length)
-    renderJobList('possible-list', possible)
-  }
-  if (hidden.length) {
-    document.getElementById('hidden-section').style.display = 'block'
-    document.getElementById('hidden-label').textContent = `${hidden.length} low-relevance job${hidden.length > 1 ? 's' : ''} hidden`
-    renderJobList('hidden-list', hidden, true)
+  if(strong.length){ $$('strong-sec','hidden',false); $('strong-ct').textContent=String(strong.length); fillList('strong-list',strong) }
+  if(possible.length){ $$('possible-sec','hidden',false); $('possible-ct').textContent=String(possible.length); fillList('possible-list',possible) }
+  if(hidden.length){
+    $$('hidden-sec','hidden',false)
+    $('collapse-lbl').textContent = `${hidden.length} low-relevance job${hidden.length>1?'s':''} hidden`
+    fillList('hidden-list',hidden,true)
   }
 }
 
-function renderJobList(containerId, jobs, dim = false) {
-  const el = document.getElementById(containerId)
-  el.innerHTML = ''
-  jobs.forEach(m => el.appendChild(buildJobCard(m, dim)))
-}
+function $$(id,cls,add){ $(id)?.classList[add?'add':'remove'](cls) }
+function fillList(cid,jobs,dim=false){ const el=$(cid); el.innerHTML=''; jobs.forEach(m=>el.appendChild(jcard(m,dim))) }
 
-function scoreClass(s) { return s >= 75 ? 'badge-green' : s >= 55 ? 'badge-amber' : 'badge-grey' }
+function scoreColor(s){ return s>=75?'var(--green)':s>=55?'var(--amber)':'var(--ink3)' }
+function scoreBadge(s){ return s>=75?'badge-green':s>=55?'badge-amber':'badge-grey' }
 
-function buildJobCard(m, dim = false) {
-  const score  = m.suitability_score || 0
-  const mid    = m.match_id || m.id
-  const salary = m.salary_min ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max ? '–'+(m.salary_max/1000).toFixed(0)+'k':'+'}` : ''
-  const remote = {remote:'Remote',hybrid:'Hybrid',onsite:'On-site'}[m.remote_type] || ''
-  const reasons = (m.match_reasons||[]).slice(0,3).join(' · ')
-
-  const card = document.createElement('div')
-  card.className = `job-card${dim ? ' dim' : ''}`
+function jcard(m,dim=false){
+  const score = m.suitability_score||0
+  const mid   = m.match_id||m.id
+  const sal   = m.salary_min ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max?'–'+(m.salary_max/1000).toFixed(0)+'k':'+'}` : ''
+  const rem   = {remote:'Remote',hybrid:'Hybrid',onsite:'On-site'}[m.remote_type]||''
+  const reas  = (m.match_reasons||[]).slice(0,3).join(' · ')
+  const card  = document.createElement('div')
+  card.className = `jcard${dim?' dim':''}`
   card.id = `jc-${mid}`
-  card.onclick = () => selectMatch(mid)
+  card.onclick = ()=>selectJob(mid)
   card.innerHTML = `
-    <div class="job-card-top">
+    <div class="jcard-top">
       <div style="min-width:0">
-        <div class="job-card-title">${esc(m.title||'Role')}</div>
-        <div class="job-card-company">${esc(m.company||'')}${m.location ? ' · '+esc(m.location) : ''}</div>
+        <div class="jcard-title">${esc(m.title||'Role')}</div>
+        <div class="jcard-co">${esc(m.company||'')}${m.location?' · '+esc(m.location):''}</div>
       </div>
-      <span class="badge ${scoreClass(score)}">${score}%</span>
+      <span class="badge ${scoreBadge(score)}">${score}%</span>
     </div>
-    <div class="job-card-meta">
-      ${salary ? `<span class="meta-tag">💰 ${salary}</span>` : ''}
-      ${remote ? `<span class="meta-tag">${remote}</span>` : ''}
-      ${m.source ? `<span class="meta-tag">${esc(m.source)}</span>` : ''}
+    <div class="jcard-pills">
+      ${sal?`<span class="jpill">💰 ${sal}</span>`:''}
+      ${rem?`<span class="jpill">${rem}</span>`:''}
+      ${m.source?`<span class="jpill">${esc(m.source)}</span>`:''}
     </div>
-    ${reasons ? `<div class="job-card-reasons">✨ ${esc(reasons)}</div>` : ''}
+    ${reas?`<div class="jcard-reasons">✨ ${esc(reas)}</div>`:''}
   `
   return card
 }
 
-function selectMatch(mid) {
-  if (selectedMatchId) {
-    const prev = document.getElementById(`jc-${selectedMatchId}`)
-    if (prev) prev.classList.remove('selected')
-  }
-  selectedMatchId = mid
-  const card = document.getElementById(`jc-${mid}`)
-  if (card) card.classList.add('selected')
+function selectJob(mid){
+  if(selMid){ $(`jc-${selMid}`)?.classList.remove('sel') }
+  selMid = mid
+  $(`jc-${mid}`)?.classList.add('sel')
+  const m = allMatches.find(x=>(x.match_id||x.id)===mid)
+  if(!m) return
 
-  const m = allMatches.find(x => (x.match_id||x.id) === mid)
-  if (!m) return
+  $('detail-empty').classList.add('hidden')
+  $('detail-content').classList.remove('hidden')
 
-  document.getElementById('detail-empty').style.display  = 'none'
-  document.getElementById('detail-panel').style.display  = 'block'
+  const score   = m.suitability_score||0
+  const sal     = m.salary_min ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max?'–'+(m.salary_max/1000).toFixed(0)+'k':'+'}` : '—'
+  const rc      = scoreColor(score)
+  const label   = score>=75?'Strong match':score>=55?'Possible match':'Low relevance'
+  const sublbl  = score>=75?'Your profile aligns well with this role.':score>=55?'Relevant signals, but gaps to address.':'This job may not fit your current profile.'
+  const reasons = m.match_reasons||[]
+  const missing = m.missing_keywords||[]
 
-  const score   = m.suitability_score || 0
-  const salary  = m.salary_min ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max ? '–'+(m.salary_max/1000).toFixed(0)+'k':'+'}` : 'Not specified'
-  const reasons = m.match_reasons || []
-  const missing = m.missing_keywords || []
-  const ringColor = score >= 75 ? 'var(--green)' : score >= 55 ? 'var(--amber)' : 'var(--red)'
-
-  const matchPills  = reasons.map(r => `<span class="kw kw-match">${esc(r)}</span>`).join('')
-  const missingPills = missing.map(r => `<span class="kw kw-missing">${esc(r)}</span>`).join('')
-
-  document.getElementById('detail-panel').innerHTML = `
-    <div class="detail-title">${esc(m.title||'Role')}</div>
-    <div class="detail-company">${esc(m.company||'')}${m.location ? ' · '+esc(m.location) : ''}</div>
-
-    <div class="detail-score-row">
-      <div class="score-ring" style="border-color:${ringColor};color:${ringColor}">${score}%</div>
-      <div>
-        <div class="detail-score-label">${score >= 75 ? 'Strong match' : score >= 55 ? 'Possible match' : 'Low relevance'}</div>
-        <div class="detail-score-sub">${score >= 75 ? 'Your profile aligns well with this role.' : score >= 55 ? 'Relevant signals, but gaps to address.' : 'This job may not fit your current profile.'}</div>
-      </div>
+  $('detail-content').innerHTML = `
+    <div class="dp-title">${esc(m.title||'Role')}</div>
+    <div class="dp-co">${esc(m.company||'')}${m.location?' · '+esc(m.location):''}</div>
+    <div class="score-row">
+      <div class="score-circle" style="border-color:${rc};color:${rc}">${score}%</div>
+      <div><div class="score-label">${label}</div><div class="score-sub">${sublbl}</div></div>
     </div>
-
-    <div class="detail-meta-grid">
-      <div class="detail-meta-item"><div class="detail-meta-key">Salary</div><div class="detail-meta-val">${esc(salary)}</div></div>
-      <div class="detail-meta-item"><div class="detail-meta-key">Location</div><div class="detail-meta-val">${esc(m.location||'—')}</div></div>
-      <div class="detail-meta-item"><div class="detail-meta-key">Work type</div><div class="detail-meta-val">${esc(m.remote_type||'—')}</div></div>
-      <div class="detail-meta-item"><div class="detail-meta-key">Source</div><div class="detail-meta-val">${esc(m.source||'—')}</div></div>
+    <div class="dp-grid">
+      <div class="dp-meta"><div class="dp-meta-key">Salary</div><div class="dp-meta-val">${esc(sal)}</div></div>
+      <div class="dp-meta"><div class="dp-meta-key">Location</div><div class="dp-meta-val">${esc(m.location||'—')}</div></div>
+      <div class="dp-meta"><div class="dp-meta-key">Work type</div><div class="dp-meta-val">${esc(m.remote_type||'—')}</div></div>
+      <div class="dp-meta"><div class="dp-meta-key">Source</div><div class="dp-meta-val">${esc(m.source||'—')}</div></div>
     </div>
-
-    ${reasons.length ? `<div class="section-h">Why it matches</div><div class="kw-list">${matchPills}</div>` : ''}
-    ${missing.length ? `<div class="section-h">Missing from your CV</div><div class="kw-list">${missingPills}</div>` : ''}
-
-    ${m.llm_summary ? `
-    <div class="section-h">FEN's read</div>
-    <div class="fen-rec">${esc(m.llm_summary)}</div>
-    ` : ''}
-
-    <div class="section-h">Your next action</div>
-    <div class="detail-actions">
-      <button class="btn btn-green btn-full" onclick="markInterested('${mid}',event)">Shortlist — prepare application</button>
-      ${m.url ? `<a class="btn btn-outline btn-full" href="${esc(m.url)}" target="_blank" rel="noopener">View job posting →</a>` : ''}
-      <button class="btn btn-red btn-full" onclick="markSkip('${mid}',event)">Not relevant — skip</button>
+    ${reasons.length?`<div class="dp-section">Why it matches</div><div class="kw-list">${reasons.map(r=>`<span class="kw kw-match">${esc(r)}</span>`).join('')}</div>`:''}
+    ${missing.length?`<div class="dp-section">Missing from your CV</div><div class="kw-list">${missing.map(r=>`<span class="kw kw-miss">${esc(r)}</span>`).join('')}</div>`:''}
+    ${m.llm_summary?`<div class="dp-section">FEN's read</div><div class="dp-rec">${esc(m.llm_summary)}</div>`:''}
+    <div class="dp-section">Your next action</div>
+    <div class="dp-actions">
+      <button class="btn btn-green" style="width:100%" onclick="markInt('${mid}')">Shortlist — prepare application</button>
+      ${m.url?`<a class="btn btn-secondary" style="width:100%" href="${esc(m.url)}" target="_blank" rel="noopener">View job posting →</a>`:''}
+      <button class="btn btn-red" style="width:100%" onclick="markSkip('${mid}')">Not relevant — skip</button>
     </div>
   `
 }
 
-function toggleHidden() {
-  const list  = document.getElementById('hidden-list')
-  const open  = list.classList.toggle('open')
-  document.getElementById('hidden-arrow').textContent = open ? '▾' : '▸'
-  const count = allMatches.filter(m => (m.suitability_score||0) < 55).length
-  document.getElementById('hidden-label').textContent = open
-    ? `Hide low-relevance jobs`
-    : `${count} low-relevance job${count > 1 ? 's' : ''} hidden`
+function toggleHidden(){
+  const list=$('hidden-list'), open=list.classList.toggle('open')
+  $('collapse-arrow').textContent = open?'▾':'▸'
+  const ct = allMatches.filter(m=>(m.suitability_score||0)<55).length
+  $('collapse-lbl').textContent = open ? 'Hide low-relevance jobs' : `${ct} low-relevance job${ct>1?'s':''} hidden`
 }
 
-async function markInterested(mid, e) {
-  e?.stopPropagation()
-  const r = await api(`/matches/${mid}/feedback`, { method:'PATCH', body:JSON.stringify({feedback:'interested'}) })
-  if (r) {
-    toast('Added to applications 🎉')
-    document.getElementById(`jc-${mid}`)?.remove()
-    allMatches = allMatches.filter(m => (m.match_id||m.id) !== mid)
-    if (selectedMatchId === mid) {
-      document.getElementById('detail-panel').style.display = 'none'
-      document.getElementById('detail-empty').style.display = 'flex'
-    }
-  } else toast('Something went wrong')
+async function markInt(mid){
+  const r = await api(`/matches/${mid}/feedback`,{method:'PATCH',body:JSON.stringify({feedback:'interested'})})
+  if(r){ toast('Added to applications 🎉'); removeCard(mid) } else toast('Something went wrong')
+}
+async function markSkip(mid){
+  await api(`/matches/${mid}/feedback`,{method:'PATCH',body:JSON.stringify({feedback:'skip'})})
+  removeCard(mid)
+}
+function removeCard(mid){
+  $(`jc-${mid}`)?.remove(); allMatches=allMatches.filter(m=>(m.match_id||m.id)!==mid)
+  if(selMid===mid){ $$('detail-content','hidden',true); $$('detail-empty','hidden',false) }
 }
 
-async function markSkip(mid, e) {
-  e?.stopPropagation()
-  await api(`/matches/${mid}/feedback`, { method:'PATCH', body:JSON.stringify({feedback:'skip'}) })
-  document.getElementById(`jc-${mid}`)?.remove()
-  allMatches = allMatches.filter(m => (m.match_id||m.id) !== mid)
-  if (selectedMatchId === mid) {
-    document.getElementById('detail-panel').style.display = 'none'
-    document.getElementById('detail-empty').style.display = 'flex'
-  }
+async function runMatch(){
+  const btn=$('run-btn'); btn.disabled=true; btn.innerHTML='<span class="spin spin-dk"></span>'
+  const r = await api('/matches/run',{method:'POST'})
+  btn.disabled=false; btn.textContent='↺ Refresh'
+  if(r?.ok){ toast(`Found ${r.matched??0} new matches`); matchLoaded=false; await loadMatches() }
+  else toast('Matching failed — try again')
 }
 
-async function runMatch() {
-  const btn = document.getElementById('run-match-btn')
-  btn.disabled = true
-  btn.innerHTML = '<span class="spinner spinner-dark"></span>'
-  const r = await api('/matches/run', { method:'POST' })
-  btn.disabled = false; btn.textContent = '🔄 Refresh'
-  if (r?.ok) {
-    toast(`Found ${r.matched ?? 0} new matches`)
-    matchesLoaded = false; await loadMatches()
-  } else toast('Matching failed — try again')
-}
-
-// ── PIPELINE ──────────────────────────────────────────────────────────────────
-async function loadPipeline() {
-  const list = document.getElementById('pipeline-list')
-  list.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Loading…</div></div>'
+/* ── pipeline ── */
+async function loadPipeline(){
+  const list=$('pipe-list')
+  list.innerHTML='<div class="empty"><div class="empty-ico">⏳</div><div class="empty-title">Loading…</div></div>'
   const data = await api('/applications')
-  if (!data?.length) {
-    list.innerHTML = `<div class="empty">
-      <div class="empty-icon">📋</div>
-      <div class="empty-title">No applications yet</div>
-      <div class="empty-sub">Shortlist a matched job and FEN will help you tailor your CV and track your progress.</div>
-      <button class="btn btn-primary" onclick="switchPage('matches')">Review today's matches →</button>
+  if(!data?.length){
+    list.innerHTML=`<div class="empty"><div class="empty-ico">📋</div><div class="empty-title">No applications yet</div><div class="empty-sub">Shortlist a matched job and FEN will help you tailor your CV and track your progress.</div><button class="btn btn-primary" onclick="go('matches')">Review today's matches →</button></div>`
+    $('pipe-ct').textContent=''
+    return
+  }
+  allApps=data; renderPipe()
+}
+function pipeFilter(f,el){ pipeF=f; document.querySelectorAll('.pf-chip').forEach(c=>c.classList.remove('on')); el.classList.add('on'); renderPipe() }
+function renderPipe(){
+  const filt = pipeF==='all' ? allApps : allApps.filter(a=>a.status===pipeF)
+  $('pipe-ct').textContent=`${allApps.length} total`
+  const list=$('pipe-list')
+  if(!filt.length){ list.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><div class="empty-title">Nothing in this stage yet</div></div>'; return }
+  list.innerHTML=''; filt.forEach(a=>list.appendChild(pcard(a)))
+}
+function pcard(a){
+  const lbl={interested:'Shortlisted',shortlisted:'Shortlisted',drafting:'Tailoring CV',draft_ready:'Ready to apply',approved:'Approved',applied:'Applied',interview:'Interview 🎤',assessment:'Assessment',offer:'Offer 🎉',rejected:'Rejected',withdrawn:'Withdrawn'}
+  const canA=a.status==='draft_ready', hasDl=['draft_ready','approved','applied'].includes(a.status)
+  const sal=a.salary_min?` · £${(a.salary_min/1000).toFixed(0)}k`:''
+  const c=document.createElement('div'); c.className='pcard'
+  c.innerHTML=`
+    <div class="pcard-info"><div class="pcard-title">${esc(a.title||'Role')}</div><div class="pcard-co">${esc(a.company||'')}${a.location?' · '+esc(a.location):''}${sal}</div></div>
+    <div class="pcard-right">
+      ${canA?`<button class="btn btn-green btn-sm" onclick="approveApp('${a.id}',this)">✅ Approve</button>`:''}
+      ${hasDl?`<a class="btn btn-secondary btn-sm" href="/applications/${a.id}/cv.docx" download>⬇ CV</a>`:''}
+      <span class="sbadge s-${a.status}">${lbl[a.status]||a.status}</span>
     </div>`
-    document.getElementById('pipe-count-label').textContent = ''
-    return
-  }
-  allApplications = data
-  renderPipeline()
+  return c
+}
+async function approveApp(id,btn){ btn.disabled=true; btn.textContent='…'; const r=await api(`/applications/${id}/status`,{method:'PATCH',body:JSON.stringify({status:'approved'})}); if(r){toast('Approved ✅');loadPipeline()}else{toast('Failed');btn.disabled=false;btn.textContent='✅ Approve'} }
+
+/* ── cv lab ── */
+async function loadCVLab(){
+  const p=profileD||await api('/profile')
+  const pct=cvPct(p), rc=pct>=80?'var(--green)':pct>=55?'var(--amber)':'var(--red)'
+  const ring=$('cv-ring'); ring.textContent=`${pct}%`; ring.style.borderColor=rc; ring.style.color=rc
+  $('cv-ring-lbl').textContent=pct>=80?'CV looks strong':pct>=55?'Needs improvement':'Needs attention'
+  $('cv-ring-sub').textContent=pct>=80?'Your CV is well-optimised for your target roles.':'Fix the issues below to improve your match quality.'
+  const issues=[]
+  if(!p?.full_name) issues.push({i:'⚠️',t:'wrn',title:'Name missing',d:'Add your full name to your profile.'})
+  if(!p?.skills?.length||p.skills.length<4) issues.push({i:'⚠️',t:'wrn',title:'Skills section too thin',d:'Add at least 6–8 skills including tools, languages, and frameworks.'})
+  if(!p?.target_roles?.length) issues.push({i:'❌',t:'err',title:'No target role set',d:'Set your target roles so FEN can accurately rank and filter jobs.'})
+  if(!p?.target_locations?.length) issues.push({i:'ℹ️',t:'wrn',title:'Target location missing',d:'Add your preferred cities — London, Remote UK, etc.'})
+  if(!p?.min_salary) issues.push({i:'ℹ️',t:'wrn',title:'No salary minimum set',d:'Setting a minimum salary filters out irrelevant jobs.'})
+  if(!p?.preferred_work_type||p.preferred_work_type==='any') issues.push({i:'ℹ️',t:'wrn',title:'Work type not specified',d:'Specify remote, hybrid, or on-site preference.'})
+  if(!issues.length) issues.push({i:'✅',t:'ok',title:'Profile complete',d:'Your profile has all the information FEN needs.'})
+  $('cv-issues').innerHTML=issues.map(x=>`<div class="issue-row"><div class="issue-icon">${x.i}</div><div><div class="issue-title ${x.t}">${esc(x.title)}</div><div class="issue-desc">${esc(x.d)}</div></div></div>`).join('')
 }
 
-function pipeFilter(f, el) {
-  currentPipeFilter = f
-  document.querySelectorAll('.pipe-chip').forEach(c => c.classList.remove('on'))
-  el.classList.add('on')
-  renderPipeline()
-}
-
-function renderPipeline() {
-  const filtered = currentPipeFilter === 'all'
-    ? allApplications
-    : allApplications.filter(a => a.status === currentPipeFilter)
-  document.getElementById('pipe-count-label').textContent = `${allApplications.length} total`
-  const list = document.getElementById('pipeline-list')
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">Nothing in this stage yet</div></div>'
-    return
-  }
-  list.innerHTML = ''
-  filtered.forEach(a => list.appendChild(buildPipeCard(a)))
-}
-
-function buildPipeCard(a) {
-  const labels = {interested:'Shortlisted',shortlisted:'Shortlisted',drafting:'Tailoring CV',draft_ready:'Ready to apply',approved:'Approved',applied:'Applied',interview:'Interview 🎤',assessment:'Assessment',offer:'Offer 🎉',rejected:'Rejected',withdrawn:'Withdrawn'}
-  const canApprove = a.status === 'draft_ready'
-  const salary = a.salary_min ? ` · £${(a.salary_min/1000).toFixed(0)}k` : ''
-  const card = document.createElement('div')
-  card.className = 'pipe-card'
-  card.innerHTML = `
-    <div class="pipe-info">
-      <div class="pipe-title">${esc(a.title||'Role')}</div>
-      <div class="pipe-company">${esc(a.company||'')}${a.location ? ' · '+esc(a.location) : ''}${salary}</div>
-    </div>
-    <div class="pipe-actions-row">
-      ${canApprove ? `<button class="btn btn-green btn-sm" onclick="approveApp('${a.id}',this)">✅ Approve</button>` : ''}
-      ${['draft_ready','approved','applied'].includes(a.status) ? `<a class="btn btn-outline btn-sm" href="/applications/${a.id}/cv.docx" download>⬇ CV</a>` : ''}
-      <span class="status-badge s-${a.status}">${labels[a.status]||a.status}</span>
-    </div>
-  `
-  return card
-}
-
-async function approveApp(id, btn) {
-  btn.disabled = true; btn.textContent = '…'
-  const r = await api(`/applications/${id}/status`, { method:'PATCH', body:JSON.stringify({status:'approved'}) })
-  if (r) { toast('Approved ✅'); loadPipeline() }
-  else { toast('Failed'); btn.disabled = false; btn.textContent = '✅ Approve' }
-}
-
-// ── CV LAB ────────────────────────────────────────────────────────────────────
-async function loadCVLab() {
-  const p = profileData || await api('/profile')
-  const pct = getCVReadiness(p)
-  const ringColor = pct >= 80 ? 'var(--green)' : pct >= 55 ? 'var(--amber)' : 'var(--red)'
-  const ring = document.getElementById('cv-ring')
-  ring.textContent = `${pct}%`
-  ring.style.borderColor = ringColor; ring.style.color = ringColor
-  document.getElementById('cv-ring-label').textContent = pct >= 80 ? 'CV looks strong' : pct >= 55 ? 'Needs improvement' : 'Needs attention'
-  document.getElementById('cv-ring-sub').textContent = pct >= 80
-    ? 'Your CV is well-optimised for your target roles.'
-    : 'Fix the issues below to improve your match quality.'
-
-  const issues = []
-  if (!p?.full_name) issues.push({icon:'⚠️',type:'warn',title:'Name missing',desc:'Add your full name so employers can identify your application.'})
-  if (!p?.skills?.length || p.skills.length < 4) issues.push({icon:'⚠️',type:'warn',title:'Skills section too thin',desc:'Add at least 6–8 specific skills including tools, languages, and frameworks relevant to your target role.'})
-  if (!p?.target_roles?.length) issues.push({icon:'❌',type:'error',title:'No target role set',desc:'Set your target roles so FEN can accurately rank and filter jobs.'})
-  if (!p?.target_locations?.length) issues.push({icon:'ℹ️',type:'warn',title:'Target location missing',desc:'Add your preferred cities — London, Remote UK, etc.'})
-  if (!p?.min_salary) issues.push({icon:'ℹ️',type:'warn',title:'No salary minimum set',desc:'Setting a minimum salary filters out jobs below your expectations.'})
-  if (!p?.preferred_work_type || p.preferred_work_type === 'any') issues.push({icon:'ℹ️',type:'warn',title:'Work type not specified',desc:'Specify remote, hybrid, or on-site to prioritise the right roles.'})
-  if (!issues.length) issues.push({icon:'✅',type:'ok',title:'Profile complete',desc:'Your profile has all the information FEN needs to find and rank jobs accurately.'})
-
-  document.getElementById('cv-issue-list').innerHTML = issues.map(i => `
-    <div class="issue-row">
-      <div class="issue-icon">${i.icon}</div>
-      <div class="issue-body">
-        <div class="issue-title ${i.type === 'error' ? '' : i.type === 'ok' ? 'ok' : 'warn'}">${esc(i.title)}</div>
-        <div class="issue-desc">${esc(i.desc)}</div>
-      </div>
-    </div>
-  `).join('')
-}
-
-// ── CV UPLOAD ─────────────────────────────────────────────────────────────────
-let profileCvFileObj = null
-function setProfileCvFile(f) {
-  if (!f) return
-  profileCvFileObj = f
-  document.getElementById('profile-uz-icon').textContent = '✅'
-  const fn = document.getElementById('profile-uz-filename')
-  fn.textContent = f.name; fn.style.display = 'block'
-  document.getElementById('profile-drop-zone').classList.add('has-file')
-}
-document.addEventListener('DOMContentLoaded', () => {
-  const inp = document.getElementById('profile-cv-file')
-  const pz  = document.getElementById('profile-drop-zone')
-  if (!inp||!pz) return
-  inp.addEventListener('change', e => setProfileCvFile(e.target.files[0]))
-  const dOver  = e => { e.preventDefault(); e.stopPropagation(); pz.classList.add('drag') }
-  const dLeave = e => { if (!pz.contains(e.relatedTarget)) pz.classList.remove('drag') }
-  const dDrop  = e => { e.preventDefault(); e.stopPropagation(); pz.classList.remove('drag'); setProfileCvFile(e.dataTransfer.files[0]) }
-  ;[pz, inp].forEach(el => { el.addEventListener('dragover',dOver); el.addEventListener('dragleave',dLeave); el.addEventListener('drop',dDrop) })
+/* cv upload */
+let cvFile2=null
+function setCvFile2(f){ if(!f)return; cvFile2=f; $('cv-dz-ico').textContent='✅'; const n=$('cv-dz-name'); n.textContent=f.name; n.style.display='block'; $('cv-dz').classList.add('has-file') }
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=$('cv-file2'), pz=$('cv-dz')
+  if(!inp||!pz) return
+  inp.addEventListener('change',e=>setCvFile2(e.target.files[0]))
+  const ov=e=>{e.preventDefault();e.stopPropagation();pz.classList.add('drag')}
+  const ol=e=>{if(!pz.contains(e.relatedTarget))pz.classList.remove('drag')}
+  const od=e=>{e.preventDefault();e.stopPropagation();pz.classList.remove('drag');setCvFile2(e.dataTransfer.files[0])}
+  ;[pz,inp].forEach(el=>{el.addEventListener('dragover',ov);el.addEventListener('dragleave',ol);el.addEventListener('drop',od)})
 })
-
-async function uploadCV() {
-  if (!profileCvFileObj) { toast('Select a CV file first'); return }
-  const btn = document.getElementById('cv-upload-btn'), status = document.getElementById('cv-upload-status')
-  btn.innerHTML = '<span class="spinner"></span> Uploading…'; btn.disabled = true; status.textContent = ''
-  try {
-    const file_data = await readB64(profileCvFileObj)
-    const r = await api('/profile/cv', { method:'POST', body:JSON.stringify({file_data, file_name:profileCvFileObj.name, file_type:profileCvFileObj.type}) })
-    if (r) {
-      status.textContent = '✅ CV uploaded & profile updated'; status.style.color = 'var(--green)'
-      toast('CV uploaded — FEN will re-match your jobs 🎉')
-      profileData = await api('/profile'); matchesLoaded = false; loadCVLab()
-    } else { status.textContent = '❌ Upload failed — try again'; status.style.color = 'var(--red)' }
-  } catch { status.textContent = '❌ Upload failed'; status.style.color = 'var(--red)' }
-  finally { btn.innerHTML = 'Upload &amp; Re-parse'; btn.disabled = false }
+async function uploadCV(){
+  if(!cvFile2){toast('Select a CV file first');return}
+  const btn=$('cv-up-btn'),st=$('cv-up-status')
+  btn.innerHTML='<span class="spin"></span> Uploading…'; btn.disabled=true; st.textContent=''
+  try{
+    const fd=await b64(cvFile2)
+    const r=await api('/profile/cv',{method:'POST',body:JSON.stringify({file_data:fd,file_name:cvFile2.name,file_type:cvFile2.type})})
+    if(r){st.textContent='✅ CV uploaded & profile updated';st.style.color='var(--green)';toast('CV uploaded 🎉');profileD=await api('/profile');matchLoaded=false;loadCVLab()}
+    else{st.textContent='❌ Upload failed — try again';st.style.color='var(--red)'}
+  }catch{st.textContent='❌ Upload failed';st.style.color='var(--red)'}
+  finally{btn.innerHTML='Upload &amp; Re-parse';btn.disabled=false}
 }
 
-// ── PROFILE ───────────────────────────────────────────────────────────────────
-async function loadProfilePage() {
-  const p = profileData || await api('/profile')
-  if (!p) return
-  // Chip inputs
-  if (p.target_roles?.length) { pRoleTags = p.target_roles; renderChips('p-roles') }
-  if (p.target_locations?.length) { pLocTags = p.target_locations; renderChips('p-locs') }
-  if (p.skills?.length) document.getElementById('p-skills').value = p.skills.join(', ')
-  if (p.min_salary) document.getElementById('p-salary').value = p.min_salary
-  if (p.seniority) document.getElementById('p-seniority').value = p.seniority
-  if (p.right_to_work) document.getElementById('p-rtw').value = p.right_to_work
-  if (p.notice_period) document.getElementById('p-notice').value = p.notice_period
-  selectWorkType(p.preferred_work_type || 'any')
-  // Agent status panel
-  document.getElementById('as-cv').textContent = p.cv_text ? 'Uploaded ✅' : 'Not uploaded'
-  document.getElementById('as-cv').className = 'agent-stat-val' + (p.cv_text ? ' ok' : ' warn')
-  document.getElementById('as-skills').textContent = p.skills?.length ? `${p.skills.length} found` : '0 found'
-  document.getElementById('as-roles').textContent  = p.target_roles?.length ? p.target_roles.length : '0 set'
-  document.getElementById('as-tg').textContent = 'Not connected'
+/* ── profile ── */
+async function loadProfile(){
+  const p=profileD||await api('/profile'); if(!p)return
+  if(p.target_roles?.length){pRoles=p.target_roles;renderChips('p-roles')}
+  if(p.target_locations?.length){pLocs=p.target_locations;renderChips('p-locs')}
+  if(p.skills?.length) $('p-skills').value=p.skills.join(', ')
+  if(p.min_salary) $('p-salary').value=p.min_salary
+  if(p.seniority) $('p-seniority').value=p.seniority
+  if(p.right_to_work) $('p-rtw').value=p.right_to_work
+  if(p.notice_period) $('p-notice').value=p.notice_period
+  setWT(p.preferred_work_type||'any')
+  $('as-cv').textContent=p.cv_text?'✅ Uploaded':'Not uploaded'
+  $('as-cv').className='astat-val'+(p.cv_text?' ok':' wrn')
+  $('as-skills').textContent=p.skills?.length?`${p.skills.length} found`:'0 found'
+  $('as-roles').textContent=p.target_roles?.length?p.target_roles.length:'0 set'
 }
-
-function selectWorkType(wt) {
-  workTypeSelected = wt || 'any'
-  document.querySelectorAll('.wt-option').forEach(el =>
-    el.classList.toggle('on', el.dataset.wt === workTypeSelected))
+function setWT(wt){ workType=wt||'any'; document.querySelectorAll('.wt-opt').forEach(el=>el.classList.toggle('on',el.dataset.wt===workType)) }
+async function saveProfile(){
+  const r=await api('/profile',{method:'PATCH',body:JSON.stringify({
+    target_roles:pRoles, target_locations:pLocs,
+    skills:$('p-skills').value.split(',').map(s=>s.trim()).filter(Boolean),
+    min_salary:parseInt($('p-salary').value)||null,
+    preferred_work_type:workType,
+    seniority:$('p-seniority').value||null,
+    right_to_work:$('p-rtw').value||null,
+    notice_period:$('p-notice').value||null
+  })})
+  const el=$('p-save-status')
+  if(r){el.textContent='✅ Settings saved';el.style.color='var(--green)';profileD=await api('/profile')}
+  else{el.textContent='❌ Save failed';el.style.color='var(--red)'}
+  setTimeout(()=>el.textContent='',3000)
 }
-
-async function saveProfile() {
-  const target_roles        = pRoleTags
-  const target_locations    = pLocTags
-  const skills              = document.getElementById('p-skills').value.split(',').map(s => s.trim()).filter(Boolean)
-  const min_salary          = parseInt(document.getElementById('p-salary').value) || null
-  const preferred_work_type = workTypeSelected
-  const seniority           = document.getElementById('p-seniority').value || null
-  const right_to_work       = document.getElementById('p-rtw').value || null
-  const notice_period       = document.getElementById('p-notice').value || null
-
-  const r = await api('/profile', { method:'PATCH', body:JSON.stringify({target_roles,target_locations,skills,min_salary,preferred_work_type,seniority,right_to_work,notice_period}) })
-  const el = document.getElementById('profile-save-status')
-  if (r) { el.textContent = '✅ Settings saved'; el.style.color = 'var(--green)'; profileData = await api('/profile') }
-  else   { el.textContent = '❌ Save failed';    el.style.color = 'var(--red)' }
-  setTimeout(() => { el.textContent = '' }, 3000)
-}
-
-async function connectTelegram() {
-  const r = await api('/profile/telegram-connect')
-  if (!r) { toast('Failed to generate connect code'); return }
-  document.getElementById('tg-connect-box').style.display = 'block'
-  document.getElementById('tg-connect-cmd').textContent = `/connect ${r.token}`
-  document.getElementById('tg-connect-link').href = r.deep_link
+async function connectTG(){
+  const r=await api('/profile/telegram-connect')
+  if(!r){toast('Failed to generate connect code');return}
+  show('tg-box'); $('tg-cmd').textContent=`/connect ${r.token}`; $('tg-link').href=r.deep_link
   toast('Connect code ready — open Telegram now')
 }
 
-// ── CHIPS ─────────────────────────────────────────────────────────────────────
-const CHIP_STORES = {
-  'roles':   { get:() => roleTags,    set:(v)=>{ roleTags=v},    wrap:'roles-wrap',  inp:'roles-input' },
-  'locs':    { get:() => locTags,     set:(v)=>{ locTags=v},     wrap:'locs-wrap',   inp:'locs-input' },
-  'p-roles': { get:() => pRoleTags,   set:(v)=>{ pRoleTags=v},   wrap:'p-roles-wrap',inp:'p-roles-input' },
-  'p-locs':  { get:() => pLocTags,    set:(v)=>{ pLocTags=v},    wrap:'p-locs-wrap', inp:'p-locs-input' },
+/* ── chips ── */
+const CHIPS = {
+  'ob-roles':{ get:()=>obRoles, set:v=>{obRoles=v}, wrap:'ob-roles-wrap', inp:'ob-roles-inp' },
+  'ob-locs': { get:()=>obLocs,  set:v=>{obLocs=v},  wrap:'ob-locs-wrap',  inp:'ob-locs-inp' },
+  'p-roles': { get:()=>pRoles,  set:v=>{pRoles=v},  wrap:'p-roles-wrap',  inp:'p-roles-inp' },
+  'p-locs':  { get:()=>pLocs,   set:v=>{pLocs=v},   wrap:'p-locs-wrap',   inp:'p-locs-inp' },
 }
-
-function addChip(e, key) {
-  if (e.key !== 'Enter' && e.key !== ',') return
-  e.preventDefault()
-  const store = CHIP_STORES[key]
-  const input = document.getElementById(store.inp)
-  const val   = input.value.trim().replace(/,$/, '')
-  if (!val) return
-  const arr = store.get()
-  if (!arr.includes(val)) { arr.push(val); store.set(arr); renderChips(key) }
-  input.value = ''
+function addChip(e,key){
+  if(e.key!=='Enter'&&e.key!==',') return; e.preventDefault()
+  const s=CHIPS[key], inp=$(s.inp), val=inp.value.trim().replace(/,$/,'')
+  if(!val) return
+  if(!s.get().includes(val)){s.set([...s.get(),val]);renderChips(key)}; inp.value=''
 }
-
-function removeChip(key, val) {
-  const store = CHIP_STORES[key]
-  store.set(store.get().filter(v => v !== val))
-  renderChips(key)
-}
-
-function renderChips(key) {
-  const store = CHIP_STORES[key]
-  const wrap  = document.getElementById(store.wrap)
-  const input = document.getElementById(store.inp)
-  wrap.querySelectorAll('.chip').forEach(c => c.remove())
-  store.get().forEach(val => {
-    const chip = document.createElement('div')
-    chip.className = 'chip'
-    chip.innerHTML = `${esc(val)}<button class="chip-remove" onclick="removeChip('${key}','${esc(val)}')" type="button">×</button>`
-    wrap.insertBefore(chip, input)
+function removeChip(key,val){ const s=CHIPS[key]; s.set(s.get().filter(v=>v!==val)); renderChips(key) }
+function renderChips(key){
+  const s=CHIPS[key], wrap=$(s.wrap), inp=$(s.inp)
+  wrap.querySelectorAll('.chip').forEach(c=>c.remove())
+  s.get().forEach(val=>{
+    const c=document.createElement('div'); c.className='chip'
+    c.innerHTML=`${esc(val)}<button class="chip-x" onclick="removeChip('${key}','${esc(val)}')" type="button">×</button>`
+    wrap.insertBefore(c,inp)
   })
 }
 
-// ── ONBOARDING ────────────────────────────────────────────────────────────────
-function obGo(step) {
-  ;[1,2,3].forEach(n => document.getElementById(`ob-step-${n}`).style.display = n === step ? 'flex' : 'none')
-  document.getElementById(`ob-step-${step}`).style.display = 'flex'
-}
+/* ── onboarding ── */
+function obStep(n){ [1,2,3].forEach(i=>$(  `ob${i}`).style.display=i===n?'block':'none') }
 
-const dropZone = document.getElementById('drop-zone')
-const cvInput  = document.getElementById('cv-file')
-cvInput.addEventListener('change', () => { if (cvInput.files[0]) selectCvFile(cvInput.files[0]) })
-;[dropZone, cvInput].forEach(el => {
-  el.addEventListener('dragover',  e => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('drag') })
-  el.addEventListener('dragleave', e => { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag') })
-  el.addEventListener('drop',      e => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drag'); if (e.dataTransfer.files[0]) selectCvFile(e.dataTransfer.files[0]) })
+const dz=$('dz'), cvi=$('cv-file')
+cvi.addEventListener('change',()=>{if(cvi.files[0])selCV(cvi.files[0])})
+;[dz,cvi].forEach(el=>{
+  el.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();dz.classList.add('drag')})
+  el.addEventListener('dragleave',e=>{if(!dz.contains(e.relatedTarget))dz.classList.remove('drag')})
+  el.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();dz.classList.remove('drag');if(e.dataTransfer.files[0])selCV(e.dataTransfer.files[0])})
 })
-
-function selectCvFile(f) {
-  if (f.size > 2*1024*1024) { toast('File too large — max 2 MB'); return }
-  cvFile = f
-  dropZone.classList.add('has-file')
-  document.getElementById('uz-icon').textContent = '✅'
-  const fn = document.getElementById('uz-filename'); fn.textContent = f.name; fn.style.display = 'block'
-  document.getElementById('btn-ob1').disabled = false
+function selCV(f){
+  if(f.size>2*1024*1024){toast('File too large — max 2 MB');return}
+  cvFileOb=f; dz.classList.add('has-file'); $('dz-icon').textContent='✅'
+  const n=$('dz-name'); n.textContent=f.name; n.style.display='block'
+  $('btn-ob1').disabled=false
 }
 
-async function ob1Next() {
-  const btn = document.getElementById('btn-ob1')
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'
-  try {
-    const profile = await api('/profile')
-    if (profile?.id) { profileData = profile; fillOb(profile); goApp(); return }
-    obGo(2)
-  } finally { btn.disabled = false; btn.innerHTML = 'Continue →' }
+async function ob1Next(){
+  const btn=$('btn-ob1'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>'
+  try{
+    const p=await api('/profile')
+    if(p?.id){profileD=p;fillOb(p);goApp();return}
+    obStep(2)
+  } finally{btn.disabled=false;btn.innerHTML='Continue →'}
+}
+async function ob2Next(){
+  const btn=$('btn-ob2'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>'
+  try{
+    if(cvFileOb){ const fd=await b64(cvFileOb); await api('/profile/cv',{method:'POST',body:JSON.stringify({file_data:fd,file_name:cvFileOb.name,file_type:cvFileOb.type})}) }
+    await api('/profile',{method:'PATCH',body:JSON.stringify({
+      full_name:$('pref-name').value.trim()||undefined,
+      location:$('pref-loc').value.trim()||undefined,
+      min_salary:parseInt($('pref-sal').value)||undefined,
+      preferred_work_type:$('pref-wt').value||undefined,
+      target_roles:obRoles.length?obRoles:undefined,
+      target_locations:obLocs.length?obLocs:undefined
+    })})
+    obStep(3)
+  } catch{toast('Something went wrong — try again')}
+  finally{btn.disabled=false;btn.innerHTML='Save &amp; Continue →'}
+}
+function fillOb(p){
+  if(!p) return
+  if(p.full_name) $('pref-name').value=p.full_name
+  if(p.location) $('pref-loc').value=p.location
+  if(p.min_salary) $('pref-sal').value=p.min_salary
+  if(p.preferred_work_type) $('pref-wt').value=p.preferred_work_type
+  if(p.target_roles?.length){obRoles=p.target_roles;renderChips('ob-roles')}
+  if(p.target_locations?.length){obLocs=p.target_locations;renderChips('ob-locs')}
 }
 
-async function ob2Next() {
-  const btn = document.getElementById('btn-ob2')
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'
-  try {
-    if (cvFile) {
-      const file_data = await readB64(cvFile)
-      await api('/profile/cv', { method:'POST', body:JSON.stringify({file_data, file_name:cvFile.name, file_type:cvFile.type}) })
-    }
-    await api('/profile', { method:'PATCH', body:JSON.stringify({
-      full_name:           document.getElementById('pref-name').value.trim()||undefined,
-      location:            document.getElementById('pref-location').value.trim()||undefined,
-      min_salary:          parseInt(document.getElementById('pref-salary').value)||undefined,
-      preferred_work_type: document.getElementById('pref-remote').value||undefined,
-      target_roles:        roleTags.length ? roleTags : undefined,
-      target_locations:    locTags.length  ? locTags  : undefined,
-    }) })
-    obGo(3)
-  } catch { toast('Something went wrong — try again') }
-  finally { btn.disabled = false; btn.innerHTML = 'Save &amp; Continue →' }
-}
+/* ── utils ── */
+function b64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=e=>res(e.target.result.split(',')[1]); r.onerror=rej; r.readAsDataURL(file) }) }
 
-function fillOb(p) {
-  if (!p) return
-  if (p.full_name)           document.getElementById('pref-name').value = p.full_name
-  if (p.location)            document.getElementById('pref-location').value = p.location
-  if (p.min_salary)          document.getElementById('pref-salary').value = p.min_salary
-  if (p.preferred_work_type) document.getElementById('pref-remote').value = p.preferred_work_type
-  if (p.target_roles?.length)     { roleTags = p.target_roles;     renderChips('roles') }
-  if (p.target_locations?.length) { locTags  = p.target_locations; renderChips('locs')  }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function readB64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader()
-    r.onload  = e => res(e.target.result.split(',')[1])
-    r.onerror = rej
-    r.readAsDataURL(file)
-  })
-}
-
-function esc(s) {
-  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function init() {
-  obGo(1)
-  const p = await api('/profile')
-  if (p?.id) {
-    profileData = p
-    const initials = (p.full_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
-    document.getElementById('sb-avatar').textContent = initials
-    document.getElementById('sb-avatar-mobile').textContent = initials
-    document.getElementById('sb-name').textContent = p.full_name || p.email || 'Your account'
-    fillOb(p)
-    goApp()
-  } else {
-    goScreen('screen-onboard')
-  }
+/* ── init ── */
+async function init(){
+  obStep(1)
+  const p=await api('/profile')
+  if(p?.id){
+    profileD=p
+    const ini=(p.full_name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()
+    $('sb-av').textContent=ini; $('mob-av').textContent=ini; $('sb-uname').textContent=p.full_name||p.email||'Account'
+    fillOb(p); goApp()
+  } else { goScreen('screen-ob') }
 }
 init()
 </script>
