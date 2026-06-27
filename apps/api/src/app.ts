@@ -7,35 +7,21 @@ import fs from 'fs'
 
 import { env } from './config/env.js'
 
-import { telegramRouter }  from './routes/telegram.js'
-import { billingRouter }   from './routes/billing.js'
-import { approvalsRouter } from './routes/approvals.js'
-import { agentRouter }     from './routes/agent.js'
-import chatRouter         from './routes/chat.js'
-import gmailRouter        from './routes/gmail.js'
-import authRouter         from './routes/auth.js'
-import adminRouter        from './routes/admin.js'
-import provisionRouter    from './routes/provision.js'
-import channelsRouter     from './routes/channels.js'
+import { telegramRouter } from './routes/telegram.js'
+import authRouter        from './routes/auth.js'
+import adminRouter       from './routes/admin.js'
+import provisionRouter   from './routes/provision.js'
+import channelsRouter    from './routes/channels.js'
+import schedulerRouter   from './routes/scheduler.js'
+import profileRouter     from './routes/profile.js'
+import jobsRouter        from './routes/jobs.js'
+import matchesRouter     from './routes/matches.js'
 import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } from './middleware/rateLimit.js'
-import toolsRouter from './routes/tools.js'
-import goalsRouter from './routes/goals.js'
-import schedulerRouter from './routes/scheduler.js'
-import memoryRouter from './routes/memory.js'
-import activityRouter from './routes/activity.js'
-import connectorsRouter from './routes/connectors.js'
-import playbooksRouter  from './routes/playbooks.js'
-import profileRouter   from './routes/profile.js'
-import jobsRouter      from './routes/jobs.js'
-import matchesRouter   from './routes/matches.js'
 
 export function createApp() {
   const app = express()
 
   app.set('trust proxy', 1)
-
-  // Raw body must be captured before json() for Stripe webhooks
-  app.use('/billing/webhook', express.raw({ type: 'application/json' }))
 
   app.use(express.json({ limit: '2mb' }))
   app.use(express.urlencoded({ extended: false }))
@@ -51,7 +37,7 @@ export function createApp() {
 
   // ── Frontend serving ──────────────────────────────────────────────────
   const frontendDir  = resolve(__dirname, '../../../frontend')
-  const assetVersion = '20260430d'
+  const assetVersion = '20260627a'
 
   app.get('/frontend/:file', (req, res, next) => {
     const filePath = resolve(frontendDir, req.params.file)
@@ -62,26 +48,20 @@ export function createApp() {
       const headSnippets: string[] = []
       const scripts: string[] = []
 
-      // Sentry browser SDK — loads regardless of consent (error monitoring, no tracking)
       if (env.sentryDsn && !html.includes('sentry'))
         headSnippets.push(`<script src="https://browser.sentry-cdn.com/7.99.0/bundle.min.js" crossorigin="anonymous"></script><script>Sentry.init({dsn:"${env.sentryDsn}",environment:"${env.nodeEnv}",tracesSampleRate:0.2,sendDefaultPii:false})</script>`)
 
-      // PostHog — cookieless anonymous mode, no consent required under GDPR
-      // persistence:'memory' means no cookies, no localStorage tracking — anonymous sessions only
-      // IP is masked server-side by PostHog EU cloud
       if (env.posthogKey && !html.includes('posthog'))
         headSnippets.push(`<script>(function(){var s=document.createElement('script');s.async=true;s.src='https://eu-assets.i.posthog.com/static/array.js';s.onload=function(){posthog.init('${env.posthogKey}',{api_host:'https://eu.i.posthog.com',persistence:'memory',autocapture:false,capture_pageview:true,disable_session_recording:true,ip:false})};document.head.appendChild(s)})();</script>`)
 
-      // Cloudflare Web Analytics — cookie-free by design, no consent required
       if (env.cfBeaconToken && !html.includes('cf-beacon'))
         headSnippets.push(`<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"${env.cfBeaconToken}"}'></script>`)
 
-      if (!html.includes('fen_auth.js') && !html.includes('robin_auth.js'))
+      if (!html.includes('robin_auth.js'))
         scripts.push(`<script src="/frontend/robin_auth.js?v=${assetVersion}"></script>`)
-      if (!html.includes('fen_mascot.js') && !html.includes('robin_mascot.js'))
+      if (!html.includes('robin_mascot.js'))
         scripts.push(`<script src="/frontend/robin_mascot.js?v=${assetVersion}"></script>`)
-      const skipBrand = ['fen_dashboard.html', 'fen_chat.html'].includes(req.params.file)
-      if (!skipBrand && !html.includes('fen_brand_apply.js') && !html.includes('robin_brand_apply.js'))
+      if (!['fen_dashboard.html'].includes(req.params.file) && !html.includes('robin_brand_apply.js'))
         scripts.push(`<script src="/frontend/robin_brand_apply.js?v=${assetVersion}"></script>`)
       if (req.params.file === 'fen_site.html' && !html.includes('landing_copy_fix.js'))
         scripts.push(`<script src="/frontend/landing_copy_fix.js?v=${assetVersion}"></script>`)
@@ -100,30 +80,16 @@ export function createApp() {
   // ── Health ────────────────────────────────────────────────────────────
   app.get('/health', (_, res) => res.json({ ok: true, service: 'fen-platform' }))
 
-  // ── Sentry test ───────────────────────────────────────────────────────
-  app.get('/debug-sentry', () => { throw new Error('Sentry test error from FEN API') })
-
   // ── Routes ────────────────────────────────────────────────────────────
   app.use('/', authRouter)
   app.use('/', adminRouter)
   app.use('/', provisionRouter)
   app.use('/', channelsRouter)
-  app.use('/', agentRouter)
-  app.use('/', toolsRouter)
-  app.use('/', goalsRouter)
   app.use('/', schedulerRouter)
-  app.use('/', memoryRouter)
-  app.use('/', activityRouter)
-  app.use('/', connectorsRouter)
-  app.use('/', playbooksRouter)
   app.use('/', profileRouter)
   app.use('/', jobsRouter)
   app.use('/', matchesRouter)
   app.use('/', telegramRouter)
-  app.use('/', billingRouter)
-  app.use('/', approvalsRouter)
-  app.use('/', gmailRouter)
-  app.use('/', chatRouter)
 
   // ── Error handler ─────────────────────────────────────────────────────
   if (env.sentryDsn) Sentry.setupExpressErrorHandler(app)
