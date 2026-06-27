@@ -1177,9 +1177,12 @@ async function fetchApifyIndeed(keywords: string): Promise<NormalisedJob[]> {
 }
 
 // ── Apify: LinkedIn Jobs ──────────────────────────────────────────────────────
-// Actor: delicious_zebu/linkedin-jobs-scraper-no-login-required (5.0★, free, no login)
+// LinkedIn via Apify requires a paid subscription — disabled until actor is rented
+// To re-enable: set APIFY_LINKEDIN_ACTOR env var to the rented actor ID
 
 async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
+  const actorId = process.env.APIFY_LINKEDIN_ACTOR
+  if (!actorId) { console.log('[jobFetcher] APIFY_LINKEDIN_ACTOR not set — skipping linkedin'); return [] }
   const client = await getApifyClient()
   if (!client) { console.log('[jobFetcher] APIFY_API_TOKEN not set — skipping apify_linkedin'); return [] }
 
@@ -1189,7 +1192,7 @@ async function fetchApifyLinkedIn(keywords: string): Promise<NormalisedJob[]> {
     `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(t)}&location=London%2C%20United%20Kingdom&f_TPR=r604800`
   )
 
-  const { defaultDatasetId } = await client.actor('delicious_zebu/linkedin-jobs-scraper-no-login-required').call({
+  const { defaultDatasetId } = await client.actor(actorId).call({
     startUrls:  searchUrls.map(url => ({ url })),
     maxResults: 50,
   })
