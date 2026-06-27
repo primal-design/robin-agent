@@ -10,13 +10,13 @@
 :root{
   --ink:#1A1816;--ink2:#3D3B37;--ink3:rgba(26,24,22,.45);--ink4:rgba(26,24,22,.22);
   --gold:#B8976B;--gold2:#8B6E4A;
-  --bg:#F8F7F4;--card:#FFFFFF;
+  --bg:#F5F4F1;--card:#FFFFFF;
   --green:#1A9E6A;--greenl:#E8F8F1;
   --amber:#B07B1A;--ambl:#FBF4E5;
   --red:#A53D2F;--redl:#FCEAE7;
   --blue:#2563EB;--bluel:#EFF4FF;
   --rule:rgba(26,24,22,.08);
-  --r:14px;
+  --r:12px;
 }
 html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",sans-serif;font-weight:300;line-height:1.5}
 
@@ -25,18 +25,22 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .screen.on{display:flex;flex-direction:column}
 
 /* ── TOPBAR ── */
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--card);border-bottom:.5px solid var(--rule);position:sticky;top:0;z-index:10}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--card);border-bottom:.5px solid var(--rule);position:sticky;top:0;z-index:20}
 .brand{font-family:"Cormorant Garamond",serif;font-size:22px;font-weight:400;letter-spacing:.02em;color:var(--ink)}
 .brand span{color:var(--gold2)}
 .topbar-right{display:flex;align-items:center;gap:12px}
 .avatar{width:32px;height:32px;border-radius:50%;background:var(--ambl);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--amber);cursor:pointer}
-.tab-bar{display:flex;border-bottom:.5px solid var(--rule);background:var(--card);padding:0 20px;gap:0}
-.tab{padding:12px 0;margin-right:24px;font-size:13px;font-weight:400;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+
+/* ── TAB BAR ── */
+.tab-bar{display:flex;border-bottom:.5px solid var(--rule);background:var(--card);padding:0 16px;gap:0;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{padding:11px 0;margin-right:20px;font-size:13px;font-weight:400;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
 .tab.on{color:var(--ink);font-weight:500;border-bottom-color:var(--gold2)}
 
-/* ── CONTENT ── */
-.content{flex:1;padding:24px 20px;max-width:680px;width:100%;margin:0 auto}
-.content.wide{max-width:900px}
+/* ── CONTENT AREAS ── */
+.content{flex:1;padding:24px 20px;max-width:720px;width:100%;margin:0 auto}
+.tab-pane{display:none}
+.tab-pane.on{display:block}
 
 /* ── ONBOARDING ── */
 .ob-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;min-height:100vh}
@@ -61,11 +65,11 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .upload-zone.has-file{border-style:solid;border-color:var(--green);background:var(--greenl)}
 .file-name{font-size:13px;color:var(--green);font-weight:500;margin-top:8px}
 
-/* ── FORM ── */
+/* ── FORMS ── */
 .field{margin-bottom:20px}
-.field label{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);font-weight:500;margin-bottom:6px}
-.field input,.field select{width:100%;padding:11px 14px;border:1px solid var(--rule);border-radius:8px;font-size:14px;font-family:"Inter",sans-serif;font-weight:400;background:var(--bg);color:var(--ink);outline:none;transition:border .15s}
-.field input:focus,.field select:focus{border-color:var(--gold2)}
+.field label,.form-label{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);font-weight:500;margin-bottom:6px}
+.field input,.field select,.form-input{width:100%;padding:11px 14px;border:1px solid var(--rule);border-radius:8px;font-size:14px;font-family:"Inter",sans-serif;font-weight:400;background:var(--bg);color:var(--ink);outline:none;transition:border .15s}
+.field input:focus,.field select:focus,.form-input:focus{border-color:var(--gold2)}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .tag-input-wrap{border:1px solid var(--rule);border-radius:8px;background:var(--bg);padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;cursor:text;transition:border .15s;min-height:44px;align-items:flex-start}
 .tag-input-wrap:focus-within{border-color:var(--gold2)}
@@ -74,48 +78,108 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .tag-input-wrap input{border:none;outline:none;background:none;font-size:13px;font-family:"Inter",sans-serif;color:var(--ink);min-width:80px;flex:1;padding:3px 4px}
 
 /* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:500;font-family:"Inter",sans-serif;cursor:pointer;border:none;transition:all .15s;text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:8px;font-size:14px;font-weight:500;font-family:"Inter",sans-serif;cursor:pointer;border:none;transition:all .15s;text-decoration:none}
 .btn-primary{background:var(--ink);color:#fff}
 .btn-primary:hover{background:#2a2724}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed}
-.btn-outline{background:transparent;color:var(--ink);border:1px solid var(--rule)}
+.btn-outline{background:transparent;color:var(--ink);border:1.5px solid var(--rule)}
 .btn-outline:hover{border-color:var(--ink3)}
 .btn-green{background:var(--green);color:#fff}
 .btn-green:hover{background:#158a5a}
+.btn-amber{background:var(--ambl);color:var(--amber);border:none}
+.btn-amber:hover{background:#f0e5cc}
 .btn-red{background:var(--redl);color:var(--red);border:none}
 .btn-red:hover{background:#f5d5d0}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#1d4ed8}
 .btn-full{width:100%}
-.btn-sm{padding:8px 14px;font-size:13px}
+.btn-sm{padding:7px 14px;font-size:13px}
 
-/* ── DONE SCREEN ── */
-.done-icon{font-size:56px;margin-bottom:20px;text-align:center}
-.done-title{font-family:"Cormorant Garamond",serif;font-size:28px;font-weight:300;text-align:center;margin-bottom:8px}
-.done-body{font-size:14px;color:var(--ink3);text-align:center;line-height:1.7;margin-bottom:28px}
-.tg-box{background:var(--bluel);border-radius:10px;padding:20px;text-align:center;margin-bottom:20px}
-.tg-box p{font-size:13px;color:var(--blue);margin-bottom:12px}
-.tg-link{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer}
+/* ── CARDS ── */
+.card{background:var(--card);border-radius:var(--r);border:.5px solid var(--rule);padding:20px;margin-bottom:14px}
+.card:hover{box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.card-sm{padding:16px}
+.section-label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);font-weight:500;margin-bottom:12px;margin-top:4px}
+
+/* ── TODAY PAGE ── */
+.greeting{font-family:"Cormorant Garamond",serif;font-size:28px;font-weight:300;color:var(--ink);margin-bottom:4px}
+.greeting-sub{font-size:14px;color:var(--ink3);margin-bottom:24px}
+.stat-table{width:100%;border-collapse:collapse;margin-bottom:0}
+.stat-table td{padding:10px 0;font-size:14px;border-bottom:.5px solid var(--rule)}
+.stat-table tr:last-child td{border-bottom:none}
+.stat-table td:first-child{color:var(--ink3)}
+.stat-table td:last-child{font-weight:500;text-align:right;color:var(--ink)}
+.stat-table .stat-green td:last-child{color:var(--green)}
+.stat-table .stat-amber td:last-child{color:var(--amber)}
+.today-actions{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.tg-banner{background:var(--bluel);border-radius:var(--r);padding:18px;display:flex;align-items:center;gap:16px;margin-top:20px}
+.tg-banner-icon{font-size:28px;flex-shrink:0}
+.tg-banner-body{flex:1;min-width:0}
+.tg-banner-title{font-size:14px;font-weight:500;color:var(--blue);margin-bottom:2px}
+.tg-banner-sub{font-size:12px;color:var(--ink3)}
+.cv-readiness-bar{height:8px;background:var(--rule);border-radius:4px;margin-top:8px;margin-bottom:4px;overflow:hidden}
+.cv-readiness-fill{height:100%;border-radius:4px;background:var(--amber);transition:width .4s}
+
+/* ── MATCHES PAGE ── */
+.match-hero{margin-bottom:24px}
+.match-hero-title{font-family:"Cormorant Garamond",serif;font-size:26px;font-weight:300;margin-bottom:4px}
+.match-hero-sub{font-size:14px;color:var(--ink3)}
+.section-group-title{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px;margin-top:28px;display:flex;align-items:center;gap:8px}
+.section-group-title:first-of-type{margin-top:0}
+.section-group-badge{border-radius:20px;padding:2px 8px;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}
+.badge-green{background:var(--greenl);color:var(--green)}
+.badge-amber{background:var(--ambl);color:var(--amber)}
+.badge-grey{background:rgba(0,0,0,.05);color:var(--ink3)}
 
 /* ── JOB CARDS ── */
-.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px}
-.section-title{font-family:"Cormorant Garamond",serif;font-size:24px;font-weight:300}
-.section-count{font-size:12px;color:var(--ink3)}
-.job-card{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:14px;border:.5px solid var(--rule);transition:box-shadow .15s}
+.job-card{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:12px;border:.5px solid var(--rule);transition:box-shadow .15s;cursor:default}
 .job-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.07)}
+.job-card.dim{opacity:.55}
 .job-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
 .job-title{font-size:15px;font-weight:500;color:var(--ink);line-height:1.3}
-.job-company{font-size:13px;color:var(--ink3);margin-top:3px}
-.score-badge{flex-shrink:0;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:600;background:var(--greenl);color:var(--green)}
-.score-badge.amber{background:var(--ambl);color:var(--amber)}
-.score-badge.red{background:var(--redl);color:var(--red)}
+.job-company{font-size:13px;color:var(--ink3);margin-top:2px}
+.score-badge{flex-shrink:0;border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600}
+.score-green{background:var(--greenl);color:var(--green)}
+.score-amber{background:var(--ambl);color:var(--amber)}
+.score-red{background:var(--redl);color:var(--red)}
 .job-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .meta-pill{font-size:12px;color:var(--ink3);background:var(--bg);border-radius:20px;padding:3px 10px;border:.5px solid var(--rule)}
-.job-summary{font-size:13px;color:var(--ink3);line-height:1.5;margin-bottom:14px;font-style:italic}
+.job-summary{font-size:13px;color:var(--ink2);line-height:1.6;margin-bottom:14px;padding:12px;background:rgba(0,0,0,.02);border-radius:8px;border-left:3px solid var(--rule)}
 .job-actions{display:flex;gap:8px;flex-wrap:wrap}
-.empty-state{text-align:center;padding:60px 20px;color:var(--ink3)}
-.empty-state .big{font-size:40px;margin-bottom:12px}
-.empty-state p{font-size:14px;line-height:1.6}
 
-/* ── PIPELINE CARDS ── */
+/* ── JOB DETAIL DRAWER ── */
+#detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:30;display:none;opacity:0;transition:opacity .2s}
+#detail-overlay.open{display:block;opacity:1}
+#detail-drawer{position:fixed;right:0;top:0;bottom:0;width:min(540px,100vw);background:var(--card);z-index:31;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow-y:auto;display:flex;flex-direction:column}
+#detail-drawer.open{transform:translateX(0)}
+.drawer-head{padding:20px;border-bottom:.5px solid var(--rule);position:sticky;top:0;background:var(--card);z-index:1;display:flex;align-items:flex-start;gap:12px}
+.drawer-close{background:none;border:none;cursor:pointer;font-size:22px;color:var(--ink3);flex-shrink:0;padding:0;line-height:1}
+.drawer-body{padding:20px;flex:1}
+.breakdown-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+.breakdown-table td{padding:9px 0;font-size:13px;border-bottom:.5px solid var(--rule)}
+.breakdown-table tr:last-child td{border-bottom:none}
+.breakdown-table td:first-child{color:var(--ink3)}
+.breakdown-table td:last-child{text-align:right}
+.breakdown-bar{display:inline-flex;align-items:center;gap:8px}
+.bar-track{width:80px;height:6px;background:var(--rule);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.kw-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.kw-pill{border-radius:20px;padding:3px 10px;font-size:12px;font-weight:500}
+.kw-match{background:var(--greenl);color:var(--green)}
+.kw-missing{background:var(--redl);color:var(--red)}
+
+/* ── CV PAGE ── */
+.readiness-score-ring{display:flex;align-items:center;gap:20px;margin-bottom:24px}
+.ring-circle{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;flex-shrink:0;border:4px solid var(--amber);color:var(--amber)}
+.ring-label{font-size:16px;font-weight:500;color:var(--ink);margin-bottom:2px}
+.ring-sub{font-size:13px;color:var(--ink3)}
+.cv-issue{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:.5px solid var(--rule)}
+.cv-issue:last-child{border-bottom:none}
+.issue-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.issue-text{flex:1;font-size:13px;color:var(--ink2);line-height:1.5}
+.issue-label{font-size:12px;font-weight:600;color:var(--red);margin-bottom:2px}
+
+/* ── PIPELINE ── */
 .pipe-card{background:var(--card);border-radius:var(--r);padding:16px 20px;margin-bottom:10px;border:.5px solid var(--rule)}
 .pipe-card-main{display:flex;align-items:center;gap:12px}
 .pipe-info{flex:1;min-width:0}
@@ -123,6 +187,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .pipe-company{font-size:12px;color:var(--ink3);margin-top:2px}
 .status-pill{flex-shrink:0;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .s-interested{background:var(--bluel);color:var(--blue)}
+.s-shortlisted{background:var(--bluel);color:var(--blue)}
 .s-drafting{background:var(--ambl);color:var(--amber)}
 .s-draft_ready{background:var(--ambl);color:var(--amber)}
 .s-approved,.s-applied{background:var(--greenl);color:var(--green)}
@@ -134,34 +199,64 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 .filter-pill{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:.5px solid var(--rule);background:var(--card);color:var(--ink3);transition:all .15s}
 .filter-pill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 
-/* ── PROFILE SECTION ── */
-.profile-section{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:16px;border:.5px solid var(--rule)}
-.profile-section-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+/* ── PROFILE PAGE ── */
+.profile-section{background:var(--card);border-radius:var(--r);padding:20px;margin-bottom:14px;border:.5px solid var(--rule)}
+.profile-section-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:16px}
 .form-field{margin-bottom:16px}
 .form-field:last-child{margin-bottom:0}
 .form-field label{display:block;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink3);font-weight:500;margin-bottom:6px}
 .form-field input,.form-field select{width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;font-size:14px;font-family:"Inter",sans-serif;background:var(--bg);color:var(--ink);outline:none;transition:border .15s}
 .form-field input:focus,.form-field select:focus{border-color:var(--gold2)}
+.checkrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--rule);font-size:13px}
+.checkrow:last-child{border-bottom:none}
+.checkrow input[type=checkbox]{width:16px;height:16px;accent-color:var(--ink);flex-shrink:0}
+
+/* ── DONE/ONBOARD ── */
+.done-icon{font-size:56px;margin-bottom:20px;text-align:center}
+.done-title{font-family:"Cormorant Garamond",serif;font-size:28px;font-weight:300;text-align:center;margin-bottom:8px}
+.done-body{font-size:14px;color:var(--ink3);text-align:center;line-height:1.7;margin-bottom:28px}
+.tg-box{background:var(--bluel);border-radius:10px;padding:20px;text-align:center;margin-bottom:20px}
+.tg-box p{font-size:13px;color:var(--blue);margin-bottom:12px}
+.tg-link{display:inline-flex;align-items:center;gap:6px;background:var(--blue);color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:500;text-decoration:none;cursor:pointer}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--ink3)}
+.empty-state .big{font-size:40px;margin-bottom:12px}
+.empty-state p{font-size:14px;line-height:1.7}
+.empty-state .sub-btn{margin-top:20px}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999;white-space:nowrap;max-width:90vw;text-align:center}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:99;white-space:nowrap;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
 
 /* ── LOADING ── */
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-dark{border-color:rgba(0,0,0,.15);border-top-color:var(--ink)}
 #loading-bar{height:2px;background:var(--gold2);display:none;border-radius:4px;margin-bottom:16px;overflow:hidden}
 #loading-bar.active{display:block;animation:loadbar 1.2s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes loadbar{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
 
-@media(max-width:480px){
+/* ── COLLAPSIBLE (hidden jobs) ── */
+.collapse-toggle{font-size:13px;color:var(--ink3);cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;background:none;border:none;font-family:inherit;font-weight:400}
+.collapse-toggle:hover{color:var(--ink)}
+#hidden-jobs-list{display:none}
+#hidden-jobs-list.open{display:block}
+
+/* ── RESPONSIVE ── */
+@media(max-width:520px){
   .row2{grid-template-columns:1fr}
   .ob-card{padding:24px 20px}
   .content{padding:16px}
-  .topbar{padding:14px 16px}
+  .topbar{padding:12px 16px}
   .tab{margin-right:16px;font-size:12px}
   .job-actions{flex-direction:column}
   .job-actions .btn{width:100%}
+  #detail-drawer{width:100vw}
+  .today-actions{gap:8px}
+}
+@media(min-width:900px){
+  .content{padding:28px 32px}
 }
 </style>
 </head>
@@ -173,24 +268,20 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 <div class="screen on" id="screen-ob1">
   <div class="ob-wrap">
     <div class="ob-logo">FEN<span>.</span></div>
-    <div class="ob-sub">Your job search agent</div>
+    <div class="ob-sub">Your personal job search agent</div>
     <div class="ob-card">
       <div class="ob-step">Step 1 of 3</div>
       <div class="ob-title">Upload your CV</div>
-      <div class="ob-desc">FEN reads your CV to understand your skills and experience — then finds jobs that actually fit.</div>
-
+      <div class="ob-desc">FEN reads your CV to understand your skills and experience — then finds jobs that actually match.</div>
       <div class="upload-zone" id="drop-zone">
         <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.txt"/>
         <div class="upload-icon" id="upload-icon">📄</div>
-        <div class="upload-label">Drop your CV here or tap to upload</div>
+        <div class="upload-label">Drop your CV here or tap to browse</div>
         <div class="upload-hint">PDF, Word, or plain text · Max 2 MB</div>
         <div class="file-name" id="file-name-label" style="display:none"></div>
       </div>
-
       <div style="margin-top:24px">
-        <button class="btn btn-primary btn-full" id="btn-ob1" onclick="ob1Next()" disabled>
-          Continue →
-        </button>
+        <button class="btn btn-primary btn-full" id="btn-ob1" onclick="ob1Next()" disabled>Continue →</button>
       </div>
       <div class="ob-dots" style="margin-top:24px">
         <div class="ob-dot on"></div><div class="ob-dot"></div><div class="ob-dot"></div>
@@ -205,23 +296,22 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
 <div class="screen" id="screen-ob2">
   <div class="ob-wrap">
     <div class="ob-logo">FEN<span>.</span></div>
-    <div class="ob-sub">Your job search agent</div>
+    <div class="ob-sub">Tell FEN what to search for</div>
     <div class="ob-card">
       <div class="ob-step">Step 2 of 3</div>
-      <div class="ob-title">What are you looking for?</div>
-      <div class="ob-desc">FEN will search for jobs that match these preferences every day.</div>
-
+      <div class="ob-title">Your job preferences</div>
+      <div class="ob-desc">FEN will use these as rules to filter and rank jobs every day.</div>
       <div class="field">
         <label>Your name</label>
         <input type="text" id="pref-name" placeholder="Jane Smith"/>
       </div>
       <div class="row2">
         <div class="field">
-          <label>Current location</label>
+          <label>Location</label>
           <input type="text" id="pref-location" placeholder="London, UK"/>
         </div>
         <div class="field">
-          <label>Min salary (£)</label>
+          <label>Min salary (£/yr)</label>
           <input type="number" id="pref-salary" placeholder="50000"/>
         </div>
       </div>
@@ -246,7 +336,6 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
           <input id="locs-input" placeholder="Add city, press Enter" onkeydown="addTag(event,'locs')"/>
         </div>
       </div>
-
       <div style="display:flex;gap:10px;margin-top:8px">
         <button class="btn btn-outline" onclick="goScreen('screen-ob1')" style="flex-shrink:0">← Back</button>
         <button class="btn btn-primary btn-full" id="btn-ob2" onclick="ob2Next()">Save &amp; Continue →</button>
@@ -267,17 +356,17 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
       <div class="done-icon">🎯</div>
       <div class="done-title">FEN is on the case</div>
       <div class="done-body">
-        Your CV is uploaded. FEN will scan thousands of jobs every day, score each one, and surface only the ones worth your time.<br/><br/>
-        You'll get your first matches within 24 hours.
+        Your CV is uploaded. FEN scans thousands of jobs every day, scores each one, and shows only the ones worth your time.<br/><br/>
+        Your first matches appear within 24 hours.
       </div>
       <div class="tg-box">
-        <p>Get match alerts on Telegram — tap a job and FEN tailors your CV in 30 seconds.</p>
+        <p>Get your best matches sent to Telegram every morning.</p>
         <a class="tg-link" href="https://t.me/fen_ai_bot" target="_blank">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.414 13.85l-2.94-.918c-.638-.203-.649-.638.136-.948l11.473-4.424c.531-.194.995.131.811.661z"/></svg>
           Connect Telegram
         </a>
       </div>
-      <button class="btn btn-primary btn-full" onclick="goApp()">View my matches →</button>
+      <button class="btn btn-primary btn-full" onclick="goApp()">See today's summary →</button>
       <div class="ob-dots" style="margin-top:24px">
         <div class="ob-dot"></div><div class="ob-dot"></div><div class="ob-dot on"></div>
       </div>
@@ -298,140 +387,333 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",
   </div>
 
   <div class="tab-bar">
-    <div class="tab on"  id="tab-matches"  onclick="switchTab('matches')">Matches</div>
+    <div class="tab on"  id="tab-today"    onclick="switchTab('today')">Today</div>
+    <div class="tab"     id="tab-matches"  onclick="switchTab('matches')">Matches</div>
     <div class="tab"     id="tab-pipeline" onclick="switchTab('pipeline')">Applications</div>
+    <div class="tab"     id="tab-cv"       onclick="switchTab('cv')">CV</div>
     <div class="tab"     id="tab-profile"  onclick="switchTab('profile')">Profile</div>
   </div>
 
-  <!-- ── MATCHES TAB ── -->
-  <div id="tab-matches-content" class="content">
-    <div id="loading-bar"></div>
-    <div class="section-head">
-      <div class="section-title">Today's matches</div>
-      <div class="section-count" id="match-count"></div>
-    </div>
-    <div id="matches-list">
-      <div class="empty-state">
-        <div class="big">🔍</div>
-        <p>Loading your matches…</p>
-      </div>
-    </div>
-    <div style="text-align:center;margin:24px 0">
-      <button class="btn btn-outline btn-sm" id="run-match-btn" onclick="runMatch()">🔄 Run matching now</button>
-    </div>
-  </div>
+  <div class="content">
 
-  <!-- ── PIPELINE TAB ── -->
-  <div id="tab-pipeline-content" class="content" style="display:none">
-    <div class="section-head">
-      <div class="section-title">My Applications</div>
-      <div class="section-count" id="pipe-count"></div>
-    </div>
-    <div class="filter-row" id="pipe-filters">
-      <div class="filter-pill on" onclick="pipeFilter('all',this)">All</div>
-      <div class="filter-pill" onclick="pipeFilter('interested',this)">Interested</div>
-      <div class="filter-pill" onclick="pipeFilter('draft_ready',this)">Ready</div>
-      <div class="filter-pill" onclick="pipeFilter('applied',this)">Applied</div>
-      <div class="filter-pill" onclick="pipeFilter('interview',this)">Interview</div>
-    </div>
-    <div id="pipeline-list">
-      <div class="empty-state">
-        <div class="big">📋</div>
-        <p>No applications yet.<br/>Tap <strong>Interested</strong> on a match to start.</p>
-      </div>
-    </div>
-  </div>
+    <!-- ─────────────────────────────────────────────
+         TODAY TAB
+    ───────────────────────────────────────────── -->
+    <div class="tab-pane on" id="tab-today-content">
+      <div class="greeting" id="today-greeting">Good morning</div>
+      <div class="greeting-sub" id="today-sub">FEN is searching for jobs that match your CV.</div>
 
-  <!-- ── PROFILE TAB ── -->
-  <div id="tab-profile-content" class="content" style="display:none">
-    <div class="section-head">
-      <div class="section-title">My Profile</div>
-    </div>
+      <div class="card card-sm" style="margin-top:20px">
+        <div class="section-label">Today's summary</div>
+        <table class="stat-table" id="today-stats">
+          <tr><td>Jobs scanned</td><td id="st-scanned">—</td></tr>
+          <tr class="stat-green"><td>Strong matches</td><td id="st-strong">—</td></tr>
+          <tr class="stat-amber"><td>Possible matches</td><td id="st-possible">—</td></tr>
+          <tr><td>Rejected as irrelevant</td><td id="st-rejected">—</td></tr>
+          <tr><td>Applications in pipeline</td><td id="st-pipeline">—</td></tr>
+        </table>
+      </div>
 
-    <!-- CV Upload -->
-    <div class="profile-section">
-      <div class="profile-section-title">📄 CV / Resume</div>
-      <div class="upload-zone" id="profile-drop-zone">
-        <input type="file" id="profile-cv-file" accept=".pdf,.doc,.docx,.txt"/>
-        <div class="upload-icon" id="profile-upload-icon">📄</div>
-        <div class="upload-label">Drop your CV here or tap to upload</div>
-        <div class="upload-hint">PDF, Word, or plain text · Max 2 MB</div>
-        <div class="file-name" id="profile-file-name" style="display:none"></div>
-      </div>
-      <button class="btn btn-primary btn-full" id="cv-upload-btn" style="margin-top:12px" onclick="uploadProfileCV()">
-        Upload &amp; Re-parse CV
-      </button>
-      <div id="cv-upload-status" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:center;min-height:18px"></div>
-    </div>
-
-    <!-- Job Preferences -->
-    <div class="profile-section">
-      <div class="profile-section-title">🎯 Job Preferences</div>
-      <div class="form-field">
-        <label>Target Roles</label>
-        <input type="text" id="p-target-roles" placeholder="e.g. Java Developer, Senior Software Engineer"/>
-      </div>
-      <div class="form-field">
-        <label>Target Locations</label>
-        <input type="text" id="p-locations" placeholder="e.g. London, Remote"/>
-      </div>
-      <div class="row2" style="gap:16px">
-        <div class="form-field" style="margin-bottom:0">
-          <label>Min Salary (£/yr)</label>
-          <input type="number" id="p-min-salary" placeholder="e.g. 50000"/>
+      <!-- CV readiness -->
+      <div class="card card-sm" style="margin-top:0">
+        <div class="section-label">CV readiness</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:14px;font-weight:500" id="cv-readiness-pct">—</span>
+          <span style="font-size:12px;color:var(--ink3)" id="cv-readiness-label"></span>
         </div>
-        <div class="form-field" style="margin-bottom:0">
-          <label>Work Type</label>
-          <select id="p-work-type">
-            <option value="any">Any</option>
-            <option value="remote">Remote</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="onsite">Onsite</option>
+        <div class="cv-readiness-bar"><div class="cv-readiness-fill" id="cv-readiness-fill" style="width:0%"></div></div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:6px" id="cv-readiness-hint"></div>
+      </div>
+
+      <div class="today-actions">
+        <button class="btn btn-primary btn-full" onclick="switchTab('matches')">Review best matches →</button>
+        <button class="btn btn-outline btn-full" onclick="switchTab('cv')">Improve CV readiness</button>
+      </div>
+
+      <!-- Telegram CTA -->
+      <div class="tg-banner" id="tg-cta-banner" style="display:none">
+        <div class="tg-banner-icon">📱</div>
+        <div class="tg-banner-body">
+          <div class="tg-banner-title">Get daily alerts on Telegram</div>
+          <div class="tg-banner-sub">FEN sends your best matches every morning before you start work.</div>
+        </div>
+        <button class="btn btn-blue btn-sm" onclick="switchTab('profile');setTimeout(()=>document.getElementById('telegram-section').scrollIntoView({behavior:'smooth'}),200)">Connect</button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         MATCHES TAB
+    ───────────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-matches-content">
+      <div id="loading-bar"></div>
+      <div class="match-hero">
+        <div class="match-hero-title" id="match-hero-title">Today's matches</div>
+        <div class="match-hero-sub" id="match-hero-sub" style="color:var(--ink3)"></div>
+      </div>
+
+      <!-- Strong matches -->
+      <div id="strong-section" style="display:none">
+        <div class="section-group-title">
+          Strong matches
+          <span class="section-group-badge badge-green" id="strong-count"></span>
+        </div>
+        <div id="strong-list"></div>
+      </div>
+
+      <!-- Possible matches -->
+      <div id="possible-section" style="display:none">
+        <div class="section-group-title">
+          Possible matches
+          <span class="section-group-badge badge-amber" id="possible-count"></span>
+        </div>
+        <div id="possible-list"></div>
+      </div>
+
+      <!-- Hidden low-relevance -->
+      <div id="hidden-section" style="display:none">
+        <button class="collapse-toggle" onclick="toggleHiddenJobs()" id="hidden-toggle">
+          <span id="hidden-arrow">▸</span>
+          <span id="hidden-toggle-text"></span>
+        </button>
+        <div id="hidden-jobs-list"></div>
+      </div>
+
+      <div id="matches-empty" style="display:none">
+        <div class="empty-state">
+          <div class="big">🔍</div>
+          <p>No matches yet.<br/>FEN scans jobs daily — check back tomorrow,<br/>or run matching now to fetch the latest.</p>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin:28px 0 8px">
+        <button class="btn btn-outline btn-sm" id="run-match-btn" onclick="runMatch()">🔄 Run matching now</button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         APPLICATIONS TAB
+    ───────────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-pipeline-content">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300">Applications</div>
+        <div style="font-size:12px;color:var(--ink3)" id="pipe-count"></div>
+      </div>
+      <div class="filter-row" id="pipe-filters">
+        <div class="filter-pill on" onclick="pipeFilter('all',this)">All</div>
+        <div class="filter-pill" onclick="pipeFilter('interested',this)">Shortlisted</div>
+        <div class="filter-pill" onclick="pipeFilter('draft_ready',this)">Ready</div>
+        <div class="filter-pill" onclick="pipeFilter('applied',this)">Applied</div>
+        <div class="filter-pill" onclick="pipeFilter('interview',this)">Interview</div>
+      </div>
+      <div id="pipeline-list">
+        <div class="empty-state">
+          <div class="big">📋</div>
+          <p>No applications yet.<br/>Shortlist a matched job and FEN will help you<br/>tailor your CV and track your progress.</p>
+          <div class="sub-btn">
+            <button class="btn btn-outline btn-sm" onclick="switchTab('matches')">Review today's matches</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         CV TAB
+    ───────────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-cv-content">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;margin-bottom:20px">CV Readiness</div>
+
+      <div class="card">
+        <div class="readiness-score-ring">
+          <div class="ring-circle" id="cv-ring">—</div>
+          <div>
+            <div class="ring-label" id="cv-ring-label">Analysing your CV…</div>
+            <div class="ring-sub" id="cv-ring-sub">Upload your CV to see a detailed breakdown.</div>
+          </div>
+        </div>
+
+        <div id="cv-issues-list">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- CV Upload -->
+      <div class="card" style="margin-top:0">
+        <div class="profile-section-title">Upload / Replace CV</div>
+        <div class="upload-zone" id="profile-drop-zone">
+          <input type="file" id="profile-cv-file" accept=".pdf,.doc,.docx,.txt"/>
+          <div class="upload-icon" id="profile-upload-icon">📄</div>
+          <div class="upload-label">Drop your CV here or tap to browse</div>
+          <div class="upload-hint">PDF, Word, or plain text · Max 2 MB</div>
+          <div class="file-name" id="profile-file-name" style="display:none"></div>
+        </div>
+        <button class="btn btn-primary btn-full" id="cv-upload-btn" style="margin-top:12px" onclick="uploadProfileCV()">
+          Upload &amp; Re-parse CV
+        </button>
+        <div id="cv-upload-status" style="font-size:12px;color:var(--ink3);margin-top:8px;text-align:center;min-height:18px"></div>
+      </div>
+
+      <!-- CV Actions -->
+      <div class="card" style="margin-top:0">
+        <div class="profile-section-title">Improve your CV</div>
+        <div style="font-size:13px;color:var(--ink3);margin-bottom:16px;line-height:1.6">
+          FEN can tailor your CV for a specific role, check ATS readability, or generate a cover letter. Select a job from your matches to get started.
+        </div>
+        <button class="btn btn-outline btn-full" onclick="switchTab('matches')" style="margin-bottom:8px">View matches to tailor CV</button>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────────────────
+         PROFILE TAB
+    ───────────────────────────────────────────── -->
+    <div class="tab-pane" id="tab-profile-content">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;margin-bottom:20px">Profile</div>
+
+      <!-- Target Roles -->
+      <div class="profile-section">
+        <div class="profile-section-title">🎯 Target roles</div>
+        <div class="form-field">
+          <label>Roles FEN searches for</label>
+          <input type="text" id="p-target-roles" placeholder="e.g. Java Developer, Senior Software Engineer"/>
+        </div>
+        <div class="form-field">
+          <label>Seniority</label>
+          <select id="p-seniority">
+            <option value="">Any</option>
+            <option value="junior">Junior</option>
+            <option value="mid">Mid-level</option>
+            <option value="senior">Senior</option>
+            <option value="lead">Lead / Principal</option>
           </select>
         </div>
       </div>
-    </div>
 
-    <!-- Skills -->
-    <div class="profile-section">
-      <div class="profile-section-title">🛠 Skills</div>
-      <div class="form-field" style="margin-bottom:0">
-        <label>Skills (comma separated)</label>
-        <input type="text" id="p-skills" placeholder="e.g. Java, Spring Boot, Angular, Kubernetes"/>
+      <!-- Location & Work Type -->
+      <div class="profile-section">
+        <div class="profile-section-title">📍 Location &amp; work type</div>
+        <div class="form-field">
+          <label>Target locations</label>
+          <input type="text" id="p-locations" placeholder="e.g. London, Remote UK"/>
+        </div>
+        <div class="row2" style="gap:16px">
+          <div class="form-field" style="margin-bottom:0">
+            <label>Work type</label>
+            <select id="p-work-type">
+              <option value="any">Any</option>
+              <option value="remote">Remote</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="onsite">On-site</option>
+            </select>
+          </div>
+          <div class="form-field" style="margin-bottom:0">
+            <label>Min salary (£/yr)</label>
+            <input type="number" id="p-min-salary" placeholder="e.g. 50000"/>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <button class="btn btn-primary btn-full" onclick="saveProfile()" style="margin-bottom:8px">Save Profile</button>
-    <div id="profile-save-status" style="font-size:12px;color:var(--ink3);text-align:center;min-height:18px;margin-bottom:24px"></div>
-
-    <!-- Telegram Connect -->
-    <div class="profile-section">
-      <div class="profile-section-title">📱 Telegram Alerts</div>
-      <div style="font-size:13px;color:var(--ink3);margin-bottom:14px;line-height:1.5">Get daily job matches sent directly to your Telegram.</div>
-      <button class="btn btn-outline btn-full" onclick="connectTelegram()">Connect Telegram</button>
-      <div id="telegram-connect-info" style="display:none;margin-top:14px;padding:14px;background:var(--bluel);border-radius:8px">
-        <div style="font-size:13px;font-weight:500;margin-bottom:8px">Open Telegram and send this to <b>@fen_ai_bot</b>:</div>
-        <div id="telegram-connect-cmd" style="font-family:monospace;background:rgba(37,99,235,.1);padding:8px 12px;border-radius:6px;font-size:13px;word-break:break-all;margin-bottom:10px"></div>
-        <a id="telegram-connect-link" href="#" target="_blank">
-          <button class="btn btn-primary btn-full">Open in Telegram →</button>
-        </a>
+      <!-- Skills -->
+      <div class="profile-section">
+        <div class="profile-section-title">🛠 Skills</div>
+        <div class="form-field" style="margin-bottom:0">
+          <label>Your skills (comma separated)</label>
+          <input type="text" id="p-skills" placeholder="e.g. Java, Spring Boot, Angular, Kubernetes"/>
+        </div>
       </div>
+
+      <!-- Eligibility -->
+      <div class="profile-section">
+        <div class="profile-section-title">✅ Work eligibility</div>
+        <div class="form-field">
+          <label>Right to work</label>
+          <select id="p-right-to-work">
+            <option value="">Not specified</option>
+            <option value="yes">Yes — right to work in UK</option>
+            <option value="sponsorship">Need sponsorship</option>
+          </select>
+        </div>
+        <div class="form-field" style="margin-bottom:0">
+          <label>Notice period</label>
+          <select id="p-notice">
+            <option value="">Not specified</option>
+            <option value="immediate">Immediately available</option>
+            <option value="1w">1 week</option>
+            <option value="2w">2 weeks</option>
+            <option value="1m">1 month</option>
+            <option value="3m">3 months</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Exclusion rules -->
+      <div class="profile-section">
+        <div class="profile-section-title">🚫 Exclusion rules</div>
+        <div style="font-size:13px;color:var(--ink3);margin-bottom:12px">FEN will hide jobs that match these rules.</div>
+        <div class="checkrow">
+          <input type="checkbox" id="excl-salary" checked/>
+          <label for="excl-salary" style="font-size:13px;font-weight:400">Hide jobs below my minimum salary</label>
+        </div>
+        <div class="checkrow">
+          <input type="checkbox" id="excl-old" checked/>
+          <label for="excl-old" style="font-size:13px;font-weight:400">Hide jobs older than 14 days</label>
+        </div>
+        <div class="checkrow">
+          <input type="checkbox" id="excl-agency"/>
+          <label for="excl-agency" style="font-size:13px;font-weight:400">Hide duplicate agency postings</label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="saveProfile()">Save Profile</button>
+      <div id="profile-save-status" style="font-size:12px;color:var(--ink3);text-align:center;min-height:18px;margin-top:10px;margin-bottom:20px"></div>
+
+      <!-- Telegram -->
+      <div class="profile-section" id="telegram-section">
+        <div class="profile-section-title">📱 Telegram alerts</div>
+        <div style="font-size:13px;color:var(--ink3);margin-bottom:14px;line-height:1.5">
+          Get your best matches delivered to Telegram every morning. Tap a job to save it directly from the message.
+        </div>
+        <button class="btn btn-blue btn-full" onclick="connectTelegram()">Connect Telegram</button>
+        <div id="telegram-connect-info" style="display:none;margin-top:14px;padding:14px;background:var(--bluel);border-radius:8px">
+          <div style="font-size:13px;font-weight:500;margin-bottom:8px">Open Telegram and send this to <b>@fen_ai_bot</b>:</div>
+          <div id="telegram-connect-cmd" style="font-family:monospace;background:rgba(37,99,235,.1);padding:8px 12px;border-radius:6px;font-size:13px;word-break:break-all;margin-bottom:10px"></div>
+          <a id="telegram-connect-link" href="#" target="_blank">
+            <button class="btn btn-primary btn-full">Open in Telegram →</button>
+          </a>
+        </div>
+      </div>
+
+      <div style="padding-bottom:40px"></div>
     </div>
 
-    <div style="padding-bottom:40px"></div>
+  </div><!-- /content -->
+</div><!-- /screen-app -->
+
+<!-- ── JOB DETAIL DRAWER ── -->
+<div id="detail-overlay" onclick="closeDrawer()"></div>
+<div id="detail-drawer">
+  <div class="drawer-head">
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:16px;font-weight:500;line-height:1.3" id="drawer-title">—</div>
+      <div style="font-size:13px;color:var(--ink3);margin-top:2px" id="drawer-company">—</div>
+    </div>
   </div>
-
+  <div class="drawer-body">
+    <div id="drawer-content"></div>
+  </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
-let cvFile = null
-let roleTags = [], locTags = []
+let cvFile       = null
+let roleTags     = [], locTags = []
+let allMatches   = []
 let allApplications = []
 let currentPipeFilter = 'all'
 let matchesLoaded = false
+let profileData   = null
+let currentDrawerMatch = null
 
 // ── API ───────────────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
@@ -461,51 +743,459 @@ function goScreen(id) {
 
 function goApp() {
   goScreen('screen-app')
-  switchTab('matches')
+  switchTab('today')
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
+const TABS = ['today', 'matches', 'pipeline', 'cv', 'profile']
+
 function switchTab(tab) {
-  const tabs = ['matches', 'pipeline', 'profile']
-  tabs.forEach(t => {
+  TABS.forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle('on', t === tab)
-    document.getElementById(`tab-${t}-content`).style.display = t === tab ? '' : 'none'
+    document.getElementById(`tab-${t}-content`).classList.toggle('on', t === tab)
   })
   window.scrollTo(0, 0)
-  if (tab === 'matches')  { if (!matchesLoaded) loadMatches(); else {} }
+  if (tab === 'today')    loadToday()
+  if (tab === 'matches')  { if (!matchesLoaded) loadMatches() }
   if (tab === 'pipeline') loadPipeline()
+  if (tab === 'cv')       loadCVTab()
   if (tab === 'profile')  loadProfileTab()
 }
 
-// ── Profile tab ───────────────────────────────────────────────────────────────
-async function loadProfileTab() {
-  const p = await api('/profile')
-  if (!p) return
-  if (p.target_roles?.length)     document.getElementById('p-target-roles').value = p.target_roles.join(', ')
-  if (p.skills?.length)           document.getElementById('p-skills').value = p.skills.join(', ')
-  if (p.min_salary)               document.getElementById('p-min-salary').value = p.min_salary
-  if (p.target_locations?.length) document.getElementById('p-locations').value = p.target_locations.join(', ')
-  if (p.preferred_work_type)      document.getElementById('p-work-type').value = p.preferred_work_type
+// ── TODAY ─────────────────────────────────────────────────────────────────────
+async function loadToday() {
+  // Greeting
+  const hour = new Date().getHours()
+  const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const name  = profileData?.full_name?.split(' ')[0] || ''
+  document.getElementById('today-greeting').textContent = name ? `${greet}, ${name}` : greet
+
+  // Load matches for stats
+  const data = await api('/matches?limit=100&min_score=30')
+  const matches = data?.matches ?? []
+
+  const strong   = matches.filter(m => (m.suitability_score || 0) >= 75).length
+  const possible = matches.filter(m => { const s = m.suitability_score || 0; return s >= 55 && s < 75 }).length
+  const rejected = matches.filter(m => (m.suitability_score || 0) < 55).length
+
+  document.getElementById('st-scanned').textContent  = matches.length || '—'
+  document.getElementById('st-strong').textContent   = strong   || '0'
+  document.getElementById('st-possible').textContent = possible || '0'
+  document.getElementById('st-rejected').textContent = rejected || '0'
+
+  // Pipeline count
+  const apps = await api('/applications')
+  document.getElementById('st-pipeline').textContent = apps?.length || '0'
+
+  // CV readiness
+  const cvReady = getCVReadiness(profileData)
+  document.getElementById('cv-readiness-pct').textContent = `${cvReady}%`
+  document.getElementById('cv-readiness-fill').style.width = `${cvReady}%`
+  document.getElementById('cv-readiness-fill').style.background =
+    cvReady >= 80 ? 'var(--green)' : cvReady >= 55 ? 'var(--amber)' : 'var(--red)'
+  document.getElementById('cv-readiness-label').textContent =
+    cvReady >= 80 ? 'Good' : cvReady >= 55 ? 'Needs work' : 'Needs attention'
+  document.getElementById('cv-readiness-hint').textContent =
+    cvReady >= 80 ? 'Your CV is well-optimised for ATS systems.' :
+    cvReady >= 55 ? 'A few improvements could significantly improve your match rate.' :
+    'Upload your CV and complete your profile to improve your match quality.'
+
+  // Sub headline
+  if (strong > 0) {
+    document.getElementById('today-sub').textContent =
+      `FEN found ${strong} strong match${strong > 1 ? 'es' : ''} for you today.`
+  } else {
+    document.getElementById('today-sub').textContent =
+      'FEN is searching for jobs that match your CV.'
+  }
+
+  // Show Telegram CTA if not connected
+  document.getElementById('tg-cta-banner').style.display = 'flex'
 }
 
-async function saveProfile() {
-  const target_roles        = document.getElementById('p-target-roles').value.split(',').map(s => s.trim()).filter(Boolean)
-  const skills              = document.getElementById('p-skills').value.split(',').map(s => s.trim()).filter(Boolean)
-  const min_salary          = parseInt(document.getElementById('p-min-salary').value) || null
-  const target_locations    = document.getElementById('p-locations').value.split(',').map(s => s.trim()).filter(Boolean)
-  const preferred_work_type = document.getElementById('p-work-type').value
+function getCVReadiness(p) {
+  if (!p) return 0
+  let score = 20
+  if (p.skills?.length >= 3) score += 20
+  if (p.target_roles?.length >= 1) score += 20
+  if (p.target_locations?.length >= 1) score += 10
+  if (p.min_salary) score += 10
+  if (p.full_name) score += 10
+  if (p.preferred_work_type && p.preferred_work_type !== 'any') score += 10
+  return Math.min(score, 100)
+}
 
-  const r = await api('/profile', {
-    method: 'PATCH',
-    body: JSON.stringify({ target_roles, skills, min_salary, target_locations, preferred_work_type })
+// ── MATCHES ───────────────────────────────────────────────────────────────────
+async function loadMatches() {
+  matchesLoaded = true
+  const lb = document.getElementById('loading-bar')
+  lb.classList.add('active')
+
+  ;['strong-section','possible-section','hidden-section','matches-empty'].forEach(id => {
+    document.getElementById(id).style.display = 'none'
   })
-  const el = document.getElementById('profile-save-status')
-  if (r) { el.textContent = '✅ Profile saved'; el.style.color = 'var(--green)' }
-  else   { el.textContent = '❌ Save failed';   el.style.color = 'var(--red)' }
-  setTimeout(() => { el.textContent = '' }, 3000)
+  document.getElementById('strong-list').innerHTML   = '<div style="padding:12px 0;color:var(--ink3);font-size:13px">Loading…</div>'
+  document.getElementById('possible-list').innerHTML = ''
+  document.getElementById('hidden-jobs-list').innerHTML = ''
+
+  const data = await api('/matches?limit=50&min_score=10')
+  lb.classList.remove('active')
+
+  const matches = data?.matches ?? []
+  allMatches = matches
+
+  if (!matches.length) {
+    document.getElementById('matches-empty').style.display = 'block'
+    document.getElementById('match-hero-sub').textContent = 'No matches yet.'
+    return
+  }
+
+  const strong   = matches.filter(m => (m.suitability_score || 0) >= 75)
+  const possible = matches.filter(m => { const s = m.suitability_score || 0; return s >= 55 && s < 75 })
+  const hidden   = matches.filter(m => (m.suitability_score || 0) < 55)
+  const total    = matches.length
+
+  document.getElementById('match-hero-sub').textContent =
+    `${total} job${total > 1 ? 's' : ''} scanned · ${strong.length} strong match${strong.length !== 1 ? 'es' : ''} found`
+
+  if (strong.length) {
+    document.getElementById('strong-section').style.display = 'block'
+    document.getElementById('strong-count').textContent = String(strong.length)
+    const sl = document.getElementById('strong-list')
+    sl.innerHTML = ''
+    strong.forEach(m => sl.appendChild(buildJobCard(m)))
+  } else {
+    document.getElementById('strong-list').innerHTML = ''
+  }
+
+  if (possible.length) {
+    document.getElementById('possible-section').style.display = 'block'
+    document.getElementById('possible-count').textContent = String(possible.length)
+    const pl = document.getElementById('possible-list')
+    pl.innerHTML = ''
+    possible.forEach(m => pl.appendChild(buildJobCard(m)))
+  }
+
+  if (hidden.length) {
+    document.getElementById('hidden-section').style.display = 'block'
+    document.getElementById('hidden-toggle-text').textContent =
+      `Show ${hidden.length} low-relevance job${hidden.length > 1 ? 's' : ''}`
+    const hl = document.getElementById('hidden-jobs-list')
+    hl.innerHTML = ''
+    hidden.forEach(m => hl.appendChild(buildJobCard(m, true)))
+  }
 }
 
-// ── Profile CV upload ─────────────────────────────────────────────────────────
+function toggleHiddenJobs() {
+  const list  = document.getElementById('hidden-jobs-list')
+  const arrow = document.getElementById('hidden-arrow')
+  const label = document.getElementById('hidden-toggle-text')
+  const open  = list.classList.toggle('open')
+  arrow.textContent = open ? '▾' : '▸'
+  const count = allMatches.filter(m => (m.suitability_score || 0) < 55).length
+  label.textContent = open
+    ? `Hide low-relevance jobs`
+    : `Show ${count} low-relevance job${count > 1 ? 's' : ''}`
+}
+
+function scoreClass(score) {
+  if (score >= 75) return 'score-green'
+  if (score >= 55) return 'score-amber'
+  return 'score-red'
+}
+
+function buildJobCard(m, dim = false) {
+  const score  = m.suitability_score || 0
+  const salary = m.salary_min
+    ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max ? '–' + (m.salary_max/1000).toFixed(0) + 'k' : '+'}`
+    : ''
+  const remote = { remote:'🌐 Remote', hybrid:'🏠 Hybrid', onsite:'🏢 On-site' }[m.remote_type] || ''
+  const summary = m.llm_summary
+    ? `<div class="job-summary">${esc(m.llm_summary)}</div>` : ''
+  const reasons = Array.isArray(m.match_reasons) ? m.match_reasons : []
+  const reasonPills = reasons.slice(0, 2).map(r => `<span class="meta-pill">✨ ${esc(r)}</span>`).join('')
+
+  const mid = m.match_id || m.id
+  const card = document.createElement('div')
+  card.className = `job-card${dim ? ' dim' : ''}`
+  card.id = `match-${mid}`
+  card.innerHTML = `
+    <div class="job-top">
+      <div style="min-width:0">
+        <div class="job-title">${esc(m.title || 'Role')}</div>
+        <div class="job-company">${esc(m.company || '')}${m.location ? ' · ' + esc(m.location) : ''}</div>
+      </div>
+      <div class="score-badge ${scoreClass(score)}">${score}%</div>
+    </div>
+    <div class="job-meta">
+      ${salary ? `<span class="meta-pill">💰 ${salary}</span>` : ''}
+      ${remote ? `<span class="meta-pill">${remote}</span>` : ''}
+      ${reasonPills}
+    </div>
+    ${summary}
+    <div class="job-actions">
+      <button class="btn btn-green btn-sm" onclick="markInterested('${mid}','${esc(m.job_id || '')}',event)">Shortlist</button>
+      <button class="btn btn-outline btn-sm" onclick="openDrawer('${mid}',event)">See why →</button>
+      <button class="btn btn-red btn-sm" onclick="markSkip('${mid}',event)">Not relevant</button>
+    </div>
+  `
+  return card
+}
+
+async function markInterested(matchId, jobId, e) {
+  e?.stopPropagation()
+  const card = document.getElementById(`match-${matchId}`)
+  if (card) { card.style.transition = 'opacity .2s'; card.style.opacity = '.4' }
+  const r = await api(`/matches/${matchId}/feedback`, {
+    method: 'PATCH',
+    body: JSON.stringify({ feedback: 'interested' })
+  })
+  if (r) {
+    toast('Added to applications 🎉')
+    setTimeout(() => card?.remove(), 200)
+  } else {
+    if (card) card.style.opacity = '1'
+    toast('Something went wrong')
+  }
+}
+
+async function markSkip(matchId, e) {
+  e?.stopPropagation()
+  const card = document.getElementById(`match-${matchId}`)
+  if (card) { card.style.transition = 'opacity .3s'; card.style.opacity = '0' }
+  await api(`/matches/${matchId}/feedback`, {
+    method: 'PATCH',
+    body: JSON.stringify({ feedback: 'skip' })
+  })
+  setTimeout(() => card?.remove(), 300)
+}
+
+async function runMatch() {
+  const btn = document.getElementById('run-match-btn')
+  btn.disabled = true
+  btn.innerHTML = '<span class="spinner spinner-dark"></span> Running…'
+  const r = await api('/matches/run', { method: 'POST' })
+  btn.disabled = false
+  btn.textContent = '🔄 Run matching now'
+  if (r?.ok) {
+    toast(`Found ${r.matched ?? 0} new matches`)
+    matchesLoaded = false
+    await loadMatches()
+  } else {
+    toast('Matching failed — try again')
+  }
+}
+
+// ── JOB DETAIL DRAWER ─────────────────────────────────────────────────────────
+function openDrawer(matchId, e) {
+  e?.stopPropagation()
+  const m = allMatches.find(x => (x.match_id || x.id) === matchId)
+  if (!m) return
+  currentDrawerMatch = m
+
+  document.getElementById('drawer-title').textContent   = m.title || 'Role'
+  document.getElementById('drawer-company').textContent =
+    [m.company, m.location].filter(Boolean).join(' · ')
+
+  const score    = m.suitability_score || 0
+  const reasons  = Array.isArray(m.match_reasons) ? m.match_reasons : []
+  const missing  = Array.isArray(m.missing_keywords) ? m.missing_keywords : []
+  const salary   = m.salary_min
+    ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max ? '–' + (m.salary_max/1000).toFixed(0) + 'k' : '+'}`
+    : 'Not specified'
+
+  function bar(pct, color = '') {
+    const bg = color || (pct >= 75 ? 'var(--green)' : pct >= 55 ? 'var(--amber)' : 'var(--red)')
+    return `<div class="breakdown-bar">
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${bg}"></div></div>
+      <span style="font-size:12px;color:var(--ink3)">${pct}%</span>
+    </div>`
+  }
+
+  const matchReasonPills = reasons.map(r => `<span class="kw-pill kw-match">${esc(r)}</span>`).join('')
+  const missingPills     = missing.map(r => `<span class="kw-pill kw-missing">${esc(r)}</span>`).join('')
+
+  document.getElementById('drawer-content').innerHTML = `
+    <div class="section-label" style="margin-top:0">Match score</div>
+    <div style="font-size:32px;font-weight:600;color:${score >= 75 ? 'var(--green)' : score >= 55 ? 'var(--amber)' : 'var(--red)'};margin-bottom:4px">${score}%</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:20px">
+      ${score >= 75 ? 'Strong match — your profile aligns well with this role.' :
+        score >= 55 ? 'Possible match — there are relevant signals but gaps to address.' :
+                      'Low relevance — this job may not be the right fit for your profile.'}
+    </div>
+
+    ${reasons.length ? `
+    <div class="section-label">Why it matches</div>
+    <div class="kw-list" style="margin-bottom:20px">${matchReasonPills}</div>
+    ` : ''}
+
+    ${missing.length ? `
+    <div class="section-label">Missing or weak signals</div>
+    <div class="kw-list" style="margin-bottom:20px">${missingPills}</div>
+    ` : ''}
+
+    <div class="section-label">Details</div>
+    <table class="breakdown-table" style="margin-bottom:20px">
+      <tr><td>Salary</td><td>${esc(salary)}</td></tr>
+      <tr><td>Location</td><td>${esc(m.location || 'Not specified')}</td></tr>
+      <tr><td>Work type</td><td>${esc(m.remote_type || 'Not specified')}</td></tr>
+      ${m.source ? `<tr><td>Source</td><td>${esc(m.source)}</td></tr>` : ''}
+    </table>
+
+    ${m.llm_summary ? `
+    <div class="section-label">FEN's read</div>
+    <div style="font-size:13px;color:var(--ink2);line-height:1.7;padding:14px;background:rgba(0,0,0,.02);border-radius:8px;border-left:3px solid var(--gold2);margin-bottom:20px">
+      ${esc(m.llm_summary)}
+    </div>
+    ` : ''}
+
+    <div class="section-label">Actions</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-green btn-full" onclick="markInterested('${matchId}',null,null);closeDrawer()">Shortlist this job</button>
+      ${m.url ? `<a class="btn btn-outline btn-full" href="${esc(m.url)}" target="_blank" rel="noopener">View job posting →</a>` : ''}
+      <button class="btn btn-red btn-full" onclick="markSkip('${matchId}',null);closeDrawer()">Not relevant</button>
+    </div>
+  `
+
+  document.getElementById('detail-overlay').classList.add('open')
+  document.getElementById('detail-drawer').classList.add('open')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeDrawer() {
+  document.getElementById('detail-overlay').classList.remove('open')
+  document.getElementById('detail-drawer').classList.remove('open')
+  document.body.style.overflow = ''
+}
+
+// ── PIPELINE ──────────────────────────────────────────────────────────────────
+async function loadPipeline() {
+  const list = document.getElementById('pipeline-list')
+  list.innerHTML = '<div class="empty-state"><div class="big">⏳</div><p>Loading…</p></div>'
+
+  const data = await api('/applications')
+  if (!data?.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="big">📋</div>
+      <p>No applications yet.<br/>Shortlist a matched job and FEN will help you<br/>tailor your CV and track your progress.</p>
+      <div class="sub-btn"><button class="btn btn-outline btn-sm" onclick="switchTab('matches')">Review today's matches</button></div>
+    </div>`
+    document.getElementById('pipe-count').textContent = ''
+    return
+  }
+
+  allApplications = data
+  renderPipeline()
+}
+
+function pipeFilter(f, el) {
+  currentPipeFilter = f
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('on'))
+  el.classList.add('on')
+  renderPipeline()
+}
+
+function renderPipeline() {
+  const filtered = currentPipeFilter === 'all'
+    ? allApplications
+    : allApplications.filter(a => a.status === currentPipeFilter)
+
+  document.getElementById('pipe-count').textContent = `${allApplications.length} total`
+
+  const list = document.getElementById('pipeline-list')
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="big">🔍</div><p>Nothing in this stage yet.</p></div>`
+    return
+  }
+  list.innerHTML = ''
+  filtered.forEach(a => list.appendChild(buildPipeCard(a)))
+}
+
+function buildPipeCard(a) {
+  const labels = {
+    interested:'Shortlisted', shortlisted:'Shortlisted', drafting:'Tailoring CV',
+    draft_ready:'Ready to apply', approved:'Approved', applied:'Applied',
+    interview:'Interview 🎤', assessment:'Assessment', offer:'Offer 🎉',
+    rejected:'Rejected', withdrawn:'Withdrawn'
+  }
+  const canApprove  = a.status === 'draft_ready'
+  const hasDownload = ['draft_ready','approved','applied'].includes(a.status)
+
+  const card = document.createElement('div')
+  card.className = 'pipe-card'
+  card.innerHTML = `
+    <div class="pipe-card-main">
+      <div class="pipe-info">
+        <div class="pipe-title">${esc(a.title || 'Role')}</div>
+        <div class="pipe-company">${esc(a.company || '')}${a.location ? ' · ' + esc(a.location) : ''}${a.salary_min ? ' · £' + (a.salary_min/1000).toFixed(0) + 'k' : ''}</div>
+      </div>
+      <div class="status-pill s-${a.status}">${labels[a.status] || a.status}</div>
+    </div>
+    ${hasDownload || canApprove ? `<div class="pipe-actions">
+      ${hasDownload ? `<a class="btn btn-outline btn-sm" href="/applications/${a.id}/cv.docx" download>⬇ Download CV</a>` : ''}
+      ${canApprove  ? `<button class="btn btn-green btn-sm" onclick="approveApplication('${a.id}',this)">✅ Approve &amp; apply</button>` : ''}
+    </div>` : ''}
+  `
+  return card
+}
+
+async function approveApplication(appId, btn) {
+  btn.disabled = true
+  btn.textContent = 'Approving…'
+  const r = await api(`/applications/${appId}/status`, {
+    method: 'PATCH', body: JSON.stringify({ status: 'approved' })
+  })
+  if (r) { toast('Application approved ✅'); loadPipeline() }
+  else   { toast('Failed — try again'); btn.disabled = false; btn.textContent = '✅ Approve & apply' }
+}
+
+// ── CV TAB ────────────────────────────────────────────────────────────────────
+async function loadCVTab() {
+  const p = profileData || await api('/profile')
+  const score = getCVReadiness(p)
+
+  const ring = document.getElementById('cv-ring')
+  ring.textContent = `${score}%`
+  ring.style.borderColor = score >= 80 ? 'var(--green)' : score >= 55 ? 'var(--amber)' : 'var(--red)'
+  ring.style.color       = score >= 80 ? 'var(--green)' : score >= 55 ? 'var(--amber)' : 'var(--red)'
+
+  document.getElementById('cv-ring-label').textContent =
+    score >= 80 ? 'CV looks good' : score >= 55 ? 'Needs improvement' : 'Needs attention'
+  document.getElementById('cv-ring-sub').textContent =
+    score >= 80 ? 'Your CV is well-optimised for the roles you are targeting.'
+    : 'Fix the issues below to improve your match quality and ATS score.'
+
+  // Generate issues
+  const issues = []
+  if (!p?.full_name)
+    issues.push({ icon:'⚠️', label:'Name missing', text:'Add your full name to your profile.' })
+  if (!p?.skills?.length || p.skills.length < 3)
+    issues.push({ icon:'⚠️', label:'Skills section thin', text:'Add at least 5–8 specific skills. Include tools, languages, and frameworks relevant to your target role.' })
+  if (!p?.target_roles?.length)
+    issues.push({ icon:'⚠️', label:'No target role set', text:'Set your target roles so FEN can accurately rank jobs and tailor your CV keywords.' })
+  if (!p?.min_salary)
+    issues.push({ icon:'ℹ️', label:'No salary minimum', text:'Setting a minimum salary helps FEN filter out jobs below your expectations.' })
+  if (!p?.preferred_work_type || p.preferred_work_type === 'any')
+    issues.push({ icon:'ℹ️', label:'Work type not set', text:'Specify remote, hybrid, or on-site preference so FEN prioritises the right roles.' })
+  if (!p?.target_locations?.length)
+    issues.push({ icon:'ℹ️', label:'Target location missing', text:'Add your preferred cities or regions — London, Remote UK, etc.' })
+
+  if (!issues.length)
+    issues.push({ icon:'✅', label:'Profile complete', text:'Your profile has all the information FEN needs to find and rank jobs accurately.' })
+
+  const issueList = document.getElementById('cv-issues-list')
+  issueList.innerHTML = issues.map(i => `
+    <div class="cv-issue">
+      <div class="issue-icon">${i.icon}</div>
+      <div class="issue-text">
+        <div class="issue-label">${esc(i.label)}</div>
+        ${esc(i.text)}
+      </div>
+    </div>
+  `).join('')
+}
+
+// ── PROFILE CV UPLOAD ─────────────────────────────────────────────────────────
 let profileCvFile = null
 
 function setProfileCvFile(f) {
@@ -522,21 +1212,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const inp = document.getElementById('profile-cv-file')
   const pz  = document.getElementById('profile-drop-zone')
   if (!inp || !pz) return
-
-  // File picker selection
   inp.addEventListener('change', e => setProfileCvFile(e.target.files[0]))
-
-  // The input sits on top (position:absolute, inset:0) so drag events fire on it —
-  // we must listen on BOTH the input and the wrapper div for reliable drag handling.
-  function onDragOver(e) { e.preventDefault(); e.stopPropagation(); pz.classList.add('drag') }
+  function onDragOver(e)  { e.preventDefault(); e.stopPropagation(); pz.classList.add('drag') }
   function onDragLeave(e) { if (!pz.contains(e.relatedTarget)) pz.classList.remove('drag') }
-  function onDrop(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    pz.classList.remove('drag')
-    setProfileCvFile(e.dataTransfer.files[0])
-  }
-
+  function onDrop(e)      { e.preventDefault(); e.stopPropagation(); pz.classList.remove('drag'); setProfileCvFile(e.dataTransfer.files[0]) }
   ;[pz, inp].forEach(el => {
     el.addEventListener('dragover',  onDragOver)
     el.addEventListener('dragleave', onDragLeave)
@@ -546,12 +1225,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function uploadProfileCV() {
   if (!profileCvFile) { toast('Select a CV file first'); return }
-  const btn = document.getElementById('cv-upload-btn')
+  const btn    = document.getElementById('cv-upload-btn')
   const status = document.getElementById('cv-upload-status')
   btn.innerHTML = '<span class="spinner"></span> Uploading…'
-  btn.disabled = true
+  btn.disabled  = true
   status.textContent = ''
-
   try {
     const file_data = await readFileAsBase64(profileCvFile)
     const r = await api('/profile/cv', {
@@ -562,9 +1240,9 @@ async function uploadProfileCV() {
       status.textContent = '✅ CV uploaded & profile updated'
       status.style.color = 'var(--green)'
       toast('CV uploaded — FEN will re-match your jobs 🎉')
-      // Reload profile from server to get fresh parsed data
-      await loadProfileTab()
-      matchesLoaded = false  // force matches refresh next time
+      profileData = await api('/profile')
+      matchesLoaded = false
+      loadCVTab()
     } else {
       status.textContent = '❌ Upload failed — try again'
       status.style.color = 'var(--red)'
@@ -574,8 +1252,48 @@ async function uploadProfileCV() {
     status.style.color = 'var(--red)'
   } finally {
     btn.innerHTML = 'Upload &amp; Re-parse CV'
-    btn.disabled = false
+    btn.disabled  = false
   }
+}
+
+// ── PROFILE TAB ───────────────────────────────────────────────────────────────
+async function loadProfileTab() {
+  const p = profileData || await api('/profile')
+  if (!p) return
+  if (p.target_roles?.length)     document.getElementById('p-target-roles').value = p.target_roles.join(', ')
+  if (p.skills?.length)           document.getElementById('p-skills').value = p.skills.join(', ')
+  if (p.min_salary)               document.getElementById('p-min-salary').value = p.min_salary
+  if (p.target_locations?.length) document.getElementById('p-locations').value = p.target_locations.join(', ')
+  if (p.preferred_work_type)      document.getElementById('p-work-type').value = p.preferred_work_type
+  if (p.seniority)                document.getElementById('p-seniority').value = p.seniority
+  if (p.right_to_work)            document.getElementById('p-right-to-work').value = p.right_to_work
+  if (p.notice_period)            document.getElementById('p-notice').value = p.notice_period
+}
+
+async function saveProfile() {
+  const target_roles        = document.getElementById('p-target-roles').value.split(',').map(s => s.trim()).filter(Boolean)
+  const skills              = document.getElementById('p-skills').value.split(',').map(s => s.trim()).filter(Boolean)
+  const min_salary          = parseInt(document.getElementById('p-min-salary').value) || null
+  const target_locations    = document.getElementById('p-locations').value.split(',').map(s => s.trim()).filter(Boolean)
+  const preferred_work_type = document.getElementById('p-work-type').value
+  const seniority           = document.getElementById('p-seniority').value || null
+  const right_to_work       = document.getElementById('p-right-to-work').value || null
+  const notice_period       = document.getElementById('p-notice').value || null
+
+  const r = await api('/profile', {
+    method: 'PATCH',
+    body: JSON.stringify({ target_roles, skills, min_salary, target_locations, preferred_work_type, seniority, right_to_work, notice_period })
+  })
+  const el = document.getElementById('profile-save-status')
+  if (r) {
+    el.textContent = '✅ Profile saved'
+    el.style.color = 'var(--green)'
+    profileData = await api('/profile')
+  } else {
+    el.textContent = '❌ Save failed'
+    el.style.color = 'var(--red)'
+  }
+  setTimeout(() => { el.textContent = '' }, 3000)
 }
 
 async function connectTelegram() {
@@ -587,22 +1305,15 @@ async function connectTelegram() {
   toast('Connect code ready — open Telegram now')
 }
 
-// ── Onboarding CV upload ──────────────────────────────────────────────────────
+// ── ONBOARDING ────────────────────────────────────────────────────────────────
 const dropZone  = document.getElementById('drop-zone')
 const fileInput = document.getElementById('cv-file')
 
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) selectFile(fileInput.files[0])
-})
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) selectFile(fileInput.files[0]) })
 
-// The input sits on top — listen on both elements for drag events
 function obDragOver(e)  { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('drag') }
 function obDragLeave(e) { if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag') }
-function obDrop(e) {
-  e.preventDefault(); e.stopPropagation()
-  dropZone.classList.remove('drag')
-  if (e.dataTransfer.files[0]) selectFile(e.dataTransfer.files[0])
-}
+function obDrop(e)      { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('drag'); if (e.dataTransfer.files[0]) selectFile(e.dataTransfer.files[0]) }
 ;[dropZone, fileInput].forEach(el => {
   el.addEventListener('dragover',  obDragOver)
   el.addEventListener('dragleave', obDragLeave)
@@ -620,14 +1331,14 @@ function selectFile(f) {
   document.getElementById('btn-ob1').disabled = false
 }
 
-// ── Onboarding step 1 ─────────────────────────────────────────────────────────
 async function ob1Next() {
   const btn = document.getElementById('btn-ob1')
   btn.disabled = true
   btn.innerHTML = '<span class="spinner"></span>'
   try {
     const profile = await api('/profile')
-    if (profile && profile.id) {
+    if (profile?.id) {
+      profileData = profile
       fillPrefsFromProfile(profile)
       goApp()
       return
@@ -639,7 +1350,6 @@ async function ob1Next() {
   }
 }
 
-// ── Tags ─────────────────────────────────────────────────────────────────────
 function addTag(e, type) {
   if (e.key !== 'Enter' && e.key !== ',') return
   e.preventDefault()
@@ -670,7 +1380,6 @@ function renderTags(type) {
   })
 }
 
-// ── Onboarding step 2 ─────────────────────────────────────────────────────────
 async function ob2Next() {
   const btn = document.getElementById('btn-ob2')
   btn.disabled = true
@@ -713,197 +1422,6 @@ function fillPrefsFromProfile(p) {
   if (Array.isArray(p.target_locations)) { locTags  = p.target_locations; renderTags('locs')  }
 }
 
-// ── Matches ───────────────────────────────────────────────────────────────────
-async function loadMatches() {
-  matchesLoaded = true
-  const list = document.getElementById('matches-list')
-  const lb   = document.getElementById('loading-bar')
-  lb.classList.add('active')
-  list.innerHTML = '<div class="empty-state"><div class="big">⏳</div><p>Loading your matches…</p></div>'
-
-  const data = await api('/matches?limit=30&min_score=30')
-  lb.classList.remove('active')
-
-  if (!data || !data.matches?.length) {
-    list.innerHTML = `<div class="empty-state">
-      <div class="big">🔍</div>
-      <p>No matches yet.<br/>FEN scans for jobs daily — check back tomorrow,<br/>or tap the button below to run matching now.</p>
-    </div>`
-    return
-  }
-
-  document.getElementById('match-count').textContent = `${data.matches.length} found`
-  list.innerHTML = ''
-  data.matches.forEach(m => list.appendChild(buildJobCard(m)))
-}
-
-function scoreClass(score) {
-  if (score >= 70) return ''
-  if (score >= 50) return 'amber'
-  return 'red'
-}
-
-function buildJobCard(m) {
-  const score  = m.suitability_score || 0
-  const salary = m.salary_min
-    ? `£${(m.salary_min/1000).toFixed(0)}k${m.salary_max ? '–' + (m.salary_max/1000).toFixed(0) + 'k' : '+'}`
-    : ''
-  const remote = { remote:'🌐 Remote', hybrid:'🏠 Hybrid', onsite:'🏢 On-site' }[m.remote_type] || ''
-  const summary = m.llm_summary ? `<div class="job-summary">${esc(m.llm_summary)}</div>` : ''
-
-  const reasons = Array.isArray(m.match_reasons) ? m.match_reasons : []
-  const reasonPills = reasons.slice(0, 2).map(r => `<span class="meta-pill">✨ ${esc(r)}</span>`).join('')
-
-  const card = document.createElement('div')
-  card.className = 'job-card'
-  const mid = m.match_id || m.id
-  card.id = `match-${mid}`
-  card.innerHTML = `
-    <div class="job-top">
-      <div style="min-width:0">
-        <div class="job-title">${esc(m.title || 'Role')}</div>
-        <div class="job-company">${esc(m.company || '')}${m.location ? ' · ' + esc(m.location) : ''}</div>
-      </div>
-      <div class="score-badge ${scoreClass(score)}">${score}%</div>
-    </div>
-    <div class="job-meta">
-      ${salary ? `<span class="meta-pill">💰 ${salary}</span>` : ''}
-      ${remote ? `<span class="meta-pill">${remote}</span>` : ''}
-      ${reasonPills}
-    </div>
-    ${summary}
-    <div class="job-actions">
-      <button class="btn btn-green btn-sm" onclick="markInterested('${mid}','${m.job_id}')">✅ Interested</button>
-      <button class="btn btn-red btn-sm" onclick="markSkip('${mid}')">✗ Skip</button>
-      ${m.url ? `<a class="btn btn-outline btn-sm" href="${esc(m.url)}" target="_blank">View →</a>` : ''}
-    </div>
-  `
-  return card
-}
-
-async function markInterested(matchId, jobId) {
-  const card = document.getElementById(`match-${matchId}`)
-  if (card) { card.style.transition = 'opacity .2s'; card.style.opacity = '.4' }
-  const r = await api(`/matches/${matchId}/feedback`, {
-    method: 'PATCH',
-    body: JSON.stringify({ feedback: 'interested' })
-  })
-  if (r) {
-    toast('Added to your applications 🎉')
-    setTimeout(() => card?.remove(), 200)
-  } else {
-    if (card) card.style.opacity = '1'
-    toast('Something went wrong')
-  }
-}
-
-async function markSkip(matchId) {
-  const card = document.getElementById(`match-${matchId}`)
-  if (card) { card.style.transition = 'opacity .3s,max-height .3s'; card.style.opacity = '0' }
-  await api(`/matches/${matchId}/feedback`, {
-    method: 'PATCH',
-    body: JSON.stringify({ feedback: 'skip' })
-  })
-  setTimeout(() => card?.remove(), 300)
-}
-
-async function runMatch() {
-  const btn = document.getElementById('run-match-btn')
-  btn.disabled = true
-  btn.innerHTML = '<span class="spinner" style="border-top-color:var(--ink)"></span> Running…'
-  const r = await api('/matches/run', { method: 'POST' })
-  btn.disabled = false
-  btn.textContent = '🔄 Run matching now'
-  if (r?.ok) {
-    toast(`Found ${r.matched ?? 0} new matches`)
-    matchesLoaded = false
-    await loadMatches()
-  } else {
-    toast('Matching failed — try again')
-  }
-}
-
-// ── Pipeline ──────────────────────────────────────────────────────────────────
-async function loadPipeline() {
-  const list = document.getElementById('pipeline-list')
-  list.innerHTML = '<div class="empty-state"><div class="big">⏳</div><p>Loading…</p></div>'
-
-  const data = await api('/applications')
-  if (!data?.length) {
-    list.innerHTML = `<div class="empty-state">
-      <div class="big">📋</div>
-      <p>No applications yet.<br/>Tap <strong>Interested</strong> on a match to start.</p>
-    </div>`
-    document.getElementById('pipe-count').textContent = ''
-    return
-  }
-
-  allApplications = data
-  renderPipeline()
-}
-
-function pipeFilter(f, el) {
-  currentPipeFilter = f
-  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('on'))
-  el.classList.add('on')
-  renderPipeline()
-}
-
-function renderPipeline() {
-  const filtered = currentPipeFilter === 'all'
-    ? allApplications
-    : allApplications.filter(a => a.status === currentPipeFilter)
-
-  document.getElementById('pipe-count').textContent = `${allApplications.length} total`
-
-  const list = document.getElementById('pipeline-list')
-  if (!filtered.length) {
-    list.innerHTML = `<div class="empty-state"><div class="big">🔍</div><p>None in this stage.</p></div>`
-    return
-  }
-  list.innerHTML = ''
-  filtered.forEach(a => list.appendChild(buildPipeCard(a)))
-}
-
-function buildPipeCard(a) {
-  const labels = {
-    interested:'Interested', drafting:'Tailoring CV…', draft_ready:'Ready to approve',
-    approved:'Approved', applied:'Applied', interview:'Interview',
-    assessment:'Assessment', offer:'Offer 🎉', rejected:'Rejected', withdrawn:'Withdrawn'
-  }
-
-  const hasActions = ['draft_ready','approved','applied'].includes(a.status)
-  const canApprove = a.status === 'draft_ready'
-
-  const card = document.createElement('div')
-  card.className = 'pipe-card'
-  card.innerHTML = `
-    <div class="pipe-card-main">
-      <div class="pipe-info">
-        <div class="pipe-title">${esc(a.title || 'Role')}</div>
-        <div class="pipe-company">${esc(a.company || '')}${a.location ? ' · ' + esc(a.location) : ''}${a.salary_min ? ' · £' + (a.salary_min/1000).toFixed(0) + 'k' : ''}</div>
-      </div>
-      <div class="status-pill s-${a.status}">${labels[a.status] || a.status}</div>
-    </div>
-    ${hasActions ? `<div class="pipe-actions">
-      <a class="btn btn-outline btn-sm" href="/applications/${a.id}/cv.docx" download>⬇ Download CV</a>
-      ${canApprove ? `<button class="btn btn-green btn-sm" onclick="approveApplication('${a.id}',this)">✅ Approve</button>` : ''}
-    </div>` : ''}
-  `
-  return card
-}
-
-async function approveApplication(appId, btn) {
-  btn.disabled = true
-  btn.textContent = 'Approving…'
-  const r = await api(`/applications/${appId}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status: 'approved' })
-  })
-  if (r) { toast('Application approved ✅'); loadPipeline() }
-  else   { toast('Failed — try again'); btn.disabled = false; btn.textContent = '✅ Approve' }
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function readFileAsBase64(file) {
   return new Promise((resolve, reject) => {
@@ -924,7 +1442,8 @@ function esc(s) {
 async function init() {
   const profile = await api('/profile')
   if (profile?.id) {
-    const initials = (profile.full_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+    profileData = profile
+    const initials = (profile.full_name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
     document.getElementById('user-avatar').textContent = initials
     fillPrefsFromProfile(profile)
     goApp()

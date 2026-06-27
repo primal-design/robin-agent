@@ -36,7 +36,7 @@ export async function getOrCreateTenantForEmail(email: string): Promise<string> 
       await client.query(
         `INSERT INTO worker_channels
            (tenant_id, worker_id, channel_type, status, public_config, encrypted_config)
-         VALUES ($1, $2, 'telegram', 'pending', '{}', '{}')
+         VALUES ($1, $2, 'telegram', 'disabled', '{}', '{}')
          ON CONFLICT DO NOTHING`,
         [tenantId, workerId]
       )
