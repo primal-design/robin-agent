@@ -21,10 +21,49 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+// The backend returns flat rows — remap to JobMatch shape
+interface RawMatch {
+  match_id: string
+  job_id: string
+  title: string
+  company: string
+  location?: string
+  salary_min?: number
+  salary_max?: number
+  remote_type?: string
+  url?: string
+  suitability_score: number
+  match_reasons?: string[]
+  missing_skills?: string[]
+  llm_summary?: string
+  user_feedback?: string
+}
+
+function normalizeMatch(r: RawMatch): JobMatch {
+  return {
+    id: r.match_id,
+    job: {
+      id: r.job_id,
+      title: r.title,
+      company: r.company,
+      location: r.location,
+      salary_min: r.salary_min,
+      salary_max: r.salary_max,
+      url: r.url,
+    },
+    score: r.suitability_score,
+    skill_matches: r.match_reasons ?? [],
+    skill_gaps: r.missing_skills ?? [],
+    recommendation: r.llm_summary,
+    applied: false,
+    status: 'new',
+  }
+}
+
 // /matches returns { matches: [...], profile_id }
 async function fetchMatches(): Promise<JobMatch[]> {
-  const data = await apiFetch<{ matches: JobMatch[] }>('/matches')
-  return data.matches ?? []
+  const data = await apiFetch<{ matches: RawMatch[] }>('/matches')
+  return (data.matches ?? []).map(normalizeMatch)
 }
 
 // Derive stats from matches (no dedicated stats endpoint)
@@ -83,7 +122,19 @@ const liveApi = {
 
   getMatches: fetchMatches,
 
-  getApplications: () => apiFetch<JobMatch[]>('/applications'),
+  getApplications: async () => {
+    interface RawApp { id: string; title: string; company: string; location?: string; salary_min?: number; salary_max?: number; url?: string; match_score: number; status: string; applied_at?: string }
+    const rows = await apiFetch<RawApp[]>('/applications')
+    return rows.map(r => ({
+      id: r.id,
+      job: { id: r.id, title: r.title, company: r.company, location: r.location, salary_min: r.salary_min, salary_max: r.salary_max, url: r.url },
+      score: r.match_score ?? 0,
+      skill_matches: [], skill_gaps: [],
+      applied: true,
+      status: r.status as JobMatch['status'],
+      applied_at: r.applied_at,
+    }))
+  },
 
   sendMagicLink: (email: string) =>
     apiFetch<{ ok: boolean }>('/auth/send-magic-link', { method: 'POST', body: JSON.stringify({ email }) }),

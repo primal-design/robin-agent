@@ -17,10 +17,30 @@ async function apiFetch(path, init) {
         throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
 }
+function normalizeMatch(r) {
+    return {
+        id: r.match_id,
+        job: {
+            id: r.job_id,
+            title: r.title,
+            company: r.company,
+            location: r.location,
+            salary_min: r.salary_min,
+            salary_max: r.salary_max,
+            url: r.url,
+        },
+        score: r.suitability_score,
+        skill_matches: r.match_reasons ?? [],
+        skill_gaps: r.missing_skills ?? [],
+        recommendation: r.llm_summary,
+        applied: false,
+        status: 'new',
+    };
+}
 // /matches returns { matches: [...], profile_id }
 async function fetchMatches() {
     const data = await apiFetch('/matches');
-    return data.matches ?? [];
+    return (data.matches ?? []).map(normalizeMatch);
 }
 // Derive stats from matches (no dedicated stats endpoint)
 async function fetchStats() {
@@ -72,7 +92,18 @@ const liveApi = {
     updateProfile: (data) => apiFetch('/profile', { method: 'PATCH', body: JSON.stringify(data) }),
     getStats: fetchStats,
     getMatches: fetchMatches,
-    getApplications: () => apiFetch('/applications'),
+    getApplications: async () => {
+        const rows = await apiFetch('/applications');
+        return rows.map(r => ({
+            id: r.id,
+            job: { id: r.id, title: r.title, company: r.company, location: r.location, salary_min: r.salary_min, salary_max: r.salary_max, url: r.url },
+            score: r.match_score ?? 0,
+            skill_matches: [], skill_gaps: [],
+            applied: true,
+            status: r.status,
+            applied_at: r.applied_at,
+        }));
+    },
     sendMagicLink: (email) => apiFetch('/auth/send-magic-link', { method: 'POST', body: JSON.stringify({ email }) }),
     uploadCV: uploadCVFile,
     generateTelegramToken: () => apiFetch('/profile/telegram-connect'),
