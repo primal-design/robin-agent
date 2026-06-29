@@ -43,8 +43,8 @@ const liveApi = {
   getStats: () => apiFetch<TodayStats>('/api/stats/today'),
   getMatches: () => apiFetch<JobMatch[]>('/api/matches'),
   getApplications: () => apiFetch<JobMatch[]>('/api/applications'),
-  sendMagicLink: (email: string) => apiFetch<{ ok: boolean }>('/api/auth/magic-link', { method: 'POST', body: JSON.stringify({ email }) }),
-  verifyToken: (token: string) => apiFetch<{ token: string; email: string; tenantId: string }>(`/api/auth/verify?token=${token}`),
+  sendMagicLink: (email: string) => apiFetch<{ ok: boolean }>('/auth/send-magic-link', { method: 'POST', body: JSON.stringify({ email }) }),
+  verifyToken: (_token: string) => Promise.resolve({ token: _token, email: '', tenantId: '' }),
   uploadCV: async (file: File) => {
     const token = getToken()
     const fd = new FormData()

@@ -6,7 +6,7 @@ interface AuthCtx {
   loading: boolean
   signIn: (email: string) => Promise<void>
   signOut: () => void
-  setTokenFromCallback: (token: string) => Promise<void>
+  setTokenFromCallback: (token: string, name?: string) => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -28,11 +28,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await api.sendMagicLink(email)
   }
 
-  const setTokenFromCallback = async (token: string) => {
-    const { api } = await import('./api')
-    const data = await api.verifyToken(token)
-    const authUser: AuthUser = { email: data.email, tenantId: data.tenantId, token: data.token }
-    localStorage.setItem('fen_token', data.token)
+  const setTokenFromCallback = async (token: string, name?: string) => {
+    const authUser: AuthUser = { email: name ?? '', tenantId: '', token }
+    localStorage.setItem('fen_token', token)
     localStorage.setItem('fen_auth', JSON.stringify(authUser))
     setUser(authUser)
   }

@@ -20,11 +20,9 @@ export function AuthProvider({ children }) {
         const { api } = await import('./api');
         await api.sendMagicLink(email);
     };
-    const setTokenFromCallback = async (token) => {
-        const { api } = await import('./api');
-        const data = await api.verifyToken(token);
-        const authUser = { email: data.email, tenantId: data.tenantId, token: data.token };
-        localStorage.setItem('fen_token', data.token);
+    const setTokenFromCallback = async (token, name) => {
+        const authUser = { email: name ?? '', tenantId: '', token };
+        localStorage.setItem('fen_token', token);
         localStorage.setItem('fen_auth', JSON.stringify(authUser));
         setUser(authUser);
     };

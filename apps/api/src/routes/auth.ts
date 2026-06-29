@@ -131,7 +131,7 @@ router.get('/auth/magic', async (req, res) => {
 
   const s = createSession(session.phone)
   res.redirect(
-    `/frontend/fen_dashboard.html?token=${encodeURIComponent(s.token)}&refresh=${encodeURIComponent(s.refresh_token)}&name=${encodeURIComponent(name)}`
+    `/auth/callback?token=${encodeURIComponent(s.token)}&refresh=${encodeURIComponent(s.refresh_token)}&name=${encodeURIComponent(name)}`
   )
 })
 

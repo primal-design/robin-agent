@@ -9,15 +9,17 @@ export function AuthCallback() {
     const [error, setError] = useState('');
     useEffect(() => {
         const token = params.get('token');
+        const name = params.get('name') ?? '';
         if (!token) {
-            setError('No token found in URL');
+            setError('No token in URL — try signing in again.');
             return;
         }
-        setTokenFromCallback(token)
+        // Token is a ready-made session token from the backend redirect — store it directly
+        setTokenFromCallback(token, name)
             .then(() => navigate('/app/today', { replace: true }))
             .catch(e => setError(e instanceof Error ? e.message : 'Auth failed'));
     }, []);
     if (error)
-        return (_jsx("div", { className: "auth-page", children: _jsxs("div", { className: "card auth-card", children: [_jsx("div", { className: "error-box", children: error }), _jsx("a", { href: "/sign-in", className: "btn btn-outline w-full", style: { marginTop: 16 }, children: "Back to sign in" })] }) }));
-    return (_jsx("div", { className: "auth-page", children: _jsxs("div", { style: { textAlign: 'center', color: 'var(--muted)' }, children: [_jsx("div", { className: "spinner", style: { margin: '0 auto 12px' } }), "Signing you in\u2026"] }) }));
+        return (_jsx("div", { className: "auth-page", children: _jsxs("div", { className: "card auth-card", children: [_jsx("div", { className: "banner banner-danger", style: { marginBottom: 16 }, children: error }), _jsx("a", { href: "/sign-in", className: "btn btn-secondary w-full", children: "Back to sign in" })] }) }));
+    return (_jsx("div", { className: "auth-page", children: _jsxs("div", { style: { textAlign: 'center', color: 'var(--text-muted)' }, children: [_jsx("div", { className: "spinner", style: { margin: '0 auto 12px' } }), "Signing you in\u2026"] }) }));
 }
