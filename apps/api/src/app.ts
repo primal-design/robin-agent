@@ -77,6 +77,17 @@ export function createApp() {
 
   app.use('/frontend', express.static(frontendDir, { maxAge: 0, etag: false }))
 
+  // ── React SPA ─────────────────────────────────────────────────────────
+  const reactDist = resolve(__dirname, '../../../apps/web/dist')
+  if (fs.existsSync(reactDist)) {
+    app.use('/app', express.static(reactDist, { maxAge: '1d' }))
+    app.use('/assets', express.static(resolve(reactDist, 'assets'), { maxAge: '7d', immutable: true }))
+    // SPA fallback: all /app/* routes return index.html
+    app.get(['/app', '/app/*', '/sign-in', '/auth/callback'], (_req, res) => {
+      res.sendFile(resolve(reactDist, 'index.html'))
+    })
+  }
+
   // ── Health ────────────────────────────────────────────────────────────
   app.get('/health', (_, res) => res.json({ ok: true, service: 'fen-platform' }))
 
