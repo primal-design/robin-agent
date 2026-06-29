@@ -1,67 +1,61 @@
 import { useEffect, useState } from 'react'
+import { ClipboardList } from 'lucide-react'
 import type { JobMatch } from '../lib/types'
 import { api } from '../lib/api'
-import { ScoreRing } from '../components/ScoreRing'
+import { ProgressRing } from '../components/ProgressRing'
 
-function stageLabel(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
-function stageColor(s: string): string {
-  if (s === 'offer')    return 'var(--green)'
-  if (s === 'interview') return 'var(--amber)'
-  if (s === 'rejected') return 'var(--red)'
-  return 'var(--muted)'
+function statusBadge(status: string) {
+  const map: Record<string, string> = {
+    applied:   'badge-neutral',
+    interview: 'badge-warning',
+    offer:     'badge-success',
+    rejected:  'badge-danger',
+  }
+  return map[status] ?? 'badge-neutral'
 }
 
 export function Applications() {
-  const [apps, setApps] = useState<JobMatch[]>([])
+  const [apps, setApps]     = useState<JobMatch[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [error, setError]   = useState('')
 
   useEffect(() => {
-    api.getApplications()
-      .then(setApps)
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+    api.getApplications().then(setApps).catch(e => setError(e.message)).finally(() => setLoading(false))
   }, [])
 
   if (loading) return <div className="text-muted">Loading…</div>
-  if (error)   return <div className="error-box">{error}</div>
+  if (error)   return <div className="banner banner-danger">{error}</div>
 
   return (
     <div>
       <div className="page-header">
         <h1 className="page-title">Applications</h1>
-        <p className="page-subtitle">{apps.length} application{apps.length !== 1 ? 's' : ''} tracked</p>
+        <p className="page-sub">{apps.length} application{apps.length !== 1 ? 's' : ''} tracked</p>
       </div>
 
       {apps.length === 0 ? (
         <div className="empty-state">
+          <div className="empty-state-icon"><ClipboardList size={32} strokeWidth={1.5} /></div>
           <h3>No applications yet</h3>
           <p>Apply to jobs from your matches and they'll appear here.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {apps.map(a => (
-            <div key={a.id} className="card" style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <ScoreRing score={a.score} size={44} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{a.job.title}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 13 }}>{a.job.company} · {a.job.location}</div>
+            <div key={a.id} className="card" style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+              <ProgressRing value={a.score} size={44} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="job-title">{a.job.title}</div>
+                <div className="job-company">{a.job.company}{a.job.location ? ` · ${a.job.location}` : ''}</div>
                 {a.applied_at && (
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                  <div className="text-xs text-muted" style={{ marginTop: 2 }}>
                     Applied {new Date(a.applied_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   </div>
                 )}
               </div>
               {a.status && (
-                <span className="pill" style={{
-                  background: `${stageColor(a.status)}20`,
-                  color: stageColor(a.status),
-                  border: `1px solid ${stageColor(a.status)}40`,
-                }}>
-                  {stageLabel(a.status)}
+                <span className={`badge ${statusBadge(a.status)}`}>
+                  {a.status.charAt(0).toUpperCase() + a.status.slice(1)}
                 </span>
               )}
             </div>

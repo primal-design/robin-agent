@@ -1,0 +1,44 @@
+:root {
+  /* Surfaces */
+  --surface-0: #faf9f6;
+  --surface-1: #f3f1ea;
+  --surface-2: #ffffff;
+
+  /* Accent */
+  --accent:   #2f6fdd;
+  --accent-hover: #2460c7;
+  --accent-light: #eff4ff;
+  --accent-border: #bfcff8;
+
+  /* Semantic */
+  --success:  #1d9e75;
+  --success-light: #ecfdf5;
+  --success-border: #a7f3d0;
+  --warning:  #ba7517;
+  --warning-light: #fffbeb;
+  --warning-border: #fde68a;
+  --danger:   #dc2626;
+  --danger-light: #fef2f2;
+  --danger-border: #fecaca;
+
+  /* Text */
+  --text:     #1a1a1a;
+  --text-muted: #6b6b6b;
+  --text-faint: #9ca3af;
+
+  /* Borders */
+  --border:   #e5e1d8;
+  --border-strong: #ccc8be;
+
+  /* Radius */
+  --radius-sm: 10px;
+  --radius:    14px;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+  --shadow:    0 2px 8px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,.1);
+
+  /* Font */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}

@@ -1,60 +1,59 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router'
+import { Upload } from 'lucide-react'
 import { api } from '../lib/api'
 
+const ACCEPTED_EXT = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.txt']
+
 export function Onboarding() {
-  const navigate = useNavigate()
-  const [file, setFile] = useState<File | null>(null)
+  const navigate  = useNavigate()
+  const [file, setFile]       = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError]     = useState('')
+  const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const handleUpload = async () => {
     if (!file) return
-    setUploading(true)
-    setError('')
-    try {
-      await api.uploadCV(file)
-      navigate('/app/today', { replace: true })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setUploading(false)
-    }
+    setUploading(true); setError('')
+    try { await api.uploadCV(file); navigate('/app/today', { replace: true }) }
+    catch (e) { setError(e instanceof Error ? e.message : 'Upload failed') }
+    finally { setUploading(false) }
   }
 
   return (
     <div className="auth-page">
       <div className="card auth-card">
         <h1 style={{ marginBottom: 8 }}>Welcome to FEN</h1>
-        <p>Upload your CV to get started. FEN will parse it, build your profile, and start finding jobs.</p>
+        <p className="auth-sub">Upload your CV to get started. FEN will parse it, build your profile, and start finding jobs.</p>
 
-        {error && <div className="error-box" style={{ marginTop: 16 }}>{error}</div>}
+        {error && <div className="banner banner-danger mb-4">{error}</div>}
 
         <div
           style={{
-            border: '2px dashed var(--border)',
-            borderRadius: 10,
-            padding: '40px 20px',
+            border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
+            background: dragOver ? 'var(--accent-light)' : 'var(--surface-1)',
+            borderRadius: 12,
+            padding: '44px 20px',
             textAlign: 'center',
             cursor: 'pointer',
-            marginTop: 24,
+            transition: 'border-color .15s, background .15s',
           }}
           onClick={() => inputRef.current?.click()}
-          onDragOver={e => e.preventDefault()}
+          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
           onDrop={e => {
-            e.preventDefault()
-            const f = e.dataTransfer.files[0]
-            if (f) setFile(f)
+            e.preventDefault(); setDragOver(false)
+            const f = e.dataTransfer.files[0]; if (f) setFile(f)
           }}
         >
-          <div style={{ fontSize: 40, marginBottom: 8 }}>📄</div>
+          <Upload size={28} strokeWidth={1.5} style={{ color: 'var(--text-faint)', marginBottom: 10 }} />
           {file ? (
-            <div style={{ fontWeight: 500 }}>{file.name}</div>
+            <div className="font-medium">{file.name}</div>
           ) : (
             <>
-              <div style={{ fontWeight: 500 }}>Drop your CV here or click to browse</div>
-              <div className="text-sm text-muted" style={{ marginTop: 4 }}>PDF or DOCX</div>
+              <div className="font-medium">Drop your CV here or click to browse</div>
+              <div className="text-sm text-muted" style={{ marginTop: 4 }}>PDF, PNG, JPG, WebP, TXT</div>
             </>
           )}
         </div>
@@ -62,14 +61,13 @@ export function Onboarding() {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.doc,.docx"
+          accept={ACCEPTED_EXT.join(',')}
           style={{ display: 'none' }}
           onChange={e => setFile(e.target.files?.[0] ?? null)}
         />
 
         <button
-          className="btn btn-primary w-full"
-          style={{ marginTop: 20 }}
+          className="btn btn-primary w-full mt-5"
           disabled={!file || uploading}
           onClick={handleUpload}
         >
