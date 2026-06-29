@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import type { JobMatch } from '../lib/types'
 import { api } from '../lib/api'
@@ -17,39 +17,69 @@ async function triggerScan(): Promise<void> {
 }
 
 export function Matches() {
-  const [matches, setMatches] = useState<JobMatch[]>([])
+  const [matches, setMatches]   = useState<JobMatch[]>([])
   const [loading, setLoading]   = useState(true)
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg]   = useState('')
+  const [elapsed, setElapsed]   = useState(0)
   const [error, setError]       = useState('')
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const load = () => {
-    setLoading(true)
-    api.getMatches()
-      .then(setMatches)
-      .catch(e => { if (!e.message?.includes('404')) setError(e.message) })
-      .finally(() => setLoading(false))
+  const load = (quiet = false) => {
+    if (!quiet) setLoading(true)
+    return api.getMatches()
+      .then(m => { setMatches(m); return m })
+      .catch(e => { if (!e.message?.includes('404')) setError(e.message); return [] as JobMatch[] })
+      .finally(() => { if (!quiet) setLoading(false) })
   }
 
-  useEffect(load, [])
+  useEffect(() => { load() }, [])
+
+  const stopPoll = () => {
+    if (pollRef.current)  { clearInterval(pollRef.current);  pollRef.current  = null }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+  }
 
   const runScan = async () => {
     setScanning(true)
     setScanMsg('')
     setError('')
+    setElapsed(0)
     try {
       await triggerScan()
-      setScanMsg('Scanning jobs… this takes ~30 seconds.')
-      setTimeout(() => { setScanMsg('Refreshing matches…'); load() }, 35000)
-      setTimeout(() => setScanMsg(''), 37000)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Scan failed')
-    } finally {
       setScanning(false)
+      return
     }
+
+    // Tick elapsed time
+    timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
+
+    // Poll every 15s for up to 3 minutes
+    let attempts = 0
+    const maxAttempts = 12
+    pollRef.current = setInterval(async () => {
+      attempts++
+      const found = await load(true)
+      if (found.length > 0 || attempts >= maxAttempts) {
+        stopPoll()
+        setScanning(false)
+        setScanMsg(found.length > 0 ? `Found ${found.length} match${found.length !== 1 ? 'es' : ''}!` : 'Scan complete — no matches yet. Try again later.')
+        setTimeout(() => setScanMsg(''), 4000)
+      }
+    }, 15000)
   }
 
+  // Cleanup on unmount
+  useEffect(() => () => stopPoll(), [])
+
   if (loading) return <div className="text-muted" style={{ padding: 8 }}>Loading…</div>
+
+  const mins = Math.floor(elapsed / 60)
+  const secs = elapsed % 60
+  const elapsedStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
 
   return (
     <div>
@@ -59,13 +89,19 @@ export function Matches() {
           <p className="page-sub">{matches.length} job{matches.length !== 1 ? 's' : ''} matched to your profile</p>
         </div>
         <button className="btn btn-secondary" onClick={runScan} disabled={scanning} style={{ flexShrink: 0 }}>
-          <RefreshCw size={14} className={scanning ? 'spin' : ''} />
-          {scanning ? 'Scanning…' : 'Run scan now'}
+          <RefreshCw size={14} style={scanning ? { animation: 'spin .8s linear infinite' } : {}} />
+          {scanning ? `Scanning… ${elapsedStr}` : 'Run scan now'}
         </button>
       </div>
 
-      {error   && <div className="banner banner-danger" style={{ marginBottom: 16 }}>{error}</div>}
+      {error   && <div className="banner banner-danger"  style={{ marginBottom: 16 }}>{error}</div>}
       {scanMsg && <div className="banner banner-success" style={{ marginBottom: 16 }}>{scanMsg}</div>}
+
+      {scanning && (
+        <div className="banner banner-info" style={{ marginBottom: 16 }}>
+          Fetching jobs from Reed, LinkedIn, Indeed and more — this takes 2–3 minutes. Results will appear automatically.
+        </div>
+      )}
 
       {matches.length === 0 ? (
         <div className="empty-state">
