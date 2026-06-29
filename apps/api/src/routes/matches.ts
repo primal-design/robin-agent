@@ -3,6 +3,7 @@ import { pool } from '../db/pool.js'
 import { requireAuth } from '../lib/auth.js'
 import { getProfile } from '../services/profileService.js'
 import { matchJobsForProfile, getTopMatches } from '../services/jobMatcher.js'
+import { fetchAllJobs } from '../services/jobFetcher.js'
 import { tailorForApplication } from '../services/documentTailor.js'
 import { buildCvDocx } from '../services/cvExporter.js'
 
@@ -52,8 +53,17 @@ router.post('/matches/run', requireAuth, async (req, res, next) => {
     const profile = await getProfile(tenantId)
     if (!profile) return res.status(404).json({ error: 'profile_not_found', hint: 'Upload a CV first' })
 
-    const result = await matchJobsForProfile(tenantId, profile.id, profile)
-    res.json({ ok: true, ...result })
+    // Fetch fresh jobs then match — runs in background, responds immediately
+    res.json({ ok: true, message: 'Scan started' })
+    ;(async () => {
+      try {
+        await fetchAllJobs()
+        await matchJobsForProfile(tenantId, profile.id, profile)
+        console.log(`[matches/run] Scan complete for tenant ${tenantId}`)
+      } catch (err) {
+        console.error('[matches/run] Scan error:', err)
+      }
+    })()
   } catch (err) { next(err) }
 })
 

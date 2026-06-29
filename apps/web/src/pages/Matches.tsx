@@ -39,8 +39,9 @@ export function Matches() {
     setError('')
     try {
       await triggerScan()
-      setScanMsg('Scan complete — refreshing matches…')
-      setTimeout(() => { setScanMsg(''); load() }, 1500)
+      setScanMsg('Scanning jobs… this takes ~30 seconds.')
+      setTimeout(() => { setScanMsg('Refreshing matches…'); load() }, 35000)
+      setTimeout(() => setScanMsg(''), 37000)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Scan failed')
     } finally {
