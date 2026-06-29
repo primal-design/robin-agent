@@ -17,6 +17,44 @@ async function apiFetch(path, init) {
         throw new Error(`${res.status} ${res.statusText}`);
     return res.json();
 }
+// /matches returns { matches: [...], profile_id }
+async function fetchMatches() {
+    const data = await apiFetch('/matches');
+    return data.matches ?? [];
+}
+// Derive stats from matches (no dedicated stats endpoint)
+async function fetchStats() {
+    try {
+        const matches = await fetchMatches();
+        const applied = matches.filter(m => m.applied);
+        const interviews = applied.filter(m => m.status === 'interview' || m.status === 'offer');
+        return { jobs_scanned: 0, matches_found: matches.length, applications_sent: applied.length, interviews: interviews.length };
+    }
+    catch {
+        return { jobs_scanned: 0, matches_found: 0, applications_sent: 0, interviews: 0 };
+    }
+}
+// CV upload: send file as base64 JSON (backend expects file_data + file_name)
+async function uploadCVFile(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                const base64 = reader.result.split(',')[1];
+                const data = await apiFetch('/profile/cv', {
+                    method: 'POST',
+                    body: JSON.stringify({ file_data: base64, file_name: file.name, file_type: file.type }),
+                });
+                resolve(data.profile);
+            }
+            catch (e) {
+                reject(e);
+            }
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+    });
+}
 // ── Mock data ────────────────────────────────────────────────────────────────
 import { mockProfile, mockStats, mockMatches } from '../data/mockData';
 const mockApi = {
@@ -26,31 +64,17 @@ const mockApi = {
     getMatches: async () => mockMatches,
     getApplications: async () => mockMatches.filter(m => m.applied),
     sendMagicLink: async (_email) => ({ ok: true }),
-    verifyToken: async (_token) => ({ token: 'mock-token', email: 'demo@example.com', tenantId: 'mock-tenant' }),
     uploadCV: async (_file) => mockProfile,
     generateTelegramToken: async () => ({ token: 'abc123def456789012345678901234ab' }),
 };
 const liveApi = {
-    getProfile: () => apiFetch('/api/profile'),
-    updateProfile: (data) => apiFetch('/api/profile', { method: 'PATCH', body: JSON.stringify(data) }),
-    getStats: () => apiFetch('/api/stats/today'),
-    getMatches: () => apiFetch('/api/matches'),
-    getApplications: () => apiFetch('/api/applications'),
+    getProfile: () => apiFetch('/profile'),
+    updateProfile: (data) => apiFetch('/profile', { method: 'PATCH', body: JSON.stringify(data) }),
+    getStats: fetchStats,
+    getMatches: fetchMatches,
+    getApplications: () => apiFetch('/applications'),
     sendMagicLink: (email) => apiFetch('/auth/send-magic-link', { method: 'POST', body: JSON.stringify({ email }) }),
-    verifyToken: (_token) => Promise.resolve({ token: _token, email: '', tenantId: '' }),
-    uploadCV: async (file) => {
-        const token = getToken();
-        const fd = new FormData();
-        fd.append('cv', file);
-        const res = await fetch(`${API_BASE}/api/cv/upload`, {
-            method: 'POST',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-            body: fd,
-        });
-        if (!res.ok)
-            throw new Error(`${res.status} ${res.statusText}`);
-        return res.json();
-    },
-    generateTelegramToken: () => apiFetch('/api/telegram/connect-token', { method: 'POST' }),
+    uploadCV: uploadCVFile,
+    generateTelegramToken: () => apiFetch('/profile/telegram-connect'),
 };
 export const api = USE_MOCKS ? mockApi : liveApi;

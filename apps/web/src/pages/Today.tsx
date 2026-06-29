@@ -16,8 +16,8 @@ export function Today() {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-muted">Loading…</div>
-  if (error)   return <div className="banner banner-danger">{error}</div>
+  if (loading) return <div className="text-muted" style={{ padding: 8 }}>Loading…</div>
+  if (error)   return <div className="banner banner-danger" style={{ maxWidth: 600 }}>{error}</div>
 
   const nextScan = stats?.next_scan
     ? new Date(stats.next_scan).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })

@@ -14,9 +14,9 @@ export function Today() {
             .finally(() => setLoading(false));
     }, []);
     if (loading)
-        return _jsx("div", { className: "text-muted", children: "Loading\u2026" });
+        return _jsx("div", { className: "text-muted", style: { padding: 8 }, children: "Loading\u2026" });
     if (error)
-        return _jsx("div", { className: "banner banner-danger", children: error });
+        return _jsx("div", { className: "banner banner-danger", style: { maxWidth: 600 }, children: error });
     const nextScan = stats?.next_scan
         ? new Date(stats.next_scan).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
         : null;
