@@ -10,10 +10,13 @@ export function Matches() {
   const [error, setError]   = useState('')
 
   useEffect(() => {
-    api.getMatches().then(setMatches).catch(e => setError(e.message)).finally(() => setLoading(false))
+    api.getMatches()
+      .then(setMatches)
+      .catch(e => { if (!e.message?.includes('404')) setError(e.message) })
+      .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <div className="text-muted">Loading…</div>
+  if (loading) return <div className="text-muted" style={{ padding: 8 }}>Loading…</div>
   if (error)   return <div className="banner banner-danger">{error}</div>
 
   return (
