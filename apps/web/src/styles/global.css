@@ -369,6 +369,7 @@ input, textarea, select { font-family: var(--font); font-size: 14px; outline: no
 /* ── Spinner ─────────────────────────────────────────────────────────── */
 
 @keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin .8s linear infinite; }
 .spinner {
   width: 16px; height: 16px;
   border: 2px solid currentColor;
