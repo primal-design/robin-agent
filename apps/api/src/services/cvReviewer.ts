@@ -122,7 +122,9 @@ export interface ReviewResult {
 
 export async function reviewCV(cvText: string, jobTitle?: string): Promise<ReviewResult> {
   const [inhouseResult, agencyResult] = await Promise.allSettled([
-    claudeRecruiter(cvText, jobTitle),
+    process.env.ANTHROPIC_API_KEY
+      ? claudeRecruiter(cvText, jobTitle)
+      : Promise.reject(new Error('ANTHROPIC_API_KEY not configured')),
     process.env.OPENAI_API_KEY
       ? gptAgencyRecruiter(cvText, jobTitle)
       : Promise.reject(new Error('OPENAI_API_KEY not configured')),
