@@ -126,13 +126,12 @@ telegramRouter.post('/telegram/webhook', async (req, res) => {
 
   // Resolve tenant from chat ID
   const { pool } = await import('../db/pool.js')
-  const defaultTenantId = process.env.DEFAULT_TENANT_ID
   const tenantRes = await pool.query<{ tenant_id: string }>(
     `SELECT tenant_id FROM worker_channels
      WHERE channel_type='telegram' AND (public_config->>'chat_id')::text=$1 AND status='active' LIMIT 1`,
     [String(chatId)]
   )
-  const tenantId = tenantRes.rows[0]?.tenant_id ?? defaultTenantId
+  const tenantId = tenantRes.rows[0]?.tenant_id ?? null
 
   // /connect <token> or /start connect_<token> — link Telegram to a tenant
   const connectMatch = msgText.match(/^\/(?:connect|start connect_)\s*([a-f0-9]{32})$/i)

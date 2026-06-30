@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
+import { useEffect, useState } from 'react'
 import { useAuth, AuthProvider } from './lib/auth'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { AppLayout } from './components/AppLayout'
@@ -11,11 +12,28 @@ import { Applications } from './pages/Applications'
 import { CVLab } from './pages/CVLab'
 import { CVReview } from './pages/CVReview'
 import { AgentSettings } from './pages/AgentSettings'
+import { api } from './lib/api'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return null
   if (!user) return <Navigate to="/sign-in" replace />
+  return <>{children}</>
+}
+
+function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const [checked, setChecked] = useState(false)
+  const [hasProfile, setHasProfile] = useState(false)
+
+  useEffect(() => {
+    api.getProfile()
+      .then(profile => setHasProfile(!!profile))
+      .catch(() => setHasProfile(false))
+      .finally(() => setChecked(true))
+  }, [])
+
+  if (!checked) return null
+  if (!hasProfile) return <Navigate to="/app/onboarding" replace />
   return <>{children}</>
 }
 
@@ -26,7 +44,7 @@ function AppRoutes() {
       <Route path="/sign-in" element={<SignIn />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/app/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-      <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      <Route path="/app" element={<ProtectedRoute><OnboardingGate><AppLayout /></OnboardingGate></ProtectedRoute>}>
         <Route index element={<Navigate to="today" replace />} />
         <Route path="today"        element={<Today />} />
         <Route path="matches"      element={<Matches />} />

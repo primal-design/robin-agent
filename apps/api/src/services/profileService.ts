@@ -146,6 +146,69 @@ export async function upsertProfile(
   return r.rows[0]
 }
 
+async function clearProfileArtifacts(tenantId: string, profileId: string): Promise<void> {
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+
+    const appIds = await client.query<{ id: string }>(
+      `SELECT id FROM applications WHERE tenant_id = $1 AND profile_id = $2`,
+      [tenantId, profileId]
+    )
+    const ids = appIds.rows.map(r => r.id)
+
+    if (ids.length) {
+      await client.query(
+        `DELETE FROM application_events
+         WHERE tenant_id = $1 AND application_id = ANY($2::uuid[])`,
+        [tenantId, ids]
+      )
+      await client.query(
+        `DELETE FROM cover_letters
+         WHERE tenant_id = $1 AND application_id = ANY($2::uuid[])`,
+        [tenantId, ids]
+      )
+    }
+
+    await client.query(
+      `DELETE FROM resumes WHERE tenant_id = $1 AND profile_id = $2`,
+      [tenantId, profileId]
+    )
+    await client.query(
+      `DELETE FROM applications WHERE tenant_id = $1 AND profile_id = $2`,
+      [tenantId, profileId]
+    )
+    await client.query(
+      `DELETE FROM job_matches WHERE tenant_id = $1 AND profile_id = $2`,
+      [tenantId, profileId]
+    )
+
+    await client.query('COMMIT')
+  } catch (err) {
+    await client.query('ROLLBACK')
+    throw err
+  } finally {
+    client.release()
+  }
+}
+
+export async function resetProfileData(tenantId: string): Promise<void> {
+  const existing = await getProfile(tenantId)
+  if (!existing) return
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query(`DELETE FROM user_profiles WHERE tenant_id = $1`, [tenantId])
+    await client.query('COMMIT')
+  } catch (err) {
+    await client.query('ROLLBACK')
+    throw err
+  } finally {
+    client.release()
+  }
+}
+
 // ── Upload CV: parse + embed + overwrite CV-derived fields ───────────────────
 
 export async function uploadCV(
@@ -159,6 +222,7 @@ export async function uploadCV(
 
   // CV upload always overwrites CV-derived fields — never COALESCE them
   if (existing) {
+    await clearProfileArtifacts(tenantId, existing.id)
     await pool.query(
       `UPDATE user_profiles
        SET full_name              = COALESCE($1,  full_name),

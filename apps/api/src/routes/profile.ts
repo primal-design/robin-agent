@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db/pool.js'
 import { requireAuth } from '../lib/auth.js'
-import { uploadCV, upsertProfile, getProfile } from '../services/profileService.js'
+import { uploadCV, upsertProfile, getProfile, resetProfileData } from '../services/profileService.js'
 import { extractTextFromFile } from '../services/cvExtractor.js'
 import { getOrCreateTenantForEmail, generateTelegramConnectToken } from '../services/tenantProvisioner.js'
 
@@ -16,8 +16,7 @@ async function getTenantId(identity: string, autoCreate = false): Promise<string
       `SELECT id FROM tenants WHERE LOWER(email) = LOWER($1) LIMIT 1`,
       [email]
     )
-    const defaultId = process.env.DEFAULT_TENANT_ID
-    return r.rows[0]?.id ?? defaultId ?? null
+    return r.rows[0]?.id ?? null
   }
   const r = await pool.query(
     `SELECT m.tenant_id FROM memberships m
@@ -36,6 +35,17 @@ router.get('/profile', requireAuth, async (req, res, next) => {
 
     const profile = await getProfile(tenantId)
     res.json(profile ?? null)
+  } catch (err) { next(err) }
+})
+
+// DELETE /profile — clear current candidate profile and dependent matches/documents
+router.delete('/profile', requireAuth, async (req, res, next) => {
+  try {
+    const tenantId = await getTenantId(req.actor!.phone)
+    if (!tenantId) return res.status(403).json({ error: 'no_tenant' })
+
+    await resetProfileData(tenantId)
+    res.json({ ok: true, cleared: true })
   } catch (err) { next(err) }
 })
 

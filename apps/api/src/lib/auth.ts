@@ -114,9 +114,9 @@ async function getRoleByIdentity(identity: string): Promise<string> {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const identity = extractIdentity(req.headers.authorization || '')
   if (!identity) {
-    // No token — fall back to default tenant (single-user dev mode)
+    // Only allow default-user fallback in non-production for local single-user testing.
     const defaultEmail = process.env.DEFAULT_USER_EMAIL
-    if (defaultEmail) {
+    if (env.nodeEnv !== 'production' && defaultEmail) {
       req.actor = { phone: `email:${defaultEmail}`, role: 'user' }
       return next()
     }

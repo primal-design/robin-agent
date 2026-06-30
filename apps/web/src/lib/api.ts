@@ -109,11 +109,12 @@ const mockApi = {
   getApplications:       async () => mockMatches.filter(m => m.applied),
   sendMagicLink:         async (_email: string) => ({ ok: true }),
   uploadCV:              async (_file: File) => mockProfile,
+  clearProfile:          async () => ({ ok: true }),
   generateTelegramToken: async () => ({ token: 'abc123def456789012345678901234ab' }),
 }
 
 const liveApi = {
-  getProfile: () => apiFetch<UserProfile>('/profile'),
+  getProfile: () => apiFetch<UserProfile | null>('/profile'),
 
   updateProfile: (data: Partial<UserProfile>) =>
     apiFetch<UserProfile>('/profile', { method: 'PATCH', body: JSON.stringify(data) }),
@@ -140,6 +141,9 @@ const liveApi = {
     apiFetch<{ ok: boolean }>('/auth/send-magic-link', { method: 'POST', body: JSON.stringify({ email }) }),
 
   uploadCV: uploadCVFile,
+
+  clearProfile: () =>
+    apiFetch<{ ok: boolean; cleared: boolean }>('/profile', { method: 'DELETE' }),
 
   generateTelegramToken: () =>
     apiFetch<{ token: string }>('/profile/telegram-connect'),

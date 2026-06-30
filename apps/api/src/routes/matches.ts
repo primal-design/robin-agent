@@ -16,7 +16,7 @@ async function getTenantId(identity: string): Promise<string | null> {
       `SELECT id FROM tenants WHERE LOWER(email) = LOWER($1) LIMIT 1`,
       [email]
     )
-    return r.rows[0]?.id ?? process.env.DEFAULT_TENANT_ID ?? null
+    return r.rows[0]?.id ?? null
   }
   const r = await pool.query(
     `SELECT m.tenant_id FROM memberships m

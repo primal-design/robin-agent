@@ -85,6 +85,7 @@ const mockApi = {
     getApplications: async () => mockMatches.filter(m => m.applied),
     sendMagicLink: async (_email) => ({ ok: true }),
     uploadCV: async (_file) => mockProfile,
+    clearProfile: async () => ({ ok: true }),
     generateTelegramToken: async () => ({ token: 'abc123def456789012345678901234ab' }),
 };
 const liveApi = {
@@ -106,6 +107,7 @@ const liveApi = {
     },
     sendMagicLink: (email) => apiFetch('/auth/send-magic-link', { method: 'POST', body: JSON.stringify({ email }) }),
     uploadCV: uploadCVFile,
+    clearProfile: () => apiFetch('/profile', { method: 'DELETE' }),
     generateTelegramToken: () => apiFetch('/profile/telegram-connect'),
 };
 export const api = USE_MOCKS ? mockApi : liveApi;

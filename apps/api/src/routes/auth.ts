@@ -179,7 +179,7 @@ router.get('/auth/google', (req, res) => {
 
 router.get('/auth/google/callback', async (req, res) => {
   const code = String(req.query.code || '')
-  if (!code) return res.redirect('/frontend/fen_site.html?error=google_denied')
+  if (!code) return res.redirect('/sign-in?error=google_denied')
 
   const clientId     = process.env.GOOGLE_CLIENT_ID     || ''
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ''
@@ -194,22 +194,22 @@ router.get('/auth/google/callback', async (req, res) => {
     const rawBody = await tokenRes.text()
     let tokenData: any
     try { tokenData = JSON.parse(rawBody) } catch {
-      return res.redirect('/frontend/fen_site.html?error=google_token_failed')
+      return res.redirect('/sign-in?error=google_token_failed')
     }
     if (tokenData.error || !tokenData.id_token) {
-      return res.redirect('/frontend/fen_site.html?error=google_token_failed')
+      return res.redirect('/sign-in?error=google_token_failed')
     }
 
     const payload = JSON.parse(Buffer.from(tokenData.id_token.split('.')[1], 'base64url').toString())
     const email   = String(payload.email || '').toLowerCase().trim()
     const name    = String(payload.name  || payload.given_name || '').trim()
-    if (!email) return res.redirect('/frontend/fen_site.html?error=google_no_email')
+    if (!email) return res.redirect('/sign-in?error=google_no_email')
 
     const { db } = await import('../db/client.js')
     const check = await db.query(`SELECT name, status FROM waitlist WHERE LOWER(email)=$1 LIMIT 1`, [email])
 
     if (!check.rows.length || check.rows[0].status !== 'accepted') {
-      return res.redirect(`/frontend/fen_site.html?error=not_accepted&email=${encodeURIComponent(email)}`)
+      return res.redirect(`/sign-in?error=not_accepted&email=${encodeURIComponent(email)}`)
     }
 
     if (!check.rows[0].name && name) {
@@ -219,12 +219,12 @@ router.get('/auth/google/callback', async (req, res) => {
     const identity = `email:${email}`
     const s = createSession(identity)
     res.redirect(
-      `/frontend/fen_dashboard.html?token=${encodeURIComponent(s.token)}&refresh=${encodeURIComponent(s.refresh_token)}&name=${encodeURIComponent(check.rows[0].name || name)}`
+      `/auth/callback?token=${encodeURIComponent(s.token)}&refresh=${encodeURIComponent(s.refresh_token)}&name=${encodeURIComponent(check.rows[0].name || name)}`
     )
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[google-auth] unhandled:', msg)
-    res.redirect(`/frontend/fen_site.html?error=google_failed&detail=${encodeURIComponent(msg.slice(0, 120))}`)
+    res.redirect(`/sign-in?error=google_failed&detail=${encodeURIComponent(msg.slice(0, 120))}`)
   }
 })
 

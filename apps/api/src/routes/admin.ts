@@ -52,7 +52,7 @@ router.post('/admin/waitlist/update', async (req, res, next) => {
               from:    process.env.AUTH_EMAIL_FROM || 'FEN <onboarding@resend.dev>',
               to:      email2,
               subject: "You're in — FEN is ready for you",
-              text:    `Hey ${name}!\n\nYou've been accepted into FEN. Sign in here:\n${appUrl}/frontend/fen_site.html\n\n— The FEN team`,
+              text:    `Hey ${name}!\n\nYou've been accepted into FEN. Sign in here:\n${appUrl}/sign-in\n\n— The FEN team`,
             }),
           })
         }
@@ -79,7 +79,7 @@ router.post('/admin/waitlist/notify', async (req, res, next) => {
         from:    process.env.AUTH_EMAIL_FROM || 'FEN <onboarding@resend.dev>',
         to:      email,
         subject: "You're in — FEN is ready for you",
-        text:    `Hey ${name || 'there'}!\n\nYour FEN access is ready. Sign in here:\n${appUrl}/frontend/fen_site.html\n\n— The FEN team`,
+        text:    `Hey ${name || 'there'}!\n\nYour FEN access is ready. Sign in here:\n${appUrl}/sign-in\n\n— The FEN team`,
       }),
     })
     res.json({ ok: true })

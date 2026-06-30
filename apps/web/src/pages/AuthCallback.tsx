@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { useAuth } from '../lib/auth'
+import { api } from '../lib/api'
 
 export function AuthCallback() {
   const [params]  = useSearchParams()
@@ -12,9 +13,11 @@ export function AuthCallback() {
     const token = params.get('token')
     const name  = params.get('name') ?? ''
     if (!token) { setError('No token in URL — try signing in again.'); return }
-    // Token is a ready-made session token from the backend redirect — store it directly
     setTokenFromCallback(token, name)
-      .then(() => navigate('/app/today', { replace: true }))
+      .then(async () => {
+        const profile = await api.getProfile()
+        navigate(profile ? '/app/today' : '/app/onboarding', { replace: true })
+      })
       .catch(e => setError(e instanceof Error ? e.message : 'Auth failed'))
   }, [])
 

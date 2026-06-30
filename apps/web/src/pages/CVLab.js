@@ -1,5 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { api } from '../lib/api';
 const ACCEPTED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'text/plain'];
@@ -15,10 +15,16 @@ function validateFile(file) {
 export function CVLab() {
     const [profile, setProfile] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [resetting, setResetting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [dragOver, setDragOver] = useState(false);
     const inputRef = useRef(null);
+    useEffect(() => {
+        api.getProfile()
+            .then(p => setProfile(p))
+            .catch(() => setProfile(null));
+    }, []);
     const handleFile = async (file) => {
         const err = validateFile(file);
         if (err) {
@@ -40,7 +46,25 @@ export function CVLab() {
             setUploading(false);
         }
     };
-    return (_jsxs("div", { children: [_jsxs("div", { className: "page-header", children: [_jsx("h1", { className: "page-title", children: "CV Lab" }), _jsx("p", { className: "page-sub", children: "Upload your CV to update your profile and improve match quality." })] }), _jsxs("div", { className: "card", style: { maxWidth: 520 }, children: [_jsx("h3", { style: { marginBottom: 16 }, children: "Upload CV" }), error && _jsx("div", { className: "banner banner-danger mb-4", children: error }), success && _jsx("div", { className: "banner banner-success mb-4", children: "CV parsed \u2014 your profile has been updated." }), _jsxs("div", { style: {
+    const handleReset = async () => {
+        setResetting(true);
+        setError('');
+        setSuccess(false);
+        try {
+            await api.clearProfile();
+            setProfile(null);
+            setSuccess(true);
+        }
+        catch (e) {
+            setError(e instanceof Error ? e.message : 'Reset failed');
+        }
+        finally {
+            setResetting(false);
+        }
+    };
+    return (_jsxs("div", { children: [_jsxs("div", { className: "page-header", children: [_jsx("h1", { className: "page-title", children: "CV Lab" }), _jsx("p", { className: "page-sub", children: "Upload your CV to update your profile and improve match quality." })] }), _jsxs("div", { className: "card", style: { maxWidth: 520 }, children: [_jsx("h3", { style: { marginBottom: 8 }, children: profile ? 'Replace CV' : 'Upload CV' }), _jsx("p", { className: "text-sm text-muted", style: { marginBottom: 16 }, children: profile
+                            ? 'Uploading a new CV clears your existing matches, applications, and tailored documents before rebuilding your profile.'
+                            : 'Start here. Once your CV is uploaded, FEN will build your profile and begin matching jobs.' }), error && _jsx("div", { className: "banner banner-danger mb-4", children: error }), success && _jsx("div", { className: "banner banner-success mb-4", children: profile ? 'CV parsed — your profile has been updated.' : 'Candidate data cleared. You can upload a fresh CV now.' }), _jsxs("div", { style: {
                             border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
                             background: dragOver ? 'var(--accent-light)' : 'var(--surface-1)',
                             borderRadius: 12,
@@ -55,7 +79,7 @@ export function CVLab() {
                             if (f)
                                 handleFile(f);
                         }, children: [_jsx(Upload, { size: 28, strokeWidth: 1.5, style: { color: 'var(--text-faint)', marginBottom: 10 } }), _jsx("div", { className: "font-medium", children: "Drop your CV here or click to browse" }), _jsx("div", { className: "text-sm text-muted", style: { marginTop: 4 }, children: "PDF, PNG, JPG, GIF, WebP, TXT \u00B7 max 2 MB" }), uploading && _jsx("div", { className: "spinner", style: { margin: '12px auto 0' } })] }), _jsx("input", { ref: inputRef, type: "file", accept: ACCEPTED_EXT.join(','), style: { display: 'none' }, onChange: e => { const f = e.target.files?.[0]; if (f)
-                            handleFile(f); } })] }), profile && (_jsxs("div", { className: "card", style: { maxWidth: 520, marginTop: 16 }, children: [_jsx("h3", { style: { marginBottom: 16 }, children: "Parsed profile" }), _jsxs("div", { style: { display: 'flex', flexDirection: 'column', gap: 10 }, children: [profile.full_name && _jsx(Row, { label: "Name", children: profile.full_name }), profile.headline && _jsx(Row, { label: "Headline", children: profile.headline }), profile.experience_years && _jsxs(Row, { label: "Experience", children: [profile.experience_years, " years"] }), profile.location && _jsx(Row, { label: "Location", children: profile.location }), profile.skills.length > 0 && (_jsxs("div", { children: [_jsx("div", { className: "field-label", style: { marginBottom: 6 }, children: "Skills" }), _jsx("div", { className: "job-tags", children: profile.skills.map(s => _jsx("span", { className: "badge badge-success", children: s }, s)) })] }))] })] }))] }));
+                            handleFile(f); } }), profile && (_jsx("button", { className: "btn btn-secondary w-full mt-4", disabled: resetting || uploading, onClick: handleReset, children: resetting ? _jsx("span", { className: "spinner" }) : 'Clear this candidate and start fresh' }))] }), profile && (_jsxs("div", { className: "card", style: { maxWidth: 520, marginTop: 16 }, children: [_jsx("h3", { style: { marginBottom: 16 }, children: "Parsed profile" }), _jsxs("div", { style: { display: 'flex', flexDirection: 'column', gap: 10 }, children: [profile.full_name && _jsx(Row, { label: "Name", children: profile.full_name }), profile.headline && _jsx(Row, { label: "Headline", children: profile.headline }), profile.experience_years && _jsxs(Row, { label: "Experience", children: [profile.experience_years, " years"] }), profile.location && _jsx(Row, { label: "Location", children: profile.location }), profile.skills.length > 0 && (_jsxs("div", { children: [_jsx("div", { className: "field-label", style: { marginBottom: 6 }, children: "Skills" }), _jsx("div", { className: "job-tags", children: profile.skills.map(s => _jsx("span", { className: "badge badge-success", children: s }, s)) })] }))] })] }))] }));
 }
 function Row({ label, children }) {
     return (_jsxs("div", { style: { display: 'flex', gap: 12 }, children: [_jsx("span", { className: "text-muted text-sm", style: { width: 90, flexShrink: 0 }, children: label }), _jsx("span", { className: "text-sm", children: children })] }));

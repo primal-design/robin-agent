@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Upload } from 'lucide-react'
 import type { UserProfile } from '../lib/types'
 import { api } from '../lib/api'
@@ -18,10 +18,17 @@ function validateFile(file: File): string | null {
 export function CVLab() {
   const [profile, setProfile]   = useState<UserProfile | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    api.getProfile()
+      .then(p => setProfile(p))
+      .catch(() => setProfile(null))
+  }, [])
 
   const handleFile = async (file: File) => {
     const err = validateFile(file)
@@ -40,6 +47,21 @@ export function CVLab() {
     }
   }
 
+  const handleReset = async () => {
+    setResetting(true)
+    setError('')
+    setSuccess(false)
+    try {
+      await api.clearProfile()
+      setProfile(null)
+      setSuccess(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Reset failed')
+    } finally {
+      setResetting(false)
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -48,10 +70,15 @@ export function CVLab() {
       </div>
 
       <div className="card" style={{ maxWidth: 520 }}>
-        <h3 style={{ marginBottom: 16 }}>Upload CV</h3>
+        <h3 style={{ marginBottom: 8 }}>{profile ? 'Replace CV' : 'Upload CV'}</h3>
+        <p className="text-sm text-muted" style={{ marginBottom: 16 }}>
+          {profile
+            ? 'Uploading a new CV clears your existing matches, applications, and tailored documents before rebuilding your profile.'
+            : 'Start here. Once your CV is uploaded, FEN will build your profile and begin matching jobs.'}
+        </p>
 
         {error   && <div className="banner banner-danger mb-4">{error}</div>}
-        {success && <div className="banner banner-success mb-4">CV parsed — your profile has been updated.</div>}
+        {success && <div className="banner banner-success mb-4">{profile ? 'CV parsed — your profile has been updated.' : 'Candidate data cleared. You can upload a fresh CV now.'}</div>}
 
         <div
           style={{
@@ -88,6 +115,16 @@ export function CVLab() {
           style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
         />
+
+        {profile && (
+          <button
+            className="btn btn-secondary w-full mt-4"
+            disabled={resetting || uploading}
+            onClick={handleReset}
+          >
+            {resetting ? <span className="spinner" /> : 'Clear this candidate and start fresh'}
+          </button>
+        )}
       </div>
 
       {profile && (

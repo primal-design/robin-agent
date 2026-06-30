@@ -238,8 +238,8 @@ router.post('/admin/clients/:tenantId/checkout', async (req, res, next) => {
       customer: tenantRow.rows[0].stripe_customer_id || undefined,
       customer_email: tenantRow.rows[0].stripe_customer_id ? undefined : tenantRow.rows[0].email,
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${base}/frontend/fen_dashboard.html?billing=success`,
-      cancel_url: `${base}/frontend/fen_dashboard.html?billing=cancel`,
+      success_url: `${base}/app/settings?billing=success`,
+      cancel_url: `${base}/app/settings?billing=cancel`,
       metadata: { tenant_id: tenantId },
     })
 

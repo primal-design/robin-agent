@@ -15,7 +15,10 @@ export function AgentSettings() {
   const [genningToken, setGenningToken]   = useState(false)
 
   useEffect(() => {
-    api.getProfile().then(p => { setProfile(p); setForm(p) }).catch(e => setError(e.message))
+    api.getProfile().then(p => {
+      setProfile(p)
+      setForm(p ?? {})
+    }).catch(e => setError(e.message))
   }, [])
 
   const save = async (e: React.FormEvent) => {
