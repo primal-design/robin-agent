@@ -14,6 +14,7 @@ import provisionRouter   from './routes/provision.js'
 import channelsRouter    from './routes/channels.js'
 import schedulerRouter   from './routes/scheduler.js'
 import profileRouter     from './routes/profile.js'
+import cvReviewRouter   from './routes/cvReview.js'
 import jobsRouter        from './routes/jobs.js'
 import matchesRouter     from './routes/matches.js'
 import { publicRateLimit, authRateLimit, dashboardRateLimit, chatRateLimit } from './middleware/rateLimit.js'
@@ -98,6 +99,7 @@ export function createApp() {
   app.use('/', channelsRouter)
   app.use('/', schedulerRouter)
   app.use('/', profileRouter)
+  app.use('/', cvReviewRouter)
   app.use('/', jobsRouter)
   app.use('/', matchesRouter)
   app.use('/', telegramRouter)

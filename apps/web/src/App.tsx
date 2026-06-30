@@ -9,6 +9,7 @@ import { Today } from './pages/Today'
 import { Matches } from './pages/Matches'
 import { Applications } from './pages/Applications'
 import { CVLab } from './pages/CVLab'
+import { CVReview } from './pages/CVReview'
 import { AgentSettings } from './pages/AgentSettings'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ function AppRoutes() {
         <Route path="matches"      element={<Matches />} />
         <Route path="applications" element={<Applications />} />
         <Route path="cv-lab"       element={<CVLab />} />
+        <Route path="cv-review"    element={<CVReview />} />
         <Route path="settings"     element={<AgentSettings />} />
       </Route>
     </Routes>

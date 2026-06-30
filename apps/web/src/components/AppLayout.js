@@ -1,12 +1,13 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { NavLink, Outlet } from 'react-router';
-import { LayoutDashboard, Sparkles, ClipboardList, FileText, Settings } from 'lucide-react';
+import { LayoutDashboard, Sparkles, ClipboardList, FileText, Settings, Star } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 const navItems = [
     { to: '/app/today', label: 'Today', Icon: LayoutDashboard },
     { to: '/app/matches', label: 'Matches', Icon: Sparkles },
     { to: '/app/applications', label: 'Applications', Icon: ClipboardList },
     { to: '/app/cv-lab', label: 'CV Lab', Icon: FileText },
+    { to: '/app/cv-review', label: 'CV Review', Icon: Star },
     { to: '/app/settings', label: 'Settings', Icon: Settings },
 ];
 export function AppLayout() {
