@@ -53,11 +53,21 @@ router.post('/matches/run', requireAuth, async (req, res, next) => {
     const profile = await getProfile(tenantId)
     if (!profile) return res.status(404).json({ error: 'profile_not_found', hint: 'Upload a CV first' })
 
+    // Build keywords from profile headline + target_roles
+    const keywordParts: string[] = []
+    if (profile.target_roles?.length) {
+      keywordParts.push(...profile.target_roles.slice(0, 2).map((r: string) => r.split(/\s+/).slice(0, 3).join(' ')))
+    } else if (profile.headline) {
+      keywordParts.push(profile.headline.split(/\s+/).slice(0, 4).join(' '))
+    }
+    const keywords = keywordParts.length ? keywordParts.join(' OR ') : undefined
+
     // Fetch fresh jobs then match — runs in background, responds immediately
     res.json({ ok: true, message: 'Scan started' })
     ;(async () => {
       try {
-        await fetchAllJobs()
+        console.log(`[matches/run] Scanning with keywords: "${keywords}"`)
+        await fetchAllJobs(keywords)
         await matchJobsForProfile(tenantId, profile.id, profile)
         console.log(`[matches/run] Scan complete for tenant ${tenantId}`)
       } catch (err) {
