@@ -1,8 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-const openai    = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// Lazy clients — only instantiated when a review is requested, not at startup
+let _anthropic: Anthropic | null = null
+let _openai:    OpenAI    | null = null
+
+function getAnthropic() {
+  if (!_anthropic) _anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return _anthropic
+}
+function getOpenAI() {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  return _openai
+}
 
 export interface RecruiterFeedback {
   // Claude — senior in-house recruiter (hiring manager lens)
@@ -30,7 +40,7 @@ export interface RecruiterFeedback {
 async function claudeRecruiter(cvText: string, jobTitle?: string): Promise<RecruiterFeedback['inhouse']> {
   const context = jobTitle ? `The candidate is targeting roles such as: ${jobTitle}.` : ''
 
-  const msg = await anthropic.messages.create({
+  const msg = await getAnthropic().messages.create({
     model: 'claude-opus-4-8',
     max_tokens: 1500,
     messages: [{
@@ -70,7 +80,7 @@ ${cvText}`,
 async function gptAgencyRecruiter(cvText: string, jobTitle?: string): Promise<RecruiterFeedback['agency']> {
   const context = jobTitle ? `Target role: ${jobTitle}.` : ''
 
-  const res = await openai.chat.completions.create({
+  const res = await getOpenAI().chat.completions.create({
     model: 'gpt-4o',   // use gpt-4o as gpt-5 API name TBC
     max_tokens: 1200,
     messages: [{
