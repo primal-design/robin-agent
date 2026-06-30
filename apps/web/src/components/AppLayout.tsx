@@ -13,11 +13,18 @@ const navItems = [
 
 export function AppLayout() {
   const { signOut, user } = useAuth()
+  const displayName = user?.email?.split('@')[0] || 'FEN user'
 
   return (
     <div className="app-shell">
       <nav className="sidebar">
-        <div className="sidebar-logo">FEN</div>
+        <div className="sidebar-logo">
+          <span className="sidebar-logo-mark">FEN</span>
+          <div className="sidebar-logo-title">FEN</div>
+          <div className="sidebar-logo-subtitle">A simpler way to manage job search momentum.</div>
+        </div>
+
+        <div className="sidebar-section-label">Workspace</div>
 
         {navItems.map(({ to, label, Icon }) => (
           <NavLink
@@ -33,18 +40,35 @@ export function AppLayout() {
         <div className="sidebar-spacer" />
 
         {user && (
-          <div style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div className="text-xs text-muted" style={{ wordBreak: 'break-all' }}>{user.email}</div>
-            <button className="btn btn-ghost btn-sm w-full" style={{ justifyContent: 'flex-start' }} onClick={signOut}>
+          <div className="sidebar-user">
+            <div className="sidebar-user-label">Signed In</div>
+            <div className="sidebar-user-name">{displayName}</div>
+            <div className="sidebar-user-email">{user.email}</div>
+            <button className="btn btn-ghost btn-sm w-full" onClick={signOut}>
               Sign out
             </button>
           </div>
         )}
       </nav>
 
-      <main className="main-content">
-        <Outlet />
-      </main>
+      <div className="content-shell">
+        <div className="mobile-nav">
+          {navItems.map(({ to, label, Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `mobile-nav-item${isActive ? ' active' : ''}`}
+            >
+              <Icon size={15} strokeWidth={1.9} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </div>
+
+        <main className="main-content">
+          <Outlet />
+        </main>
+      </div>
     </div>
   )
 }

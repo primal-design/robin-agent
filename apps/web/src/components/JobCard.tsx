@@ -32,7 +32,7 @@ export function JobCard({ match, onApply }: Props) {
   if (!job?.title) return null
 
   return (
-    <div className="card" style={{ marginBottom: 12 }}>
+    <div className="card job-card" style={{ marginBottom: 14 }}>
       <div className="job-card-row">
         <div className="job-info">
           <div className="job-title">{job.title}</div>
@@ -51,12 +51,12 @@ export function JobCard({ match, onApply }: Props) {
       </div>
 
       {recommendation && (
-        <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 12, lineHeight: 1.6 }}>
+        <p className="job-recommendation">
           {recommendation}
         </p>
       )}
 
-      <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="job-card-footer">
         {applied ? (
           <>
             <span className="badge badge-success">Applied</span>
@@ -70,7 +70,9 @@ export function JobCard({ match, onApply }: Props) {
               <a href={job.url} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">View →</a>
             )}
           </>
-        ) : null}
+        ) : (
+          job.url && job.url !== '#' ? <a href={job.url} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">Open listing →</a> : null
+        )}
       </div>
     </div>
   )

@@ -24,21 +24,14 @@ export function Onboarding() {
   return (
     <div className="auth-page">
       <div className="card auth-card">
-        <h1 style={{ marginBottom: 8 }}>Welcome to FEN</h1>
-        <p className="auth-sub">Upload your CV to get started. FEN will parse it, build your profile, and start finding jobs.</p>
+        <div className="hero-eyebrow">Onboarding</div>
+        <h1 style={{ marginBottom: 8 }}>Start with your CV and we’ll build the rest.</h1>
+        <p className="auth-sub">Upload one file, let FEN turn it into a profile, and then review matches in a much simpler flow.</p>
 
         {error && <div className="banner banner-danger mb-4">{error}</div>}
 
         <div
-          style={{
-            border: `2px dashed ${dragOver ? 'var(--accent)' : 'var(--border)'}`,
-            background: dragOver ? 'var(--accent-light)' : 'var(--surface-1)',
-            borderRadius: 12,
-            padding: '44px 20px',
-            textAlign: 'center',
-            cursor: 'pointer',
-            transition: 'border-color .15s, background .15s',
-          }}
+          className={`dropzone${dragOver ? ' dragover' : ''}`}
           onClick={() => inputRef.current?.click()}
           onDragOver={e => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}

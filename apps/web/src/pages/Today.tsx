@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { Upload } from 'lucide-react'
+import { ArrowRight, FileText, Search, Upload } from 'lucide-react'
 import type { TodayStats, JobMatch } from '../lib/types'
 import { api } from '../lib/api'
 import { JobCard } from '../components/JobCard'
@@ -27,7 +27,7 @@ export function Today() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Welcome to FEN</h1>
-        <p className="page-sub">Upload your CV to get started.</p>
+        <p className="page-sub">Start with one CV upload and FEN will handle profile building, matching, and review from there.</p>
       </div>
       <div className="card" style={{ maxWidth: 480 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 20px', gap: 16, textAlign: 'center' }}>
@@ -51,9 +51,44 @@ export function Today() {
       <div className="page-header">
         <h1 className="page-title">Today</h1>
         <p className="page-sub">
-          Your job search is running.
+          Keep the essentials close: profile status, fresh matches, and the next action to take.
           {nextScan && ` Next scan at ${nextScan}.`}
         </p>
+      </div>
+
+      <div className="card hero-card">
+        <div className="hero-card-copy">
+          <div className="hero-eyebrow">Daily overview</div>
+          <h2 className="hero-title">Your search is active and ready for the next step.</h2>
+          <p className="hero-body">
+            Review fresh matches, upload an updated CV, or trigger a new scan when you want a cleaner pass across the latest openings.
+          </p>
+          <div className="hero-actions">
+            <Link to="/app/matches" className="btn btn-primary">
+              <Search size={16} strokeWidth={2} />
+              Review matches
+            </Link>
+            <Link to="/app/cv-lab" className="btn btn-secondary">
+              <FileText size={16} strokeWidth={2} />
+              Manage CV
+            </Link>
+          </div>
+        </div>
+
+        <div className="hero-aside">
+          <div className="hero-highlight">
+            <div className="hero-highlight-value">{stats?.matches_found ?? 0}</div>
+            <div className="hero-highlight-label">current matches available to review</div>
+          </div>
+          <div className="card-tinted">
+            <div className="section-title" style={{ marginBottom: 8 }}>Next best action</div>
+            <p className="text-sm text-muted">
+              {matches.length > 0
+                ? 'Open your strongest matches first and work down the list while everything is fresh.'
+                : 'If your results feel stale, run another scan after updating your CV or target role.'}
+            </p>
+          </div>
+        </div>
       </div>
 
       {stats && (
@@ -74,13 +109,13 @@ export function Today() {
 
       {matches.length > 0 && (
         <>
-          <h2 style={{ fontWeight: 600, marginBottom: 14, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', fontSize: 12 }}>
-            Top matches today
-          </h2>
+          <div className="section-header">
+            <h2 className="section-title">Top matches today</h2>
+            <Link to="/app/matches" className="btn btn-secondary btn-sm">
+              See all matches <ArrowRight size={14} strokeWidth={2} />
+            </Link>
+          </div>
           {matches.map(m => <JobCard key={m.id} match={m} />)}
-          <Link to="/app/matches" className="btn btn-secondary btn-sm" style={{ marginTop: 8 }}>
-            See all matches →
-          </Link>
         </>
       )}
 
