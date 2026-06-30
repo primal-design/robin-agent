@@ -19,8 +19,9 @@ interface AgencyFeedback {
   quick_wins: string[]
 }
 interface ReviewResult {
-  inhouse: InhouseFeedback
-  agency: AgencyFeedback
+  inhouse: InhouseFeedback | null
+  agency:  AgencyFeedback  | null
+  errors?: { inhouse: string | null; agency: string | null }
 }
 
 function priorityColor(p: string) {
@@ -156,37 +157,41 @@ export function CVReview() {
               <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--accent)' }}>Claude Opus · In-house Recruiter</span>
             </div>
 
-            <div style={{ padding: '12px', background: result.inhouse.would_call ? 'var(--success-light)' : 'var(--danger-light)', borderRadius: 8, marginTop: 12 }}>
-              <div style={{ fontWeight: 600, fontSize: 13, color: result.inhouse.would_call ? 'var(--success)' : 'var(--danger)' }}>
-                {result.inhouse.would_call ? '✓ Would call for interview' : '✗ Would not call'}
+            {!result.inhouse ? (
+              <div className="banner banner-danger" style={{ marginTop: 12 }}>
+                {result.errors?.inhouse ?? 'Claude review unavailable'}
               </div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>{result.inhouse.verdict}</div>
-            </div>
-
-            <Section title="First impression">
-              <p className="text-sm">{result.inhouse.first_impression}</p>
-            </Section>
-
-            <Section title="Strengths">
-              <BulletList items={result.inhouse.strengths} variant="success" />
-            </Section>
-
-            <Section title="Weaknesses">
-              <BulletList items={result.inhouse.weaknesses} variant="danger" />
-            </Section>
-
-            <Section title="Improvements">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {result.inhouse.improvements.map((imp, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <span className={`badge ${priorityColor(imp.priority)}`} style={{ flexShrink: 0, marginTop: 1 }}>
-                      {imp.priority}
-                    </span>
-                    <span className="text-sm">{imp.action}</span>
+            ) : (
+              <>
+                <div style={{ padding: '12px', background: result.inhouse.would_call ? 'var(--success-light)' : 'var(--danger-light)', borderRadius: 8, marginTop: 12 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: result.inhouse.would_call ? 'var(--success)' : 'var(--danger)' }}>
+                    {result.inhouse.would_call ? '✓ Would call for interview' : '✗ Would not call'}
                   </div>
-                ))}
-              </div>
-            </Section>
+                  <div style={{ fontSize: 13, marginTop: 4 }}>{result.inhouse.verdict}</div>
+                </div>
+                <Section title="First impression">
+                  <p className="text-sm">{result.inhouse.first_impression}</p>
+                </Section>
+                <Section title="Strengths">
+                  <BulletList items={result.inhouse.strengths} variant="success" />
+                </Section>
+                <Section title="Weaknesses">
+                  <BulletList items={result.inhouse.weaknesses} variant="danger" />
+                </Section>
+                <Section title="Improvements">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {result.inhouse.improvements.map((imp, i) => (
+                      <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <span className={`badge ${priorityColor(imp.priority)}`} style={{ flexShrink: 0, marginTop: 1 }}>
+                          {imp.priority}
+                        </span>
+                        <span className="text-sm">{imp.action}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              </>
+            )}
           </div>
 
           {/* ── GPT — Agency recruiter ── */}
@@ -196,39 +201,44 @@ export function CVReview() {
               <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--success)' }}>GPT-4o · Agency Recruiter</span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12, padding: 12, background: 'var(--surface-1)', borderRadius: 8 }}>
-              <ATSRing score={result.agency.ats_score} />
-              <div>
-                <div style={{ fontWeight: 600 }}>ATS Score</div>
-                <div className="text-sm text-muted">
-                  {result.agency.ats_score >= 70 ? 'Likely to pass ATS filters' : result.agency.ats_score >= 50 ? 'May pass — improvements needed' : 'High risk of ATS rejection'}
+            {!result.agency ? (
+              <div className="banner banner-warning" style={{ marginTop: 12 }}>
+                {result.errors?.agency?.includes('not configured')
+                  ? 'GPT-4o not configured on this server — Claude review above is complete.'
+                  : (result.errors?.agency ?? 'GPT review unavailable')}
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12, padding: 12, background: 'var(--surface-1)', borderRadius: 8 }}>
+                  <ATSRing score={result.agency.ats_score} />
+                  <div>
+                    <div style={{ fontWeight: 600 }}>ATS Score</div>
+                    <div className="text-sm text-muted">
+                      {result.agency.ats_score >= 70 ? 'Likely to pass ATS filters' : result.agency.ats_score >= 50 ? 'May pass — improvements needed' : 'High risk of ATS rejection'}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <Section title="Marketability">
-              <p className="text-sm">{result.agency.marketability}</p>
-            </Section>
-
-            <Section title="Keywords present">
-              <div className="job-tags">
-                {result.agency.keyword_hits.map(k => <span key={k} className="badge badge-success">{k}</span>)}
-              </div>
-            </Section>
-
-            <Section title="Missing keywords">
-              <div className="job-tags">
-                {result.agency.keyword_gaps.map(k => <span key={k} className="badge badge-danger">{k}</span>)}
-              </div>
-            </Section>
-
-            <Section title="ATS issues">
-              <BulletList items={result.agency.ats_issues} variant="danger" />
-            </Section>
-
-            <Section title="Quick wins">
-              <BulletList items={result.agency.quick_wins} variant="neutral" />
-            </Section>
+                <Section title="Marketability">
+                  <p className="text-sm">{result.agency.marketability}</p>
+                </Section>
+                <Section title="Keywords present">
+                  <div className="job-tags">
+                    {result.agency.keyword_hits.map(k => <span key={k} className="badge badge-success">{k}</span>)}
+                  </div>
+                </Section>
+                <Section title="Missing keywords">
+                  <div className="job-tags">
+                    {result.agency.keyword_gaps.map(k => <span key={k} className="badge badge-danger">{k}</span>)}
+                  </div>
+                </Section>
+                <Section title="ATS issues">
+                  <BulletList items={result.agency.ats_issues} variant="danger" />
+                </Section>
+                <Section title="Quick wins">
+                  <BulletList items={result.agency.quick_wins} variant="neutral" />
+                </Section>
+              </>
+            )}
           </div>
         </div>
       )}

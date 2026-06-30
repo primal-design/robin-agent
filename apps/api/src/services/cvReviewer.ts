@@ -112,12 +112,27 @@ ${cvText}`,
   return JSON.parse(clean)
 }
 
-// ── Main export — runs both in parallel ──────────────────────────────────────
+// ── Main export — runs both in parallel, each independently ──────────────────
 
-export async function reviewCV(cvText: string, jobTitle?: string): Promise<RecruiterFeedback> {
-  const [inhouse, agency] = await Promise.all([
+export interface ReviewResult {
+  inhouse: RecruiterFeedback['inhouse'] | null
+  agency:  RecruiterFeedback['agency']  | null
+  errors:  { inhouse: string | null; agency: string | null }
+}
+
+export async function reviewCV(cvText: string, jobTitle?: string): Promise<ReviewResult> {
+  const [inhouseResult, agencyResult] = await Promise.allSettled([
     claudeRecruiter(cvText, jobTitle),
-    gptAgencyRecruiter(cvText, jobTitle),
+    process.env.OPENAI_API_KEY
+      ? gptAgencyRecruiter(cvText, jobTitle)
+      : Promise.reject(new Error('OPENAI_API_KEY not configured')),
   ])
-  return { inhouse, agency }
+  return {
+    inhouse: inhouseResult.status === 'fulfilled' ? inhouseResult.value : null,
+    agency:  agencyResult.status  === 'fulfilled' ? agencyResult.value  : null,
+    errors: {
+      inhouse: inhouseResult.status === 'rejected' ? String((inhouseResult as PromiseRejectedResult).reason) : null,
+      agency:  agencyResult.status  === 'rejected' ? String((agencyResult  as PromiseRejectedResult).reason) : null,
+    },
+  }
 }
