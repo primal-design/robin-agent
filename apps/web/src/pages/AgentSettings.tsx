@@ -49,13 +49,14 @@ export function AgentSettings() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Settings</h1>
-        <p className="page-sub">Configure your job search preferences.</p>
+        <p className="page-sub">Keep only the profile details that improve matching.</p>
       </div>
 
       {error && <div className="banner banner-danger mb-4">{error}</div>}
 
-      <form onSubmit={save} style={{ maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="settings-grid">
+      <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="card settings-panel" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <h3>Profile</h3>
 
           <div className="field">
@@ -98,10 +99,10 @@ export function AgentSettings() {
         </button>
       </form>
 
-      <div className="card" style={{ maxWidth: 520, marginTop: 24 }}>
+      <div className="card settings-panel">
         <h3 style={{ marginBottom: 4 }}>Connect Telegram</h3>
         <p className="text-sm text-muted" style={{ marginBottom: 16 }}>
-          Receive job matches and alerts in Telegram.
+          Optional. Only use this if you actually want job alerts in Telegram.
         </p>
 
         {telegramToken ? (
@@ -118,6 +119,7 @@ export function AgentSettings() {
             {genningToken ? <span className="spinner" /> : 'Generate connect code'}
           </button>
         )}
+      </div>
       </div>
     </div>
   )

@@ -18,7 +18,7 @@ export function Onboarding() {
         setError('');
         try {
             await api.uploadCV(file);
-            navigate('/app/today', { replace: true });
+            navigate('/app/matches', { replace: true });
         }
         catch (e) {
             setError(e instanceof Error ? e.message : 'Upload failed');

@@ -1,6 +1,4 @@
 import type { JobMatch } from '../lib/types'
-import { ProgressRing } from './ProgressRing'
-
 interface Props { match: JobMatch; onApply?: (id: string) => void }
 
 function fmtSalary(min?: number, max?: number, currency = 'GBP') {
@@ -47,7 +45,7 @@ export function JobCard({ match, onApply }: Props) {
             {skill_gaps.map(s   => <span key={s} className="badge badge-danger">{s}</span>)}
           </div>
         </div>
-        <ProgressRing value={score} />
+        <div className="score-chip">{score}</div>
       </div>
 
       {recommendation && (

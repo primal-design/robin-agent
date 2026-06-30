@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { ClipboardList } from 'lucide-react'
 import type { JobMatch } from '../lib/types'
 import { api } from '../lib/api'
-import { ProgressRing } from '../components/ProgressRing'
 
 function statusBadge(status: string) {
   const map: Record<string, string> = {
@@ -43,7 +42,7 @@ export function Applications() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {apps.map(a => (
             <div key={a.id} className="card" style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-              <ProgressRing value={a.score} size={44} />
+              <div className="score-chip score-chip-sm">{a.score}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="job-title">{a.job.title}</div>
                 <div className="job-company">{a.job.company}{a.job.location ? ` · ${a.job.location}` : ''}</div>

@@ -18,7 +18,7 @@ export function AuthCallback() {
         setTokenFromCallback(token, name)
             .then(async () => {
             const profile = await api.getProfile();
-            navigate(profile ? '/app/today' : '/app/onboarding', { replace: true });
+            navigate(profile ? '/app/matches' : '/app/onboarding', { replace: true });
         })
             .catch(e => setError(e instanceof Error ? e.message : 'Auth failed'));
     }, []);

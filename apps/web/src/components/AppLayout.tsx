@@ -1,9 +1,8 @@
 import { NavLink, Outlet } from 'react-router'
-import { LayoutDashboard, Sparkles, ClipboardList, FileText, Settings, Star } from 'lucide-react'
+import { Sparkles, ClipboardList, FileText, Settings, Star } from 'lucide-react'
 import { useAuth } from '../lib/auth'
 
 const navItems = [
-  { to: '/app/today',        label: 'Today',        Icon: LayoutDashboard },
   { to: '/app/matches',      label: 'Matches',      Icon: Sparkles },
   { to: '/app/applications', label: 'Applications', Icon: ClipboardList },
   { to: '/app/cv-lab',       label: 'CV Lab',       Icon: FileText },
@@ -19,12 +18,8 @@ export function AppLayout() {
     <div className="app-shell">
       <nav className="sidebar">
         <div className="sidebar-logo">
-          <span className="sidebar-logo-mark">FEN</span>
           <div className="sidebar-logo-title">FEN</div>
-          <div className="sidebar-logo-subtitle">A simpler way to manage job search momentum.</div>
         </div>
-
-        <div className="sidebar-section-label">Workspace</div>
 
         {navItems.map(({ to, label, Icon }) => (
           <NavLink
@@ -41,7 +36,6 @@ export function AppLayout() {
 
         {user && (
           <div className="sidebar-user">
-            <div className="sidebar-user-label">Signed In</div>
             <div className="sidebar-user-name">{displayName}</div>
             <div className="sidebar-user-email">{user.email}</div>
             <button className="btn btn-ghost btn-sm w-full" onClick={signOut}>

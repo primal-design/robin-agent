@@ -16,7 +16,7 @@ export function Onboarding() {
   const handleUpload = async () => {
     if (!file) return
     setUploading(true); setError('')
-    try { await api.uploadCV(file); navigate('/app/today', { replace: true }) }
+    try { await api.uploadCV(file); navigate('/app/matches', { replace: true }) }
     catch (e) { setError(e instanceof Error ? e.message : 'Upload failed') }
     finally { setUploading(false) }
   }

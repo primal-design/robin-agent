@@ -111,25 +111,25 @@ export function CVReview() {
     <div>
       <div className="page-header">
         <h1 className="page-title">CV Review</h1>
-        <p className="page-sub">Two AI recruiters with 20 years experience review your CV in parallel.</p>
+        <p className="page-sub">Run a stored CV review when you want feedback on clarity, ATS risk, and missing keywords.</p>
       </div>
 
       {!result && !loading && (
-        <div className="card" style={{ maxWidth: 540 }}>
-          <div style={{ display: 'flex', gap: 20, marginBottom: 20 }}>
+        <div className="card" style={{ maxWidth: 640 }}>
+          <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
             <div style={{ flex: 1, padding: '16px', background: 'var(--surface-1)', borderRadius: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <Brain size={18} style={{ color: 'var(--accent)' }} />
-                <span style={{ fontWeight: 600, fontSize: 13 }}>Claude Opus 4.8</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>Recruiter pass 1</span>
               </div>
-              <p className="text-sm text-muted">Senior in-house recruiter & hiring manager. Would they call you?</p>
+              <p className="text-sm text-muted">High-level hiring manager verdict and improvement priorities.</p>
             </div>
             <div style={{ flex: 1, padding: '16px', background: 'var(--surface-1)', borderRadius: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <Building2 size={18} style={{ color: 'var(--success)' }} />
-                <span style={{ fontWeight: 600, fontSize: 13 }}>GPT-4o</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>Recruiter pass 2</span>
               </div>
-              <p className="text-sm text-muted">Agency recruiter. ATS score, keyword gaps, marketability.</p>
+              <p className="text-sm text-muted">ATS score, keyword gaps, and marketability checks.</p>
             </div>
           </div>
           {error && <div className="banner banner-danger" style={{ marginBottom: 16 }}>{error}</div>}

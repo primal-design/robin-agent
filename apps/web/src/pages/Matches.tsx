@@ -86,7 +86,7 @@ export function Matches() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
         <div className="page-header" style={{ marginBottom: 0 }}>
           <h1 className="page-title">Matches</h1>
-          <p className="page-sub">{matches.length} job{matches.length !== 1 ? 's' : ''} matched to your profile. Start with the highest-fit roles and ignore the noise.</p>
+          <p className="page-sub">{matches.length} job{matches.length !== 1 ? 's' : ''} matched to your profile.</p>
         </div>
         <button className="btn btn-secondary" onClick={runScan} disabled={scanning} style={{ flexShrink: 0 }}>
           <RefreshCw size={14} style={scanning ? { animation: 'spin .8s linear infinite' } : {}} />
