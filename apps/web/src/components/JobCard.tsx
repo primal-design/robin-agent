@@ -10,8 +10,26 @@ function fmtSalary(min?: number, max?: number, currency = 'GBP') {
 }
 
 export function JobCard({ match, onApply }: Props) {
-  const { job, score, skill_matches, skill_gaps, applied, recommendation, status } = match
-  const salary = fmtSalary(job.salary_min, job.salary_max, job.salary_currency)
+  // Guard: backend may return flat rows — normalise defensively
+  const raw = match as unknown as Record<string, unknown>
+  const job = (match.job ?? {
+    id:         raw.job_id as string,
+    title:      raw.title  as string,
+    company:    raw.company as string,
+    location:   raw.location as string | undefined,
+    salary_min: raw.salary_min as number | undefined,
+    salary_max: raw.salary_max as number | undefined,
+    url:        raw.url as string | undefined,
+  }) as JobMatch['job']
+  const score        = match.score        ?? (raw.suitability_score as number) ?? 0
+  const skill_matches = match.skill_matches ?? (raw.match_reasons   as string[]) ?? []
+  const skill_gaps    = match.skill_gaps    ?? (raw.missing_skills  as string[]) ?? []
+  const applied       = match.applied       ?? false
+  const recommendation = match.recommendation ?? (raw.llm_summary as string | undefined)
+  const status        = match.status
+  const salary = fmtSalary(job?.salary_min, job?.salary_max, (job as Record<string,unknown>)?.salary_currency as string | undefined)
+
+  if (!job?.title) return null
 
   return (
     <div className="card" style={{ marginBottom: 12 }}>
@@ -21,8 +39,8 @@ export function JobCard({ match, onApply }: Props) {
           <div className="job-company">{job.company}</div>
           <div className="job-meta">
             {job.location && <span>{job.location}</span>}
-            {salary     && <span>{salary}</span>}
-            {job.source && <span>via {job.source}</span>}
+            {salary       && <span>{salary}</span>}
+            {job.source   && <span>via {job.source}</span>}
           </div>
           <div className="job-tags">
             {skill_matches.map(s => <span key={s} className="badge badge-success">{s}</span>)}
