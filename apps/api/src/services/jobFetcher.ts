@@ -33,11 +33,16 @@ async function fetchAdzuna(keywords: string, resultsPerPage = 50): Promise<Norma
   }
 
   const url = new URL('https://api.adzuna.com/v1/api/jobs/gb/search/1')
-  url.searchParams.set('app_id',        appId)
-  url.searchParams.set('app_key',       appKey)
+  url.searchParams.set('app_id',           appId)
+  url.searchParams.set('app_key',          appKey)
   url.searchParams.set('results_per_page', String(resultsPerPage))
-  url.searchParams.set('what',          keywords)
-  url.searchParams.set('content-type',  'application/json')
+  url.searchParams.set('content-type',     'application/json')
+  // Adzuna uses what_or for OR-separated terms, what for AND
+  if (keywords.includes(' OR ')) {
+    url.searchParams.set('what_or', keywords.replace(/ OR /g, ' '))
+  } else {
+    url.searchParams.set('what', keywords)
+  }
 
   const r = await fetch(url.toString())
   if (!r.ok) throw new Error(`Adzuna ${r.status}: ${await r.text().then(t => t.slice(0, 200))}`)
@@ -1281,7 +1286,7 @@ export async function fetchAllJobs(keywords?: string): Promise<void> {
   }
   const sources = [
     { name: 'adzuna',      fn: () => fetchAdzuna(keywords) },
-    { name: 'adzuna_hr',   fn: () => fetchAdzuna('recruiter OR "talent acquisition" OR "HR manager" OR "recruitment consultant"') },
+    { name: 'adzuna_hr',   fn: () => fetchAdzuna('recruiter talent acquisition HR manager recruitment consultant') },
     { name: 'reed',       fn: () => fetchReed(keywords) },
     { name: 'cv_library', fn: () => fetchCVLibrary(keywords) },
     { name: 'greenhouse', fn: () => fetchGreenhouse() },
