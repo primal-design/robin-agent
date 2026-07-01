@@ -1,4 +1,4 @@
-import type { UserProfile, JobMatch, TodayStats } from './types'
+import type { UserProfile, JobMatch, TodayStats, MatchFeedback } from './types'
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true'
 const API_BASE  = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -17,7 +17,13 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   })
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  if (!res.ok) {
+    const data = await res.json().catch(() => null) as
+      | { error?: string; message?: string; hint?: string }
+      | null
+    const detail = data?.message ?? data?.error ?? data?.hint
+    throw new Error(detail || `${res.status} ${res.statusText}`)
+  }
   return res.json() as Promise<T>
 }
 
@@ -55,6 +61,7 @@ function normalizeMatch(r: RawMatch): JobMatch {
     skill_matches: r.match_reasons ?? [],
     skill_gaps: r.missing_skills ?? [],
     recommendation: r.llm_summary,
+    user_feedback: r.user_feedback as MatchFeedback | undefined,
     applied: false,
     status: 'new',
   }
@@ -110,6 +117,7 @@ const mockApi = {
   sendMagicLink:         async (_email: string) => ({ ok: true }),
   uploadCV:              async (_file: File) => mockProfile,
   clearProfile:          async () => ({ ok: true }),
+  setMatchFeedback:      async (_id: string, _feedback: MatchFeedback) => ({ ok: true }),
   generateTelegramToken: async () => ({ token: 'abc123def456789012345678901234ab' }),
 }
 
@@ -144,6 +152,12 @@ const liveApi = {
 
   clearProfile: () =>
     apiFetch<{ ok: boolean; cleared: boolean }>('/profile', { method: 'DELETE' }),
+
+  setMatchFeedback: (id: string, feedback: MatchFeedback) =>
+    apiFetch<{ ok: boolean }>(`/matches/${id}/feedback`, {
+      method: 'PATCH',
+      body: JSON.stringify({ feedback }),
+    }),
 
   generateTelegramToken: () =>
     apiFetch<{ token: string }>('/profile/telegram-connect'),

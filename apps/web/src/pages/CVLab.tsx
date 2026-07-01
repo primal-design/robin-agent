@@ -7,6 +7,14 @@ const ACCEPTED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/gif
 const ACCEPTED_EXT   = ['.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.txt']
 const MAX_BYTES      = 2 * 1024 * 1024
 
+function formatUploadError(message: string) {
+  if (message.includes('profile_not_found')) return 'Upload a CV first to create the candidate profile.'
+  if (message.includes('Internal server error') || message === '500' || message.startsWith('500 ')) {
+    return 'The server could not process this CV just now. Try again in a moment, or check the Render logs if it keeps happening.'
+  }
+  return message
+}
+
 function validateFile(file: File): string | null {
   if (!ACCEPTED_TYPES.includes(file.type) && !ACCEPTED_EXT.some(e => file.name.toLowerCase().endsWith(e)))
     return `Unsupported format. Please upload: ${ACCEPTED_EXT.join(', ')}`
@@ -41,7 +49,7 @@ export function CVLab() {
       setProfile(p)
       setSuccess(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed')
+      setError(formatUploadError(e instanceof Error ? e.message : 'Upload failed'))
     } finally {
       setUploading(false)
     }
@@ -56,7 +64,7 @@ export function CVLab() {
       setProfile(null)
       setSuccess(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Reset failed')
+      setError(formatUploadError(e instanceof Error ? e.message : 'Reset failed'))
     } finally {
       setResetting(false)
     }

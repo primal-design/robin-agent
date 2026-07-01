@@ -13,13 +13,24 @@ const navItems = [
 export function AppLayout() {
   const { signOut, user } = useAuth()
   const displayName = user?.email?.split('@')[0] || 'FEN user'
+  const initials = displayName
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('') || 'F'
 
   return (
     <div className="app-shell">
       <nav className="sidebar">
         <div className="sidebar-logo">
           <div className="sidebar-logo-title">FEN</div>
+          <p className="sidebar-logo-subtitle">
+            Focused job search workspace for one candidate at a time.
+          </p>
         </div>
+
+        <div className="sidebar-section-label">Workspace</div>
 
         {navItems.map(({ to, label, Icon }) => (
           <NavLink
@@ -36,9 +47,14 @@ export function AppLayout() {
 
         {user && (
           <div className="sidebar-user">
-            <div className="sidebar-user-name">{displayName}</div>
-            <div className="sidebar-user-email">{user.email}</div>
-            <button className="btn btn-ghost btn-sm w-full" onClick={signOut}>
+            <div className="sidebar-user-card">
+              <div className="sidebar-user-avatar">{initials}</div>
+              <div className="sidebar-user-meta">
+                <div className="sidebar-user-name">{displayName}</div>
+                <div className="sidebar-user-email">{user.email}</div>
+              </div>
+            </div>
+            <button className="btn btn-ghost btn-sm w-full sidebar-signout" onClick={signOut}>
               Sign out
             </button>
           </div>

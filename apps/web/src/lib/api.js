@@ -13,8 +13,11 @@ async function apiFetch(path, init) {
             ...init?.headers,
         },
     });
-    if (!res.ok)
-        throw new Error(`${res.status} ${res.statusText}`);
+    if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        const detail = data?.message ?? data?.error ?? data?.hint;
+        throw new Error(detail || `${res.status} ${res.statusText}`);
+    }
     return res.json();
 }
 function normalizeMatch(r) {
@@ -33,6 +36,7 @@ function normalizeMatch(r) {
         skill_matches: r.match_reasons ?? [],
         skill_gaps: r.missing_skills ?? [],
         recommendation: r.llm_summary,
+        user_feedback: r.user_feedback,
         applied: false,
         status: 'new',
     };
@@ -86,6 +90,7 @@ const mockApi = {
     sendMagicLink: async (_email) => ({ ok: true }),
     uploadCV: async (_file) => mockProfile,
     clearProfile: async () => ({ ok: true }),
+    setMatchFeedback: async (_id, _feedback) => ({ ok: true }),
     generateTelegramToken: async () => ({ token: 'abc123def456789012345678901234ab' }),
 };
 const liveApi = {
@@ -108,6 +113,10 @@ const liveApi = {
     sendMagicLink: (email) => apiFetch('/auth/send-magic-link', { method: 'POST', body: JSON.stringify({ email }) }),
     uploadCV: uploadCVFile,
     clearProfile: () => apiFetch('/profile', { method: 'DELETE' }),
+    setMatchFeedback: (id, feedback) => apiFetch(`/matches/${id}/feedback`, {
+        method: 'PATCH',
+        body: JSON.stringify({ feedback }),
+    }),
     generateTelegramToken: () => apiFetch('/profile/telegram-connect'),
 };
 export const api = USE_MOCKS ? mockApi : liveApi;

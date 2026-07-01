@@ -34,11 +34,14 @@ export interface JobMatch {
   skill_matches: string[]
   skill_gaps: string[]
   recommendation?: string
+  user_feedback?: MatchFeedback
   applied?: boolean
   applied_at?: string
   status?: 'new' | 'applied' | 'interview' | 'offer' | 'rejected'
   created_at?: string
 }
+
+export type MatchFeedback = 'interested' | 'skip' | 'not_relevant'
 
 export interface TodayStats {
   jobs_scanned: number
